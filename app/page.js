@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 
 export default function Home() {
   // Home = listado de tus eventos
-  redirect('/events');
+  redirect('/(app)/events');
 }
 
 
