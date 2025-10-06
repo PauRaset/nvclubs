@@ -7,6 +7,7 @@ import {
   fetchEventPhotos,
   deleteEventPhoto,
 } from '@/lib/eventsApi';
+import { getUser } from '@/lib/apiClient';
 
 /* --- Recorte simple: centra y reescala a 800x450 --- */
 async function cropTo800x450(file) {
@@ -73,6 +74,13 @@ function localToISO(v) {
   return isNaN(d.getTime()) ? null : d.toISOString();
 }
 
+/* Extrae un id de propietario desde createdBy (string u objeto) */
+function ownerIdFrom(createdBy) {
+  if (!createdBy) return null;
+  if (typeof createdBy === 'string') return createdBy;
+  return createdBy._id || createdBy.id || createdBy.toString?.() || null;
+}
+
 export default function EventForm({ initial = null, onSaved, mode = 'create' }) {
   // Normaliza props iniciales (acepta claves nuevas o antiguas)
   const initialStart = initial?.startAtISO || initial?.startAt || initial?.dateISO || initial?.date || null;
@@ -127,7 +135,6 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
       setLoadingPhotos(true);
       const r = await fetchEventPhotos(id);
       if (r.ok) {
-        // Asegura objetos con 'url'
         const list = Array.isArray(r.data) ? r.data.map(p => (typeof p === 'string' ? { url: p } : p)) : [];
         setPhotos(list);
       }
@@ -226,17 +233,13 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
     const id = initial?.id || initial?._id || initial?._raw?._id;
     if (!id) return;
 
-    // Protección: solo si el creador es dueño
-    const isOwner = !!initial?.isOwner;
-    if (!isOwner) return;
+    if (!isOwner) return; // doble cierre en cliente
 
     const photo = photos[idx];
     setDeletingIdx(idx);
     try {
-      // Pasamos url y también idx como respaldo
       const r = await deleteEventPhoto(id, { url: photo?.url, idx });
       if (r.ok) {
-        // actualiza UI localmente
         setPhotos(prev => prev.filter((_, i) => i !== idx));
       } else {
         alert(r.data?.message || `No se pudo borrar (HTTP ${r.status})`);
@@ -249,7 +252,18 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
     }
   }
 
-  const isOwner = !!initial?.isOwner;
+  // ====== CÁLCULO DEL OWNER EN CLIENTE (si el backend no trajo initial.isOwner) ======
+  const currentUserId = getUser()?.id || null;
+  const createdByCandidate =
+    initial?.createdBy ??
+    initial?._raw?.createdBy ??
+    null;
+  const createdById = ownerIdFrom(createdByCandidate);
+  const computedIsOwner = currentUserId && createdById
+    ? String(currentUserId) === String(createdById)
+    : false;
+
+  const isOwner = initial?.isOwner ?? computedIsOwner;
 
   return (
     <form onSubmit={handleSubmit} style={{ display:'grid', gap:12, maxWidth:720 }}>
@@ -490,6 +504,7 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
     </form>
   );
 }
+
 
 
 /*'use client';
