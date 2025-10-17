@@ -3,7 +3,6 @@ import { clearSession, getUser } from '@/lib/apiClient';
 import { useEffect, useState } from 'react';
 
 export default function TopNav() {
-  // Leemos el usuario en cliente (puede no estar aún al hidratar)
   const [user, setUser] = useState(null);
   useEffect(() => { setUser(getUser()); }, []);
 
@@ -36,11 +35,14 @@ export default function TopNav() {
     }}>
       <nav style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
         <a href="/events" style={link}>Eventos</a>
-        <a href="/events/new" style={{ ...link, background: '#0ea5e9', color: '#001018', fontWeight: 600 }}>
+        <a
+          href="/events/new"
+          style={{ ...link, background: '#0ea5e9', color: '#001018', fontWeight: 600 }}
+        >
           + Crear
         </a>
 
-        {/* Nuevo: enlaces de registro/verificación visibles solo si NO hay usuario */}
+        {/* Enlaces visibles cuando no hay sesión */}
         {!user && (
           <>
             <a href="/register" style={link}>Registro</a>
@@ -57,7 +59,6 @@ export default function TopNav() {
           {user ? `#${user.username || user.email}` : '...'}
         </span>
 
-        {/* Si hay usuario -> botón Salir; si no, botón Entrar (sin onClick de logout) */}
         {user ? (
           <a
             href="/login"
