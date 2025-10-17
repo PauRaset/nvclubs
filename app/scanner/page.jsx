@@ -3,7 +3,7 @@
 import ScannerCheckin from '@/components/ScannerCheckin';
 
 export default function ScannerPage() {
-  const backend = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://TU_BACKEND';
+  const backend = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://api.nightvibe.life';
   const key = process.env.NEXT_PUBLIC_SCANNER_KEY || '';
 
   return (
