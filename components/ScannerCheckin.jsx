@@ -24,7 +24,8 @@ const Banner = ({ type='info', children }) => {
 
 export default function ScannerCheckin({ backendBase='https://api.nightvibe.life', scannerKey }) {
   const endpoint = `${(backendBase||'').replace(/\/+$/,'')}/api/checkin`;
-  const videoRef = useRef(null);
+
+  const videoRef  = useRef(null);
   const readerRef = useRef(null);
   const loopRef   = useRef(null);
   const statusRef = useRef('scanning');
@@ -35,7 +36,6 @@ export default function ScannerCheckin({ backendBase='https://api.nightvibe.life
 
   const setStatusSafe = (s) => { statusRef.current = s; setStatus(s); };
 
-  // iniciar cámara y loop
   useEffect(() => {
     let cancelled = false;
 
@@ -47,6 +47,7 @@ export default function ScannerCheckin({ backendBase='https://api.nightvibe.life
       setStatusSafe('scanning');
       setMessage('Apunta el QR');
 
+      // Cámara
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
         if (cancelled) return;
@@ -56,38 +57,36 @@ export default function ScannerCheckin({ backendBase='https://api.nightvibe.life
         return;
       }
 
+      // Bucle de lectura controlado por statusRef
       const loop = async () => {
         if (cancelled) return;
-        if (statusRef.current !== 'scanning') return; // <- no seguir leyendo si NO estamos escaneando
+        if (statusRef.current !== 'scanning') return; // <- clave: nunca seguimos si no estamos escaneando
 
         try {
           const res = await reader.decodeOnceFromVideoDevice(undefined, videoRef.current);
-          if (!res?.getText) return requestAnimationFrame(loop);
+          if (!res?.getText) {
+            // Relanzamos solo si seguimos en modo scanning
+            if (statusRef.current === 'scanning') requestAnimationFrame(loop);
+            return;
+          }
 
           const parsed = parseNV1(res.getText());
           if (!parsed) {
             setStatusSafe('error'); setMessage('Código no válido');
             navigator.vibrate?.(150);
-            return; // NO relanzamos loop: esperamos botón "Escanear siguiente"
+            return; // NO reanudamos: el usuario decide cuándo con el botón
           }
 
           setStatusSafe('posting'); setMessage('Verificando…');
 
           const r = await fetch(endpoint, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-scanner-key': scannerKey || '',
-            },
+            headers: { 'Content-Type': 'application/json', 'x-scanner-key': scannerKey || '' },
             body: JSON.stringify(parsed),
           });
-
           const data = await r.json().catch(() => ({}));
 
-          if (r.status === 401) {
-            setStatusSafe('error'); setMessage('No autorizado (x-scanner-key)');
-            return;
-          }
+          if (r.status === 401) { setStatusSafe('error'); setMessage('No autorizado (x-scanner-key)'); return; }
 
           if (r.ok && data?.ok) {
             setStatusSafe('success'); setMessage('Entrada válida');
@@ -100,7 +99,7 @@ export default function ScannerCheckin({ backendBase='https://api.nightvibe.life
               buyerEmail: data.buyerEmail || '',
             });
             navigator.vibrate?.([40,60,40]);
-            return; // Queda en tarjeta hasta pulsar "Escanear siguiente"
+            return; // se queda en tarjeta
           }
 
           const reason = (data?.reason || '').toLowerCase();
@@ -122,6 +121,7 @@ export default function ScannerCheckin({ backendBase='https://api.nightvibe.life
 
           setStatusSafe('error'); setMessage('Error de verificación'); navigator.vibrate?.(200);
         } catch {
+          // Reintenta solo si seguimos escaneando
           if (statusRef.current === 'scanning') requestAnimationFrame(loop);
         }
       };
@@ -144,11 +144,14 @@ export default function ScannerCheckin({ backendBase='https://api.nightvibe.life
     setLast(null);
     setStatusSafe('scanning');
     setMessage('Apunta el QR');
+    // reanuda explícitamente el loop
     loopRef.current && requestAnimationFrame(loopRef.current);
   };
 
   useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Enter' && statusRef.current !== 'scanning' && statusRef.current !== 'posting') resumeScan(); };
+    const onKey = (e) => {
+      if (e.key === 'Enter' && statusRef.current !== 'scanning' && statusRef.current !== 'posting') resumeScan();
+    };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
@@ -180,7 +183,7 @@ export default function ScannerCheckin({ backendBase='https://api.nightvibe.life
             {(last?.buyerName || last?.buyerEmail) && (
               <div style={{marginBottom:8}}>
                 <b>Comprador:</b> {last.buyerName || last.buyerEmail}
-                {last.buyerName && last.buyerEmail ? ` · ${last.buyerEmail}` : ''}
+                {last?.buyerName && last?.buyerEmail ? ` · ${last.buyerEmail}` : ''}
               </div>
             )}
             {last?.checkedInAt && status !== 'success' && (
@@ -215,10 +218,12 @@ export default function ScannerCheckin({ backendBase='https://api.nightvibe.life
       <div style={{padding:12,color:'#9ca3af',fontSize:14}}>
         <div style={{marginBottom:6}}><b>Estado:</b> {message}</div>
         <div style={{display:'flex',gap:12}}>
-          <button onClick={resumeScan}
-                  disabled={status==='scanning'||status==='posting'}
-                  style={{padding:'8px 12px',background:'#0ea5e9',color:'#001015',border:0,borderRadius:8,fontWeight:800,
-                          opacity:(status==='scanning'||status==='posting')?0.6:1}}>
+          <button
+            onClick={resumeScan}
+            disabled={status==='scanning'||status==='posting'}
+            style={{padding:'8px 12px',background:'#0ea5e9',color:'#001015',border:0,borderRadius:8,fontWeight:800,
+                    opacity:(status==='scanning'||status==='posting')?0.6:1}}
+          >
             Escanear siguiente
           </button>
         </div>
@@ -230,6 +235,7 @@ export default function ScannerCheckin({ backendBase='https://api.nightvibe.life
     </div>
   );
 }
+
 
 
 
