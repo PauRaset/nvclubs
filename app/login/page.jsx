@@ -1,33 +1,39 @@
 'use client';
 
-import { useState } from 'react';
-import { registrationApply } from '@/lib/apiClient';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { setSession, getToken } from '@/lib/apiClient';
 
 export default function LoginPage() {
-  // compat: si no hay NEXT_PUBLIC_BACKEND_URL, caemos a NEXT_PUBLIC_API_BASE
+  const router = useRouter();
   const BACKEND =
-    process.env.NEXT_PUBLIC_BACKEND_URL ||
     process.env.NEXT_PUBLIC_API_BASE ||
+    process.env.NEXT_PUBLIC_BACKEND_URL ||
     'https://api.nightvibe.life';
 
-  const [tab, setTab] = useState('login'); // 'login' | 'register'
+  const [tab, setTab] = useState<'login' | 'register'>('login');
 
   // --------- Login state ----------
   const [lemail, setLEmail] = useState('');
   const [lpass, setLPass] = useState('');
   const [lloading, setLLoading] = useState(false);
-  const [lmsg, setLMsg] = useState(null);
-  const [lerr, setLErr] = useState(null);
+  const [lmsg, setLMsg] = useState<string | null>(null);
+  const [lerr, setLErr] = useState<string | null>(null);
 
   // --------- Register state -------
   const [remail, setREmail] = useState('');
-  const [rname, setRName] = useState(''); // lo usaremos como clubName y contactName
+  const [rname, setRName] = useState('');
   const [rloading, setRLoading] = useState(false);
-  const [rmsg, setRMsg] = useState(null);
-  const [rerr, setRErr] = useState(null);
+  const [rmsg, setRMsg] = useState<string | null>(null);
+  const [rerr, setRErr] = useState<string | null>(null);
 
-  // --------- Handlers ----------
-  async function handleLogin(e) {
+  // Si ya hay token, fuera de /login
+  useEffect(() => {
+    const t = getToken?.();
+    if (t) router.replace('/dashboard');
+  }, [router]);
+
+  async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setLMsg(null); setLErr(null); setLLoading(true);
     try {
@@ -35,46 +41,51 @@ export default function LoginPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ email: lemail.trim(), password: lpass }),
+        body: JSON.stringify({ email: lemail.trim().toLowerCase(), password: lpass }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.message || 'Login inválido');
-      window.location.href = '/dashboard';
-    } catch (err) {
-      setLErr(err.message || 'No se pudo iniciar sesión');
+      if (!res.ok || !data?.token || !data?.user) {
+        throw new Error(data?.message || 'Credenciales inválidas');
+      }
+
+      // 🔐 guardar sesión para que TopNav y resto de páginas vean al usuario
+      setSession(data.token, data.user);
+
+      // ▶️ redirigir al dashboard (tu /dashboard redirige a /events)
+      router.replace('/dashboard');
+    } catch (err: any) {
+      setLErr(err?.message || 'No se pudo iniciar sesión');
     } finally {
       setLLoading(false);
     }
   }
 
-  async function handleRegister(e) {
+  async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
     setRMsg(null); setRErr(null); setRLoading(true);
     try {
-      // Enviamos la solicitud de alta del club (KYC paso 1: verificación email)
-      const { ok, data } = await registrationApply({
-        email: remail.trim(),
-        clubName: rname.trim(),   // nombre del club (en este UI usamos "Nombre")
-        contactName: rname.trim() // lo reaprovechamos como persona de contacto
-        // phone/website/instagram los podemos pedir luego en un paso 2
+      // Flujo de “solicitud” -> email de verificación
+      const res = await fetch(`${BACKEND}/api/registration/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: remail.trim().toLowerCase(),
+          name: rname.trim(),
+        }),
       });
-
-      if (!ok) {
-        throw new Error(
-          (typeof data === 'object' && data?.error) ? data.error : 'No se pudo iniciar el registro'
-        );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.message || 'No se pudo iniciar el registro');
       }
-
       setRMsg('¡Hemos enviado un correo de verificación! Revisa tu bandeja.');
-    } catch (err) {
-      setRErr(err.message || 'No se pudo iniciar el registro');
+    } catch (err: any) {
+      setRErr(err?.message || 'No se pudo iniciar el registro');
     } finally {
       setRLoading(false);
     }
   }
 
-  // --------- UI styles ----------
-  const tabBtn = (active) => ({
+  const tabBtn = (active: boolean) => ({
     padding: '10px 14px',
     borderRadius: 10,
     border: '1px solid #1f2937',
@@ -92,7 +103,7 @@ export default function LoginPage() {
     borderRadius: 10,
     padding: '12px 14px',
     outline: 'none'
-  };
+  } as const;
 
   const primaryBtn = {
     width: '100%',
@@ -103,11 +114,10 @@ export default function LoginPage() {
     color: '#001018',
     fontWeight: 800,
     cursor: 'pointer'
-  };
+  } as const;
 
-  const secondary = { color: '#93a4b8', fontSize: 13 };
+  const secondary = { color: '#93a4b8', fontSize: 13 } as const;
 
-  // --------- Render ----------
   return (
     <main style={{
       minHeight: '100vh',
@@ -149,6 +159,12 @@ export default function LoginPage() {
                 Crea una aquí
               </a>
             </p>
+            <p style={{ ...secondary, marginTop: -6 }}>
+              ¿Olvidaste tu contraseña?{' '}
+              <a href="/login/reset" style={{ color: '#0ea5e9', fontWeight: 700 }}>
+                Restablécela
+              </a>
+            </p>
           </form>
         )}
 
@@ -156,11 +172,11 @@ export default function LoginPage() {
           <form onSubmit={handleRegister} style={{ display: 'grid', gap: 12 }}>
             <div>
               <label style={secondary}>Nombre del club</label>
-              <input style={input} type="text" value={rname} onChange={e => setRName(e.target.value)} placeholder="NightVibe Club" required />
+              <input style={input} type="text" value={rname} onChange={e => setRName(e.target.value)} placeholder="Tu nombre o el del club" required />
             </div>
             <div>
               <label style={secondary}>Email</label>
-              <input style={input} type="email" value={remail} onChange={e => setREmail(e.target.value)} placeholder="contacto@club.com" required />
+              <input style={input} type="email" value={remail} onChange={e => setREmail(e.target.value)} placeholder="tu@email.com" required />
             </div>
             {rerr && <p style={{ color: '#f43f5e' }}>{rerr}</p>}
             {rmsg && <p style={{ color: '#22c55e' }}>{rmsg}</p>}
