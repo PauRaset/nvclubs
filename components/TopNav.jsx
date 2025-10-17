@@ -120,7 +120,6 @@ export default function TopNav() {
         <a href="/events/new" style={{ ...link, background: '#0ea5e9', color: '#001018', fontWeight: 600 }}>
           + Crear
         </a>
-        {/* <<<<<< ESTE ES EL ENLACE QUE FALTA */}
         <a href="/scanner" style={link}>Escáner</a>
         <a href="/profile" style={link}>Perfil</a>
       </nav>
