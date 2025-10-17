@@ -39,7 +39,15 @@ export default function TopNav() {
         <a href="/events/new" style={{ ...link, background: '#0ea5e9', color: '#001018', fontWeight: 600 }}>
           + Crear
         </a>
-        {/* <<<<<< ESTE ES EL ENLACE QUE FALTA */}
+
+        {/* Nuevo: enlaces de registro/verificación visibles solo si NO hay usuario */}
+        {!user && (
+          <>
+            <a href="/register" style={link}>Registro</a>
+            <a href="/register/verify" style={link}>Verificar</a>
+          </>
+        )}
+
         <a href="/scanner" style={link}>Escáner</a>
         <a href="/profile" style={link}>Perfil</a>
       </nav>
@@ -48,15 +56,28 @@ export default function TopNav() {
         <span style={{ fontSize: 13 }}>
           {user ? `#${user.username || user.email}` : '...'}
         </span>
-        <a href="/login" onClick={logout}
-           style={{ padding: '6px 10px', border: '1px solid #334155', borderRadius: 8, textDecoration: 'none' }}>
-          Salir
-        </a>
+
+        {/* Si hay usuario -> botón Salir; si no, botón Entrar (sin onClick de logout) */}
+        {user ? (
+          <a
+            href="/login"
+            onClick={logout}
+            style={{ padding: '6px 10px', border: '1px solid #334155', borderRadius: 8, textDecoration: 'none' }}
+          >
+            Salir
+          </a>
+        ) : (
+          <a
+            href="/login"
+            style={{ padding: '6px 10px', border: '1px solid #334155', borderRadius: 8, textDecoration: 'none', color: '#e5e7eb' }}
+          >
+            Entrar
+          </a>
+        )}
       </div>
     </header>
   );
 }
-
 
 /*'use client';
 import { clearSession, getUser } from '@/lib/apiClient';
@@ -99,7 +120,8 @@ export default function TopNav() {
         <a href="/events/new" style={{ ...link, background: '#0ea5e9', color: '#001018', fontWeight: 600 }}>
           + Crear
         </a>
-        // <<<<<< ESTE ES EL ENLACE QUE FALTA 
+        {/* <<<<<< ESTE ES EL ENLACE QUE FALTA */}
+        <a href="/scanner" style={link}>Escáner</a>
         <a href="/profile" style={link}>Perfil</a>
       </nav>
 
