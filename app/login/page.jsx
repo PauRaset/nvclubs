@@ -11,21 +11,21 @@ export default function LoginPage() {
     process.env.NEXT_PUBLIC_BACKEND_URL ||
     'https://api.nightvibe.life';
 
-  const [tab, setTab] = useState<'login' | 'register'>('login');
+  const [tab, setTab] = useState('login'); // 'login' | 'register'
 
   // --------- Login state ----------
   const [lemail, setLEmail] = useState('');
   const [lpass, setLPass] = useState('');
   const [lloading, setLLoading] = useState(false);
-  const [lmsg, setLMsg] = useState<string | null>(null);
-  const [lerr, setLErr] = useState<string | null>(null);
+  const [lmsg, setLMsg] = useState(null);
+  const [lerr, setLErr] = useState(null);
 
   // --------- Register state -------
   const [remail, setREmail] = useState('');
   const [rname, setRName] = useState('');
   const [rloading, setRLoading] = useState(false);
-  const [rmsg, setRMsg] = useState<string | null>(null);
-  const [rerr, setRErr] = useState<string | null>(null);
+  const [rmsg, setRMsg] = useState(null);
+  const [rerr, setRErr] = useState(null);
 
   // Si ya hay token, fuera de /login
   useEffect(() => {
@@ -33,7 +33,7 @@ export default function LoginPage() {
     if (t) router.replace('/dashboard');
   }, [router]);
 
-  async function handleLogin(e: React.FormEvent) {
+  async function handleLogin(e) {
     e.preventDefault();
     setLMsg(null); setLErr(null); setLLoading(true);
     try {
@@ -48,23 +48,22 @@ export default function LoginPage() {
         throw new Error(data?.message || 'Credenciales inválidas');
       }
 
-      // 🔐 guardar sesión para que TopNav y resto de páginas vean al usuario
+      // guardar sesión
       setSession(data.token, data.user);
 
-      // ▶️ redirigir al dashboard (tu /dashboard redirige a /events)
+      // redirigir al dashboard (tu /dashboard manda a /events)
       router.replace('/dashboard');
-    } catch (err: any) {
+    } catch (err) {
       setLErr(err?.message || 'No se pudo iniciar sesión');
     } finally {
       setLLoading(false);
     }
   }
 
-  async function handleRegister(e: React.FormEvent) {
+  async function handleRegister(e) {
     e.preventDefault();
     setRMsg(null); setRErr(null); setRLoading(true);
     try {
-      // Flujo de “solicitud” -> email de verificación
       const res = await fetch(`${BACKEND}/api/registration/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -78,14 +77,14 @@ export default function LoginPage() {
         throw new Error(data?.message || 'No se pudo iniciar el registro');
       }
       setRMsg('¡Hemos enviado un correo de verificación! Revisa tu bandeja.');
-    } catch (err: any) {
+    } catch (err) {
       setRErr(err?.message || 'No se pudo iniciar el registro');
     } finally {
       setRLoading(false);
     }
   }
 
-  const tabBtn = (active: boolean) => ({
+  const tabBtn = (active) => ({
     padding: '10px 14px',
     borderRadius: 10,
     border: '1px solid #1f2937',
@@ -103,7 +102,7 @@ export default function LoginPage() {
     borderRadius: 10,
     padding: '12px 14px',
     outline: 'none'
-  } as const;
+  };
 
   const primaryBtn = {
     width: '100%',
@@ -114,9 +113,9 @@ export default function LoginPage() {
     color: '#001018',
     fontWeight: 800,
     cursor: 'pointer'
-  } as const;
+  };
 
-  const secondary = { color: '#93a4b8', fontSize: 13 } as const;
+  const secondary = { color: '#93a4b8', fontSize: 13 };
 
   return (
     <main style={{
