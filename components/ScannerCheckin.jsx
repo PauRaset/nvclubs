@@ -4,7 +4,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 
 const parseNV1 = (txt) => {
-  // Acepta formato: NV1:t=TOKEN&e=EVENTID&s=HMAC  (y tolera ? o & extra)
   const m = txt.match(/^NV1[:?]/i) ? txt.replace(/^NV1[:?]/i, '') : null;
   const q = new URLSearchParams((m ?? txt).replace(/^NV1[:?]/i, ''));
   const token = q.get('t') || q.get('token');
@@ -15,12 +14,7 @@ const parseNV1 = (txt) => {
 };
 
 const Banner = ({ type = 'info', children }) => {
-  const colors = {
-    success: '#16a34a',
-    warn: '#f59e0b',
-    error: '#ef4444',
-    info: '#38bdf8',
-  };
+  const colors = { success: '#16a34a', warn: '#f59e0b', error: '#ef4444', info: '#38bdf8' };
   return (
     <div style={{
       position: 'absolute', top: 12, left: 12, padding: '6px 10px',
@@ -34,64 +28,54 @@ const Banner = ({ type = 'info', children }) => {
 export default function ScannerCheckin({ backendBase = 'https://api.nightvibe.life', scannerKey }) {
   const videoRef = useRef(null);
   const readerRef = useRef(null);
+  const loopRef = useRef(null);
+
   const [status, setStatus] = useState('scanning'); // scanning | posting | success | duplicate | invalid | badsig | error
   const [message, setMessage] = useState('Apunta el QR');
-  const [last, setLast] = useState(null); // {serial,status,checkedInAt,eventId}
-  const [ready, setReady] = useState(false);
+  const [last, setLast] = useState(null);           // {serial,status,checkedInAt,eventId}
 
   const endpoint = `${(backendBase || '').replace(/\/+$/, '')}/api/checkin`;
   const hasKey = !!scannerKey;
 
+  // Iniciar cámara + bucle de lectura
   useEffect(() => {
     let cancelled = false;
+
     const start = async () => {
-      try {
-        readerRef.current?.stop();
-      } catch {}
+      try { readerRef.current?.stop(); } catch {}
       const reader = new BrowserMultiFormatReader();
       readerRef.current = reader;
-      setReady(true);
       setStatus('scanning');
-      setMessage('Escaneando...');
+      setMessage('Apunta el QR');
 
+      // Cámara
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
         if (videoRef.current) videoRef.current.srcObject = stream;
       } catch (_) {
-        setStatus('error');
-        setMessage('No se pudo iniciar la cámara');
+        setStatus('error'); setMessage('No se pudo iniciar la cámara');
         return;
       }
 
-      // loop decode
       const loop = async () => {
         if (cancelled || status !== 'scanning') return;
         try {
           const res = await reader.decodeOnceFromVideoDevice(undefined, videoRef.current);
-          if (!res || !res.getText) return loop(); // safety
-          const raw = res.getText();
-          const parsed = parseNV1(raw);
+          if (!res || !res.getText) return requestAnimationFrame(loop);
 
+          const parsed = parseNV1(res.getText());
           if (!parsed) {
-            // feedback rápido y continúa
             setStatus('error'); setMessage('Código no válido');
             navigator.vibrate?.(150);
-            setTimeout(() => { setStatus('scanning'); setMessage('Apunta el QR'); loop(); }, 900);
-            return;
+            return; // esperamos a que el usuario pulse "Escanear siguiente"
           }
 
-          // Post al backend
           setStatus('posting'); setMessage('Verificando…');
-
           const r = await fetch(endpoint, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-scanner-key': scannerKey || '',
-            },
+            headers: { 'Content-Type': 'application/json', 'x-scanner-key': scannerKey || '' },
             body: JSON.stringify(parsed),
           });
-
           const data = await r.json().catch(() => ({}));
 
           if (r.status === 401) {
@@ -100,64 +84,63 @@ export default function ScannerCheckin({ backendBase = 'https://api.nightvibe.li
           }
 
           if (r.ok && data?.ok) {
-            setStatus('success');
-            setMessage('Entrada válida');
-            setLast({
-              serial: data.serial,
-              status: data.status,
-              checkedInAt: data.checkedInAt || new Date().toISOString(),
-              eventId: parsed.eventId,
-            });
+            setStatus('success'); setMessage('Entrada válida');
+            setLast({ serial: data.serial, status: data.status, checkedInAt: data.checkedInAt || new Date().toISOString(), eventId: parsed.eventId });
             navigator.vibrate?.([40, 60, 40]);
-            // Auto volver a escanear
-            setTimeout(() => { setStatus('scanning'); setMessage('Apunta el QR'); setLast(null); loop(); }, 2200);
-            return;
+            return; // se queda en la tarjeta hasta que pulsen "Escanear siguiente"
           }
 
-          // Motivos comunes
           const reason = (data?.reason || '').toLowerCase();
           if (reason === 'duplicate') {
-            setStatus('duplicate');
-            setMessage('Ya usado');
+            setStatus('duplicate'); setMessage('Ya usado');
             setLast({ serial: data.serial, status: 'checked_in', checkedInAt: data.checkedInAt, eventId: parsed.eventId });
             navigator.vibrate?.([160, 80, 160]);
-            setTimeout(() => { setStatus('scanning'); setMessage('Apunta el QR'); setLast(null); loop(); }, 2500);
             return;
           }
           if (reason === 'bad_signature') {
-            setStatus('badsig'); setMessage('Firma inválida (QR)');
-            navigator.vibrate?.(220);
-            setTimeout(() => { setStatus('scanning'); setMessage('Apunta el QR'); loop(); }, 1800);
-            return;
+            setStatus('badsig'); setMessage('Firma inválida (QR)'); navigator.vibrate?.(220); return;
           }
           if (reason === 'invalid') {
-            setStatus('invalid'); setMessage('Entrada no encontrada');
-            navigator.vibrate?.(180);
-            setTimeout(() => { setStatus('scanning'); setMessage('Apunta el QR'); loop(); }, 1800);
-            return;
+            setStatus('invalid'); setMessage('Entrada no encontrada'); navigator.vibrate?.(180); return;
           }
 
-          setStatus('error'); setMessage('Error de verificación');
-          navigator.vibrate?.(200);
-          setTimeout(() => { setStatus('scanning'); setMessage('Apunta el QR'); loop(); }, 1800);
-        } catch (e) {
-          // decode timeout / transient → continuar
+          setStatus('error'); setMessage('Error de verificación'); navigator.vibrate?.(200);
+        } catch {
           if (status === 'scanning') requestAnimationFrame(loop);
         }
       };
 
-      loop();
+      loopRef.current = loop;
+      requestAnimationFrame(loop);
     };
 
     start();
     return () => {
+      cancelled = true;
       try { readerRef.current?.stop(); } catch {}
       const s = videoRef.current?.srcObject;
       if (s && typeof s.getTracks === 'function') s.getTracks().forEach(t => t.stop());
-      cancelled = true;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [backendBase, scannerKey]);
+
+  // Handler para volver a escanear
+  const resumeScan = () => {
+    setLast(null);
+    setStatus('scanning');
+    setMessage('Apunta el QR');
+    // reanudar el bucle inmediatamente
+    loopRef.current && requestAnimationFrame(loopRef.current);
+  };
+
+  // Atajo: Enter para escanear siguiente
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Enter' && status !== 'scanning' && status !== 'posting') resumeScan();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [status]);
 
   const colorByStatus = {
     scanning: '#1f2937',
@@ -181,8 +164,8 @@ export default function ScannerCheckin({ backendBase = 'https://api.nightvibe.li
 
     const note = {
       success:  '¡Listo! Puedes pasar.',
-      duplicate:'No permitir acceso. Muestra la hora del primer check-in al usuario.',
-      invalid:  'No se encontró este código para el evento.',
+      duplicate:'No permitir acceso. Enseña al cliente la hora del primer check-in.',
+      invalid:  'No se encontró este código para este evento.',
       badsig:   'Este QR no fue emitido por NightVibe (o la clave cambió).',
       error:    'Comprueba la red y vuelve a intentar.',
     }[status];
@@ -202,12 +185,8 @@ export default function ScannerCheckin({ backendBase = 'https://api.nightvibe.li
           </div>
 
           <div style={{ padding: 18, color: '#cbd5e1', lineHeight: 1.35 }}>
-            {last?.serial && (
-              <div style={{ marginBottom: 8 }}><b>Serial:</b> {last.serial}</div>
-            )}
-            {last?.eventId && (
-              <div style={{ marginBottom: 8 }}><b>Evento:</b> {last.eventId}</div>
-            )}
+            {last?.serial && <div style={{ marginBottom: 8 }}><b>Serial:</b> {last.serial}</div>}
+            {last?.eventId && <div style={{ marginBottom: 8 }}><b>Evento:</b> {last.eventId}</div>}
             {last?.checkedInAt && status !== 'success' && (
               <div style={{ marginBottom: 8 }}><b>Primer check-in:</b> {new Date(last.checkedInAt).toLocaleString()}</div>
             )}
@@ -216,13 +195,11 @@ export default function ScannerCheckin({ backendBase = 'https://api.nightvibe.li
 
           <div style={{ padding: 14, display: 'flex', gap: 10, justifyContent: 'flex-end', borderTop: '1px solid #1e293b' }}>
             <button
-              onClick={() => { setStatus('scanning'); setMessage('Apunta el QR'); setLast(null); }}
-              style={{
-                padding: '10px 14px', borderRadius: 10, background: '#111827', color: '#e5e7eb',
-                border: '1px solid #334155', fontWeight: 700
-              }}
+              onClick={resumeScan}
+              style={{ padding: '10px 14px', borderRadius: 10, background: '#0ea5e9',
+                       color: '#001015', border: 0, fontWeight: 900 }}
             >
-              Escanear siguiente
+              Escanear siguiente (↵)
             </button>
           </div>
         </div>
@@ -233,41 +210,39 @@ export default function ScannerCheckin({ backendBase = 'https://api.nightvibe.li
   return (
     <div style={{ background: '#0b0f19', border: '1px solid #1e293b', borderRadius: 12, overflow: 'hidden' }}>
       <div style={{ position: 'relative', aspectRatio: '4 / 3', background: '#000' }}>
-        {/* Banderitas de estado */}
         {status === 'scanning' && <Banner type="info">Escaneando…</Banner>}
         {status === 'posting' && <Banner type="info">Verificando…</Banner>}
         {status === 'success' && <Banner type="success">OK</Banner>}
         {status === 'duplicate' && <Banner type="warn">DUPLICADO</Banner>}
         {['invalid','badsig','error'].includes(status) && <Banner type="error">ERROR</Banner>}
 
-        {/* Vídeo */}
         <video ref={videoRef} autoPlay muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-
-        {/* Overlay con resultado */}
         <Card />
       </div>
 
-      {/* Pie con info */}
       <div style={{ padding: 12, color: '#9ca3af', fontSize: 14 }}>
         <div style={{ marginBottom: 6 }}><b>Estado:</b> {message}</div>
         <div style={{ display: 'flex', gap: 12 }}>
           <button
-            onClick={() => { setStatus('scanning'); setMessage('Apunta el QR'); }}
-            style={{ padding: '8px 12px', background: '#0ea5e9', color: '#001015', border: 0, borderRadius: 8, fontWeight: 800 }}
+            onClick={resumeScan}
+            disabled={status === 'scanning' || status === 'posting'}
+            style={{ padding: '8px 12px', background: '#0ea5e9', color: '#001015',
+                     border: 0, borderRadius: 8, fontWeight: 800, opacity: (status==='scanning'||status==='posting')?0.6:1 }}
           >
-            Reintentar
+            Escanear siguiente
           </button>
           <button
             onClick={() => {
               try { readerRef.current?.stop(); } catch {}
               setTimeout(() => {
                 setStatus('scanning'); setMessage('Apunta el QR');
-                // reinicia cámara
                 navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
                   .then(stream => { if (videoRef.current) videoRef.current.srcObject = stream; });
-              }, 200);
+                loopRef.current && requestAnimationFrame(loopRef.current);
+              }, 150);
             }}
-            style={{ padding: '8px 12px', background: '#111827', color: '#e5e7eb', border: '1px solid #334155', borderRadius: 8, fontWeight: 700 }}
+            style={{ padding: '8px 12px', background: '#111827', color: '#e5e7eb',
+                     border: '1px solid #334155', borderRadius: 8, fontWeight: 700 }}
           >
             Reiniciar cámara
           </button>
@@ -281,6 +256,7 @@ export default function ScannerCheckin({ backendBase = 'https://api.nightvibe.li
     </div>
   );
 }
+
 
 
 /*// ScannerCheckin.jsx
