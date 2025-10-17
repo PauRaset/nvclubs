@@ -4,44 +4,43 @@ import { useState } from 'react';
 
 export default function LoginPage() {
   const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL;
-  const [tab, setTab] = useState<'login' | 'register'>('login');
+  const [tab, setTab] = useState('login'); // 'login' | 'register'
 
   // --------- Login state ----------
   const [lemail, setLEmail] = useState('');
   const [lpass, setLPass] = useState('');
   const [lloading, setLLoading] = useState(false);
-  const [lmsg, setLMsg] = useState<string | null>(null);
-  const [lerr, setLErr] = useState<string | null>(null);
+  const [lmsg, setLMsg] = useState(null);
+  const [lerr, setLErr] = useState(null);
 
   // --------- Register state -------
   const [remail, setREmail] = useState('');
   const [rname, setRName] = useState('');
   const [rloading, setRLoading] = useState(false);
-  const [rmsg, setRMsg] = useState<string | null>(null);
-  const [rerr, setRErr] = useState<string | null>(null);
+  const [rmsg, setRMsg] = useState(null);
+  const [rerr, setRErr] = useState(null);
 
-  async function handleLogin(e: React.FormEvent) {
+  async function handleLogin(e) {
     e.preventDefault();
     setLMsg(null); setLErr(null); setLLoading(true);
     try {
       const res = await fetch(`${BACKEND}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include', // si tu backend setea cookie de sesión
+        credentials: 'include',
         body: JSON.stringify({ email: lemail.trim(), password: lpass }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.message || 'Login inválido');
-      // Éxito: redirige al dashboard
+      if (!res.ok) throw new Error(data && data.message ? data.message : 'Login inválido');
       window.location.href = '/dashboard';
-    } catch (err:any) {
+    } catch (err) {
       setLErr(err.message || 'No se pudo iniciar sesión');
     } finally {
       setLLoading(false);
     }
   }
 
-  async function handleRegister(e: React.FormEvent) {
+  async function handleRegister(e) {
     e.preventDefault();
     setRMsg(null); setRErr(null); setRLoading(true);
     try {
@@ -51,22 +50,21 @@ export default function LoginPage() {
         body: JSON.stringify({
           email: remail.trim(),
           name: rname.trim(),
-          // puedes enviar más campos si tu endpoint los acepta (p.ej. clubName)
         }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data?.ok) {
-        throw new Error(data?.message || 'No se pudo iniciar el registro');
+        throw new Error((data && data.message) || 'No se pudo iniciar el registro');
       }
       setRMsg('¡Hemos enviado un correo de verificación! Revisa tu bandeja.');
-    } catch (err:any) {
+    } catch (err) {
       setRErr(err.message || 'No se pudo iniciar el registro');
     } finally {
       setRLoading(false);
     }
   }
 
-  const tabBtn = (active: boolean) => ({
+  const tabBtn = (active) => ({
     padding: '10px 14px',
     borderRadius: 10,
     border: '1px solid #1f2937',
@@ -84,7 +82,7 @@ export default function LoginPage() {
     borderRadius: 10,
     padding: '12px 14px',
     outline: 'none'
-  } as const;
+  };
 
   const primaryBtn = {
     width: '100%',
@@ -95,7 +93,7 @@ export default function LoginPage() {
     color: '#001018',
     fontWeight: 800,
     cursor: 'pointer'
-  } as const;
+  };
 
   const secondary = { color: '#93a4b8', fontSize: 13 };
 
