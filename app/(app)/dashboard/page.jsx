@@ -6,7 +6,11 @@ import StripeConnectCard from '@/components/StripeConnectCard';
 import SalesSummaryCard from '@/components/SalesSummaryCard';
 import ScannerKeyCard from '@/components/ScannerKeyCard';
 import { getToken } from '@/lib/apiClient';
-
+const token = getToken();
+fetch(`${API}/api/clubs/mine`, {
+  headers: token ? { Authorization: `Bearer ${token}` } : {},
+  credentials: 'include',
+})
 const API =
   process.env.NEXT_PUBLIC_API_BASE ||
   process.env.NEXT_PUBLIC_BACKEND_URL ||
