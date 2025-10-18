@@ -1,11 +1,15 @@
+// components/TopNav.jsx
 'use client';
-import { clearSession, getUser } from '@/lib/apiClient';
 import { useEffect, useState } from 'react';
+import { getUser, clearSession } from '@/lib/apiClient';
 import NavLink from './NavLink';
 
 export default function TopNav() {
   const [user, setUser] = useState(null);
-  useEffect(() => { setUser(getUser()); }, []);
+
+  useEffect(() => {
+    setUser(getUser());
+  }, []);
 
   function logout(e) {
     e.preventDefault();
@@ -18,43 +22,57 @@ export default function TopNav() {
     fontSize: 16,
     color: '#e5e7eb',
     textDecoration: 'none',
-    marginRight: 12
+    marginRight: 12,
+  };
+
+  const chip = {
+    padding: '6px 10px',
+    borderRadius: 8,
+    background: '#111827',
+    color: '#e5e7eb',
+    textDecoration: 'none',
+    border: '1px solid #303848',
+    fontSize: 14,
   };
 
   return (
-    <header style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '12px 16px',
-      borderBottom: '1px solid #1d263a',
-      background: '#0b0f19',
-      position: 'sticky', top: 0, zIndex: 20
-    }}>
+    <header
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '12px 16px',
+        borderBottom: '1px solid #1d263a',
+        background: '#0b0f19',
+        position: 'sticky',
+        top: 0,
+        zIndex: 20,
+      }}
+    >
       <nav style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
         <a href="/dashboard" style={brand}>NightVibe Clubs</a>
 
         <NavLink href="/events">Eventos</NavLink>
-
-        <NavLink href="/events/new"
-                 style={{ fontWeight: 700 }}
-                 activeStyle={{}}
-        >
-          + Crear
-        </NavLink>
-
+        <NavLink href="/events/new" style={{ fontWeight: 700 }}>+ Crear</NavLink>
         <NavLink href="/scanner">Escáner</NavLink>
         <NavLink href="/profile">Perfil</NavLink>
       </nav>
 
       <div style={{ display: 'flex', gap: 12, alignItems: 'center', color: '#9ca3af' }}>
-        <span style={{ fontSize: 13 }}>
-          {user ? `#${user.username || user.email}` : '…'}
-        </span>
-        <a href="/login" onClick={logout}
-           style={{ padding: '6px 10px', border: '1px solid #334155', borderRadius: 8, textDecoration: 'none', color: '#e5e7eb' }}>
-          Salir
-        </a>
+        {user ? (
+          <>
+            <a href="/profile" style={{ color: '#7aa2d6', textDecoration: 'none', fontSize: 13 }}>
+              #{user.username || user.email}
+            </a>
+            <a href="/login" onClick={logout} style={{ ...chip, borderColor: '#334155' }}>
+              Salir
+            </a>
+          </>
+        ) : (
+          <>
+            <a href="/login" style={chip}>Iniciar sesión</a>
+          </>
+        )}
       </div>
     </header>
   );
