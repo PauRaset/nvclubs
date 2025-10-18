@@ -104,7 +104,6 @@ export default function TopNav() {
           + Crear
         </a>
 
-        {/* Enlaces visibles cuando no hay sesión */}
         {!user && (
           <>
             <a href="/register" style={link}>Registro</a>
