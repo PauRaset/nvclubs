@@ -1,65 +1,89 @@
-// app/(app)/dashboard/page.jsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import StripeConnectCard from '@/components/StripeConnectCard';
 import SalesSummaryCard from '@/components/SalesSummaryCard';
 import ScannerKeyCard from '@/components/ScannerKeyCard';
-import { getToken } from '@/lib/apiClient';
-const token = getToken();
-fetch(`${API}/api/clubs/mine`, {
-  headers: token ? { Authorization: `Bearer ${token}` } : {},
-  credentials: 'include',
-})
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 const API =
   process.env.NEXT_PUBLIC_API_BASE ||
   process.env.NEXT_PUBLIC_BACKEND_URL ||
   'https://api.nightvibe.life';
 
-export default function DashboardPage() {
-  const [clubId, setClubId] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState('');
+function DashboardInner() {
+  // clubId desde ?club=...
+  const sp = useSearchParams();
+  const clubId = useMemo(() => sp.get('club') || '', [sp]);
 
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [clubs, setClubs] = useState([]);
+
+  // Utilidad segura en cliente
+  function getToken() {
+    try {
+      return localStorage.getItem('nv_token') || '';
+    } catch {
+      return '';
+    }
+  }
+
+  // Cargar mis clubs (necesita JWT). Solo en cliente tras montar.
   useEffect(() => {
-    (async () => {
+    let cancelled = false;
+    async function load() {
+      setError('');
+      setLoading(true);
       try {
-        setErr('');
-        // 1) Si viene ?club= en la URL, úsalo
-        const qs = new URLSearchParams(window.location.search);
-        const qClub = qs.get('club');
-        if (qClub) {
-          setClubId(qClub);
-          setLoading(false);
-          return;
-        }
-
-        // 2) Si no, pide tu club por API
         const token = getToken();
         const res = await fetch(`${API}/api/clubs/mine`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
           credentials: 'include',
+          cache: 'no-store',
         });
         if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`);
+          const t = await res.text().catch(() => '');
+          throw new Error(`${res.status} ${res.statusText} ${t || ''}`.trim());
         }
         const data = await res.json();
-        // acepta { club } o { items:[...] }
-        const id =
-          data?.club?._id ||
-          (Array.isArray(data?.items) && data.items[0]?._id) ||
-          '';
-        if (!id) {
-          setErr('No se encontró ningún club asociado a tu cuenta.');
-        }
-        setClubId(id);
+        if (!cancelled) setClubs(Array.isArray(data) ? data : []);
       } catch (e) {
-        setErr('No se pudo cargar tu club.');
+        if (!cancelled) setError('No se pudo cargar tu club.');
+        console.error('[dashboard] /clubs/mine error:', e);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
-    })();
+    }
+    load();
+    return () => { cancelled = true; };
   }, []);
+
+  // Si no viene ?club, intenta usar el primero que devuelva /mine
+  const effectiveClubId = clubId || (clubs[0]?._id || '');
+
+  const link = {
+    padding: '6px 10px',
+    borderRadius: 8,
+    background: '#111827',
+    color: '#e5e7eb',
+    textDecoration: 'none',
+    fontSize: 14,
+    border: '1px solid #303848',
+  };
+
+  const warn = {
+    marginTop: 14,
+    padding: 12,
+    border: '1px solid #3b2f14',
+    background: '#1a1408',
+    borderRadius: 10,
+    color: '#fbbf24',
+    fontSize: 14,
+  };
 
   return (
     <main style={{ padding: 16 }}>
@@ -69,58 +93,34 @@ export default function DashboardPage() {
         <a href="/scanner" style={link}>Escáner</a>
       </div>
 
-      {loading && <div style={note}>Cargando…</div>}
+      {loading && <div style={warn}>Cargando…</div>}
+      {error && <div style={warn}>{error}</div>}
 
-      {!loading && err && (
-        <div style={warn}>{err}</div>
-      )}
-
-      {!loading && !err && !clubId && (
+      {!effectiveClubId && !loading && !error && (
         <div style={warn}>
           No se encontró ningún club asociado a tu cuenta.
+          {clubs.length > 1 && ' (Tienes varios; añade ?club=<id> a la URL)'}
         </div>
       )}
 
-      {!loading && clubId && (
+      {effectiveClubId && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 16, maxWidth: 1000 }}>
-          <StripeConnectCard clubId={clubId} />
-          <SalesSummaryCard clubId={clubId} />
-          <ScannerKeyCard clubId={clubId} />
+          <StripeConnectCard clubId={effectiveClubId} />
+          <SalesSummaryCard clubId={effectiveClubId} />
+          <ScannerKeyCard clubId={effectiveClubId} />
         </div>
       )}
     </main>
   );
 }
 
-const link = {
-  padding: '6px 10px',
-  borderRadius: 8,
-  background: '#111827',
-  color: '#e5e7eb',
-  textDecoration: 'none',
-  fontSize: 14,
-  border: '1px solid #303848'
-};
-
-const warn = {
-  marginTop: 14,
-  padding: 12,
-  border: '1px solid #3b2f14',
-  background: '#1a1408',
-  borderRadius: 10,
-  color: '#fbbf24',
-  fontSize: 14
-};
-
-const note = {
-  marginTop: 14,
-  padding: 12,
-  border: '1px solid #1d263a',
-  background: '#0f172a',
-  borderRadius: 10,
-  color: '#9ca3af',
-  fontSize: 14
-};
+export default function Page() {
+  return (
+    <Suspense fallback={<div style={{ padding: 16, color: '#e5e7eb' }}>Cargando…</div>}>
+      <DashboardInner />
+    </Suspense>
+  );
+}
 
 /*'use client';
 
