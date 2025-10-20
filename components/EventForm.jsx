@@ -49,7 +49,7 @@ async function cropTo800x450(file) {
 const ALL_GENRES = [
   'Afro', 'Afrobeat', 'Afrobeats', 'Amapiano',
   'Ambient', 'Bass House', 'Big Room', 'Breakbeat', 'Breaks',
-  'Commercial', 'Dancehall', 'Deep House', 'Disco', 'Drum & Bass',
+  'Commercial', 'Dancehall', 'Dembow', 'Deep House', 'Disco', 'Drum & Bass',
   'Dubstep', 'EDM', 'Electro', 'Funk', 'Garage', 'Hardcore', 'Hardstyle',
   'Hip-Hop', 'House', 'Indie Dance', 'J-Pop', 'K-Pop', 'Latin',
   'Lo-Fi', 'Melodic Techno', 'Minimal / Deep Tech', 'Nu-Disco',
