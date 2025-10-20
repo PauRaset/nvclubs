@@ -1,79 +1,248 @@
-// components/TopNav.jsx
 'use client';
+
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { getUser, clearSession } from '@/lib/apiClient';
-import NavLink from './NavLink';
+import { usePathname } from 'next/navigation';
 
-export default function TopNav() {
-  const [user, setUser] = useState(null);
+export default function TopNav({ active }) {
+  const [open, setOpen] = useState(false);
+  const pathname = usePathname();
 
+  // Cierra el menú al cambiar de ruta o con ESC
+  useEffect(() => { setOpen(false); }, [pathname]);
   useEffect(() => {
-    setUser(getUser());
+    function onKey(e) { if (e.key === 'Escape') setOpen(false); }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  function logout(e) {
-    e.preventDefault();
-    clearSession();
-    window.location.href = '/login';
+  const items = [
+    { href: '/events', label: 'Eventos', key: 'events' },
+    { href: '/dashboard', label: 'Panel', key: 'dashboard' },
+    { href: '/scanner', label: 'Escáner', key: 'scanner' },
+    { href: '/profile', label: 'Perfil', key: 'profile' },
+  ];
+
+  function isActive(href, key) {
+    if (active && key) return active === key;
+    return pathname === href || pathname?.startsWith(`${href}/`);
   }
 
-  const brand = {
-    fontWeight: 800,
-    fontSize: 16,
-    color: '#e5e7eb',
-    textDecoration: 'none',
-    marginRight: 12,
-  };
-
-  const chip = {
-    padding: '6px 10px',
-    borderRadius: 8,
-    background: '#111827',
-    color: '#e5e7eb',
-    textDecoration: 'none',
-    border: '1px solid #303848',
-    fontSize: 14,
-  };
-
   return (
-    <header
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '12px 16px',
-        borderBottom: '1px solid #1d263a',
-        background: '#0b0f19',
-        position: 'sticky',
-        top: 0,
-        zIndex: 20,
-      }}
-    >
-      <nav style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-        <a href="/dashboard" style={brand}>NightVibe Clubs</a>
+    <header className="nv-nav">
+      <div className="nv-container">
+        {/* Left: logo */}
+        <div className="nv-left">
+          <Link href="/" className="nv-logo">
+            <span className="nv-dot" /> Nightvibe
+          </Link>
+        </div>
 
-        <NavLink href="/events">Eventos</NavLink>
-        <NavLink href="/events/new" style={{ fontWeight: 700 }}>+ Crear</NavLink>
-        <NavLink href="/scanner">Escáner</NavLink>
-        <NavLink href="/profile">Perfil</NavLink>
-      </nav>
+        {/* Desktop nav */}
+        <nav className="nv-links">
+          {items.map(it => (
+            <Link
+              key={it.href}
+              href={it.href}
+              className={`nv-link ${isActive(it.href, it.key) ? 'is-active' : ''}`}
+            >
+              {it.label}
+            </Link>
+          ))}
+        </nav>
 
-      <div style={{ display: 'flex', gap: 12, alignItems: 'center', color: '#9ca3af' }}>
-        {user ? (
-          <>
-            <a href="/profile" style={{ color: '#7aa2d6', textDecoration: 'none', fontSize: 13 }}>
-              #{user.username || user.email}
-            </a>
-            <a href="/login" onClick={logout} style={{ ...chip, borderColor: '#334155' }}>
-              Salir
-            </a>
-          </>
-        ) : (
-          <>
-            <a href="/login" style={chip}>Iniciar sesión</a>
-          </>
-        )}
+        {/* Mobile toggle */}
+        <button
+          className="nv-burger"
+          aria-label="Abrir menú"
+          aria-expanded={open ? 'true' : 'false'}
+          onClick={() => setOpen(v => !v)}
+        >
+          <span className={`bar ${open ? 'x1' : ''}`} />
+          <span className={`bar ${open ? 'x2' : ''}`} />
+          <span className={`bar ${open ? 'x3' : ''}`} />
+        </button>
       </div>
+
+      {/* Overlay + drawer móvil */}
+      <div
+        className={`nv-overlay ${open ? 'show' : ''}`}
+        onClick={() => setOpen(false)}
+      />
+      <aside className={`nv-drawer ${open ? 'open' : ''}`} role="dialog" aria-modal="true">
+        <div className="drawer-header">
+          <span className="brand">
+            <span className="nv-dot" /> Nightvibe
+          </span>
+          <button className="close" aria-label="Cerrar" onClick={() => setOpen(false)}>×</button>
+        </div>
+        <nav className="drawer-links">
+          {items.map(it => (
+            <Link
+              key={it.href}
+              href={it.href}
+              className={`drawer-link ${isActive(it.href, it.key) ? 'is-active' : ''}`}
+            >
+              {it.label}
+            </Link>
+          ))}
+        </nav>
+      </aside>
+
+      <style jsx>{`
+        :global(:root) {
+          --nv-bg: #0b1220;
+          --nv-panel: #0f172a;
+          --nv-border: #243044;
+          --nv-text: #e6f0ff;
+          --nv-muted: #a7b3c8;
+          --nv-accent: #00e5ff;
+        }
+        .nv-nav {
+          position: sticky;
+          top: 0;
+          z-index: 50;
+          background: color-mix(in oklab, var(--nv-bg) 90%, black 10%);
+          backdrop-filter: saturate(140%) blur(8px);
+          border-bottom: 1px solid var(--nv-border);
+        }
+        .nv-container {
+          height: 56px;
+          padding: max(8px, env(safe-area-inset-top)) 16px 8px;
+          max-width: 1100px;
+          margin: 0 auto;
+          display: grid;
+          grid-template-columns: auto 1fr auto;
+          align-items: center;
+          gap: 12px;
+        }
+        .nv-logo {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          font-weight: 800;
+          color: var(--nv-text);
+          text-decoration: none;
+          letter-spacing: .2px;
+        }
+        .nv-dot {
+          width: 10px; height: 10px; border-radius: 50%;
+          background: var(--nv-accent);
+          box-shadow: 0 0 18px var(--nv-accent);
+          display: inline-block;
+        }
+
+        /* Desktop links */
+        .nv-links {
+          display: none;
+          align-items: center;
+          gap: 10px;
+        }
+        .nv-link {
+          padding: 8px 10px;
+          border-radius: 10px;
+          color: var(--nv-muted);
+          text-decoration: none;
+          border: 1px solid transparent;
+        }
+        .nv-link:hover {
+          color: var(--nv-text);
+          border-color: var(--nv-border);
+          background: var(--nv-panel);
+        }
+        .nv-link.is-active {
+          color: #001018;
+          background: var(--nv-accent);
+          border-color: transparent;
+          font-weight: 800;
+        }
+
+        /* Burger button (mobile) */
+        .nv-burger {
+          display: inline-flex;
+          width: 40px; height: 40px;
+          align-items: center; justify-content: center;
+          border-radius: 10px;
+          border: 1px solid var(--nv-border);
+          background: var(--nv-panel);
+          cursor: pointer;
+        }
+        .bar {
+          position: relative;
+          display: block;
+          width: 18px; height: 2px;
+          background: var(--nv-text);
+          transition: transform .25s ease, opacity .2s ease;
+        }
+        .bar + .bar { margin-top: 4px; }
+        .x1 { transform: translateY(6px) rotate(45deg); }
+        .x2 { opacity: 0; }
+        .x3 { transform: translateY(-6px) rotate(-45deg); }
+
+        /* Drawer */
+        .nv-overlay {
+          position: fixed; inset: 0;
+          background: rgba(0,0,0,.4);
+          opacity: 0; pointer-events: none;
+          transition: opacity .2s ease;
+        }
+        .nv-overlay.show { opacity: 1; pointer-events: auto; }
+
+        .nv-drawer {
+          position: fixed; top: 0; right: 0; bottom: 0;
+          width: min(86vw, 360px);
+          background: var(--nv-panel);
+          border-left: 1px solid var(--nv-border);
+          transform: translateX(100%);
+          transition: transform .25s ease;
+          display: grid; grid-template-rows: auto 1fr;
+          z-index: 60;
+          padding-bottom: env(safe-area-inset-bottom);
+        }
+        .nv-drawer.open { transform: translateX(0); }
+        .drawer-header {
+          display: flex; align-items: center; justify-content: space-between;
+          padding: calc(8px + env(safe-area-inset-top)) 14px 10px;
+          border-bottom: 1px solid var(--nv-border);
+        }
+        .drawer-header .brand {
+          display: inline-flex; align-items: center; gap: 8px; color: var(--nv-text); font-weight: 800;
+        }
+        .drawer-header .close {
+          font-size: 28px; line-height: 1;
+          border: 1px solid var(--nv-border);
+          background: transparent; color: var(--nv-text);
+          border-radius: 10px; width: 36px; height: 36px;
+          cursor: pointer;
+        }
+        .drawer-links {
+          padding: 12px;
+          display: grid; gap: 8px;
+        }
+        .drawer-link {
+          display: block;
+          padding: 12px 12px;
+          border-radius: 12px;
+          color: var(--nv-text);
+          text-decoration: none;
+          border: 1px solid var(--nv-border);
+          background: #0b1424;
+        }
+        .drawer-link.is-active {
+          background: var(--nv-accent);
+          color: #001018;
+          border-color: transparent;
+          font-weight: 800;
+        }
+
+        /* Breakpoint: desktop desde 900px */
+        @media (min-width: 900px) {
+          .nv-container { grid-template-columns: auto auto 1fr; }
+          .nv-links { display: inline-flex; }
+          .nv-burger { display: none; }
+          .nv-overlay, .nv-drawer { display: none; }
+        }
+      `}</style>
     </header>
   );
 }
