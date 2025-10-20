@@ -29,10 +29,6 @@ function normalizeInstagram(input) {
 /* Utilidades de estilos (CSS-in-JS con <style jsx>) */
 const styles = {
   page: 'nvp',
-  header: 'nvp__header',
-  nav: 'nvp__nav',
-  navLink: 'nvp__navLink',
-  navPrimary: 'nvp__navPrimary',
   card: 'nvp__card',
   title: 'nvp__title',
   grid: 'nvp__grid',
@@ -47,7 +43,6 @@ const styles = {
   note: 'nvp__note',
   container: 'nvp__container',
   actions: 'nvp__actions',
-  badge: 'nvp__badge',
 };
 
 export default function ProfilePage() {
@@ -179,20 +174,6 @@ export default function ProfilePage() {
 
   return (
     <div className={styles.page}>
-      {/* ======= Header / Menú ======= */}
-      <header className={styles.header}>
-        <div className={styles.container}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-            <span style={{ fontWeight: 800, fontSize: 18, letterSpacing: 0.5 }}>NightVibe</span>
-            <span className={styles.badge}>Perfil</span>
-          </div>
-          <nav className={styles.nav}>
-            <a href="/events" className={styles.navLink}>Mis eventos</a>
-            <a href="/profile" className={`${styles.navLink} ${styles.navPrimary}`}>Perfil</a>
-            <a href="/logout" className={styles.navLink} style={{ border: '1px solid #334155' }}>Salir</a>
-          </nav>
-        </div>
-      </header>
 
       {/* ======= Contenido ======= */}
       <main className={styles.container} style={{ marginTop: 20, marginBottom: 24 }}>
@@ -201,11 +182,12 @@ export default function ProfilePage() {
             {notice}
             {notice.includes('iniciar sesión') && (
               <button
-                className={`${styles.navLink}`}
+                className={styles.button}
                 style={{
                   marginLeft: 12,
                   background: 'transparent',
-                  border: '1px solid #334155'
+                  border: '1px solid #334155',
+                  color: '#e6f0ff'
                 }}
                 onClick={() => (window.location.href = '/login')}
               >
@@ -296,13 +278,18 @@ export default function ProfilePage() {
                     href={igUrl || '#'}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`${styles.navLink}`}
                     style={{
                       display: 'inline-block',
                       textAlign: 'center',
                       border: '1px solid #334155',
                       opacity: igUrl ? 1 : .4,
-                      pointerEvents: igUrl ? 'auto' : 'none'
+                      pointerEvents: igUrl ? 'auto' : 'none',
+                      color: '#e6f0ff',
+                      padding: '6px 10px',
+                      borderRadius: 8,
+                      fontSize: 14,
+                      lineHeight: 1.2,
+                      textDecoration: 'none'
                     }}
                   >
                     Ver Instagram {igHandle ? `(@${igHandle})` : ''}
@@ -338,34 +325,6 @@ export default function ProfilePage() {
           max-width: 1100px;
           margin: 0 auto;
           padding: 0 16px;
-        }
-        .${styles.header} {
-          position: sticky;
-          top: 0;
-          z-index: 10;
-          backdrop-filter: saturate(140%) blur(6px);
-          background: rgba(8, 12, 22, 0.75);
-          border-bottom: 1px solid #1e293b;
-        }
-        .${styles.nav} {
-          display: flex;
-          gap: 8px;
-          align-items: center;
-          flex-wrap: wrap;
-        }
-        .${styles.navLink} {
-          text-decoration: none;
-          padding: 6px 10px;
-          border-radius: 8px;
-          color: #e6f0ff;
-          font-size: 14px;
-          line-height: 1.2;
-          display: inline-block;
-        }
-        .${styles.navPrimary} {
-          background: #00e5ff;
-          color: #001018;
-          font-weight: 700;
         }
         .${styles.grid} {
           display: grid;
@@ -441,10 +400,6 @@ export default function ProfilePage() {
           overflow-wrap: anywhere;       /* 👈 evita desbordes */
           word-break: break-word;        /* 👈 por si hay URLs largas */
         }
-        .${styles.badge} {
-          font-size: 12px;
-          opacity: 0.7;
-        }
         .nvp__row2 {
           display: grid;
           grid-template-columns: 1fr 1fr;
@@ -464,9 +419,6 @@ export default function ProfilePage() {
           }
         }
         @media (max-width: 640px) {
-          .${styles.nav} {
-            gap: 6px;
-          }
           .nvp__row2 {
             grid-template-columns: 1fr;
           }
