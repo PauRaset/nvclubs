@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 
-export default function TopNav({ active }) {
+export default function TopNav({ active, clubName }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
@@ -15,6 +15,17 @@ export default function TopNav({ active }) {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
+  useEffect(() => {
+    const root = document.documentElement;
+    const body = document.body;
+    if (open) {
+      const prevRoot = root.style.overflow;
+      const prevBody = body.style.overflow;
+      root.style.overflow = 'hidden';
+      body.style.overflow = 'hidden';
+      return () => { root.style.overflow = prevRoot; body.style.overflow = prevBody; };
+    }
+  }, [open]);
 
   const items = [
     { href: '/events', label: 'Eventos', key: 'events' },
@@ -34,7 +45,7 @@ export default function TopNav({ active }) {
         {/* Left: logo */}
         <div className="nv-left">
           <Link href="/" className="nv-logo">
-            <span className="nv-dot" /> Nightvibe
+            <span className="nv-dot" /> {clubName || 'Nightvibe'}
           </Link>
         </div>
 
@@ -58,9 +69,15 @@ export default function TopNav({ active }) {
           aria-expanded={open ? 'true' : 'false'}
           onClick={() => setOpen(v => !v)}
         >
-          <span className={`bar ${open ? 'x1' : ''}`} />
-          <span className={`bar ${open ? 'x2' : ''}`} />
-          <span className={`bar ${open ? 'x3' : ''}`} />
+          {open ? (
+            <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 6 L18 18 M18 6 L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          ) : (
+            <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          )}
         </button>
       </div>
 
@@ -72,7 +89,7 @@ export default function TopNav({ active }) {
       <aside className={`nv-drawer ${open ? 'open' : ''}`} role="dialog" aria-modal="true">
         <div className="drawer-header">
           <span className="brand">
-            <span className="nv-dot" /> Nightvibe
+            <span className="nv-dot" /> {clubName || 'Nightvibe'}
           </span>
           <button className="close" aria-label="Cerrar" onClick={() => setOpen(false)}>×</button>
         </div>
@@ -166,25 +183,17 @@ export default function TopNav({ active }) {
           border: 1px solid var(--nv-border);
           background: var(--nv-panel);
           cursor: pointer;
+          color: var(--nv-text);
+          outline: none;
         }
-        .bar {
-          position: relative;
-          display: block;
-          width: 18px; height: 2px;
-          background: var(--nv-text);
-          transition: transform .25s ease, opacity .2s ease;
-        }
-        .bar + .bar { margin-top: 4px; }
-        .x1 { transform: translateY(6px) rotate(45deg); }
-        .x2 { opacity: 0; }
-        .x3 { transform: translateY(-6px) rotate(-45deg); }
 
         /* Drawer */
         .nv-overlay {
           position: fixed; inset: 0;
-          background: rgba(0,0,0,.4);
+          background: rgba(0,0,0,.72);
           opacity: 0; pointer-events: none;
           transition: opacity .2s ease;
+          z-index: 55;
         }
         .nv-overlay.show { opacity: 1; pointer-events: auto; }
 
@@ -192,6 +201,7 @@ export default function TopNav({ active }) {
           position: fixed; top: 0; right: 0; bottom: 0;
           width: min(86vw, 360px);
           background: var(--nv-panel);
+          color: var(--nv-text);
           border-left: 1px solid var(--nv-border);
           transform: translateX(100%);
           transition: transform .25s ease;
@@ -238,92 +248,12 @@ export default function TopNav({ active }) {
         /* Breakpoint: desktop desde 900px */
         @media (min-width: 900px) {
           .nv-container { grid-template-columns: auto auto 1fr; }
-          .nv-links { display: inline-flex; }
+          .nv-links { display: inline-flex; grid-column: 3; justify-self: end; }
           .nv-burger { display: none; }
           .nv-overlay, .nv-drawer { display: none; }
+          .nv-left { grid-column: 1; }
         }
       `}</style>
     </header>
   );
 }
-
-/*'use client';
-import { clearSession, getUser } from '@/lib/apiClient';
-import { useEffect, useState } from 'react';
-
-export default function TopNav() {
-  const [user, setUser] = useState(null);
-  useEffect(() => { setUser(getUser()); }, []);
-
-  function logout(e) {
-    e.preventDefault();
-    clearSession();
-    window.location.href = '/login';
-  }
-
-  const link = {
-    padding: '8px 10px',
-    borderRadius: 8,
-    background: '#111827',
-    color: '#e5e7eb',
-    textDecoration: 'none',
-    display: 'inline-block'
-  };
-
-  return (
-    <header style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '12px 16px',
-      borderBottom: '1px solid #1d263a',
-      background: '#0b0f19',
-      position: 'sticky',
-      top: 0,
-      zIndex: 20
-    }}>
-      <nav style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-        <a href="/events" style={link}>Eventos</a>
-        <a
-          href="/events/new"
-          style={{ ...link, background: '#0ea5e9', color: '#001018', fontWeight: 600 }}
-        >
-          + Crear
-        </a>
-
-        {!user && (
-          <>
-            <a href="/register" style={link}>Registro</a>
-            <a href="/register/verify" style={link}>Verificar</a>
-          </>
-        )}
-
-        <a href="/scanner" style={link}>Escáner</a>
-        <a href="/profile" style={link}>Perfil</a>
-      </nav>
-
-      <div style={{ display: 'flex', gap: 12, alignItems: 'center', color: '#9ca3af' }}>
-        <span style={{ fontSize: 13 }}>
-          {user ? `#${user.username || user.email}` : '...'}
-        </span>
-
-        {user ? (
-          <a
-            href="/login"
-            onClick={logout}
-            style={{ padding: '6px 10px', border: '1px solid #334155', borderRadius: 8, textDecoration: 'none' }}
-          >
-            Salir
-          </a>
-        ) : (
-          <a
-            href="/login"
-            style={{ padding: '6px 10px', border: '1px solid #334155', borderRadius: 8, textDecoration: 'none', color: '#e5e7eb' }}
-          >
-            Entrar
-          </a>
-        )}
-      </div>
-    </header>
-  );
-}*/
