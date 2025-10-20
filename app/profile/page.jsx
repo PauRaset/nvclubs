@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getUser, setSession } from '@/lib/apiClient';
 import { getMe, updateMe, uploadAvatar } from '@/lib/userApi';
+import TopNav from '@/components/TopNav';
 
 /* Normaliza Instagram a {handle, url} a partir de @usuario o URL */
 function normalizeInstagram(input) {
@@ -174,6 +175,7 @@ export default function ProfilePage() {
 
   return (
     <div className={styles.page}>
+      <TopNav active="profile" />
 
       {/* ======= Contenido ======= */}
       <main className={styles.container} style={{ marginTop: 20, marginBottom: 24 }}>
