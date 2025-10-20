@@ -31,10 +31,12 @@ export default function SuccessClient() {
     return () => { cancelled = true; };
   }, [sid]);
 
-  // ===== UI =====
   if (state.loading) {
     return (
       <div style={sx.page}>
+        <style jsx global>{`
+          @keyframes spin { from { transform: rotate(0deg);} to { transform: rotate(360deg);} }
+        `}</style>
         <div style={sx.card}>
           <div style={sx.spinner} aria-hidden />
           <h1 style={sx.h1}>Procesando pago…</h1>
@@ -44,12 +46,11 @@ export default function SuccessClient() {
     );
   }
 
-  // Si no pudimos cargar el resumen, sigue siendo una “gracias”
   if (state.err) {
     return (
       <div style={sx.page}>
         <div style={sx.card}>
-          <CheckIcon ok />
+          <CheckIcon />
           <h1 style={sx.h1}>¡Pago recibido!</h1>
           <p style={sx.p}>No pudimos cargar el detalle: <em>{state.err}</em></p>
           <p style={sx.p}>Revisa tu correo: te enviamos las entradas.</p>
@@ -65,14 +66,16 @@ export default function SuccessClient() {
 
   return (
     <div style={sx.page}>
+      <style jsx global>{`
+        @keyframes spin { from { transform: rotate(0deg);} to { transform: rotate(360deg);} }
+      `}</style>
       <div style={sx.card}>
-        <CheckIcon ok />
+        <CheckIcon />
         <h1 style={sx.h1}>¡Pago completado!</h1>
         <p style={sx.p}>
           Te hemos enviado tus entradas a <strong>{o.email || 'tu correo'}</strong>.
         </p>
 
-        {/* resumen muy corto, sin menús ni chrome */}
         <div style={sx.summary}>
           <div style={sx.row}>
             <span>Importe</span>
@@ -94,7 +97,6 @@ export default function SuccessClient() {
   );
 }
 
-/* ======= estilos inline minimal ======= */
 const sx = {
   page: {
     minHeight: '100svh',
@@ -149,8 +151,8 @@ const sx = {
   },
 };
 
-// pequeño check sin dependencias
-function CheckIcon({ ok }: { ok?: boolean }) {
+// ✅ Versión JS pura (sin tipos)
+function CheckIcon({ ok }) {
   return (
     <div
       aria-hidden
@@ -168,6 +170,7 @@ function CheckIcon({ ok }: { ok?: boolean }) {
     </div>
   );
 }
+
 
 
 
