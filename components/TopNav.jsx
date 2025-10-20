@@ -45,7 +45,7 @@ export default function TopNav({ active, clubName }) {
         {/* Left: logo */}
         <div className="nv-left">
           <Link href="/" className="nv-logo">
-            <span className="nv-dot" /> {clubName || 'Nightvibe'}
+            <span className="nv-dot" /> {clubName || 'NightVibe'}
           </Link>
         </div>
 
@@ -89,7 +89,7 @@ export default function TopNav({ active, clubName }) {
       <aside className={`nv-drawer ${open ? 'open' : ''}`} role="dialog" aria-modal="true">
         <div className="drawer-header">
           <span className="brand">
-            <span className="nv-dot" /> {clubName || 'Nightvibe'}
+            <span className="nv-dot" /> {clubName || 'NightVibe'}
           </span>
           <button className="close" aria-label="Cerrar" onClick={() => setOpen(false)}>×</button>
         </div>
@@ -154,6 +154,8 @@ export default function TopNav({ active, clubName }) {
           display: none;
           align-items: center;
           gap: 10px;
+          margin-left: auto;
+          justify-content: flex-end;
         }
         .nv-link {
           padding: 8px 10px;
@@ -190,7 +192,7 @@ export default function TopNav({ active, clubName }) {
         /* Drawer */
         .nv-overlay {
           position: fixed; inset: 0;
-          background: rgba(0,0,0,.72);
+          background: rgba(0,0,0,.92);
           opacity: 0; pointer-events: none;
           transition: opacity .2s ease;
           z-index: 55;
@@ -248,7 +250,7 @@ export default function TopNav({ active, clubName }) {
         /* Breakpoint: desktop desde 900px */
         @media (min-width: 900px) {
           .nv-container { grid-template-columns: auto auto 1fr; }
-          .nv-links { display: inline-flex; grid-column: 3; justify-self: end; }
+          .nv-links { display: inline-flex; grid-column: 3; justify-self: end; margin-left: auto; justify-content: flex-end; }
           .nv-burger { display: none; }
           .nv-overlay, .nv-drawer { display: none; }
           .nv-left { grid-column: 1; }
