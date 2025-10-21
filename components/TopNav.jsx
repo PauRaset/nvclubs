@@ -1,8 +1,41 @@
 'use client';
 
+
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
+
+function Icon({ name }) {
+  const common = { width: 18, height: 18, viewBox: "0 0 24 24", "aria-hidden": "true" };
+  switch (name) {
+    case "events":
+      return (
+        <svg {...common}>
+          <path d="M7 3v2M17 3v2M3 8h18M5 12h4m4 0h6M5 16h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <rect x="3" y="5" width="18" height="16" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+        </svg>
+      );
+    case "dashboard":
+      return (
+        <svg {...common}>
+          <path d="M3 13h8V3H3v10zm10 8h8V3h-8v18zM3 21h8v-6H3v6z" fill="currentColor"/>
+        </svg>
+      );
+    case "scanner":
+      return (
+        <svg {...common}>
+          <path d="M7 4H5a1 1 0 0 0-1 1v2M17 4h2a1 1 0 0 1 1 1v2M7 20H5a1 1 0 0 1-1-1v-2M17 20h2a1 1 0 0 0 1-1v-2M8 12h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      );
+    case "profile":
+    default:
+      return (
+        <svg {...common}>
+          <path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-4.42 0-8 2.24-8 5v1h16v-1c0-2.76-3.58-5-8-5Z" fill="currentColor"/>
+        </svg>
+      );
+  }
+}
 
 export default function TopNav({ active, clubName }) {
   const [open, setOpen] = useState(false);
@@ -58,7 +91,8 @@ export default function TopNav({ active, clubName }) {
                 href={it.href}
                 className={`nv-link ${isActive(it.href, it.key) ? 'is-active' : ''}`}
               >
-                {it.label}
+                <span className="nv-ico"><Icon name={it.key} /></span>
+                <span className="nv-text">{it.label}</span>
               </Link>
             ))}
           </nav>
@@ -102,7 +136,9 @@ export default function TopNav({ active, clubName }) {
               href={it.href}
               className={`drawer-link ${isActive(it.href, it.key) ? 'is-active' : ''}`}
             >
-              {it.label}
+              <span className="nv-ico"><Icon name={it.key} /></span>
+              <span className="nv-text">{it.label}</span>
+              <svg className="nv-arrow" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </Link>
           ))}
         </nav>
@@ -124,7 +160,7 @@ export default function TopNav({ active, clubName }) {
           position: sticky;
           top: 0;
           z-index: 40;
-          background: color-mix(in oklab, var(--nv-bg) 90%, black 10%);
+          background: color-mix(in oklab, var(--nv-bg) 88%, black 12%);
           backdrop-filter: saturate(140%) blur(8px);
           border-bottom: 1px solid var(--nv-border);
         }
@@ -163,22 +199,43 @@ export default function TopNav({ active, clubName }) {
           justify-content: flex-end;
         }
         .nv-link {
-          padding: 8px 10px;
-          border-radius: 10px;
+          display: inline-flex;
+          align-items: center;
+          gap: 10px;
+          padding: 8px 12px;
+          border-radius: 12px;
           color: var(--nv-muted);
           text-decoration: none;
           border: 1px solid transparent;
+          background: transparent;
+          transition: transform .12s ease, background .12s ease, border-color .12s ease, color .12s ease, box-shadow .12s ease;
         }
         .nv-link:hover {
           color: var(--nv-text);
           border-color: var(--nv-border);
-          background: var(--nv-panel);
+          background: color-mix(in oklab, var(--nv-panel) 85%, black 15%);
+          box-shadow: 0 6px 18px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.03);
+          transform: translateY(-1px);
         }
         .nv-link.is-active {
           color: #001018;
-          background: var(--nv-accent);
+          background: linear-gradient(140deg, var(--nv-accent), #7cf7ff);
           border-color: transparent;
+          box-shadow: 0 8px 24px rgba(0,229,255,.25);
           font-weight: 800;
+        }
+
+        .nv-ico {
+          display: inline-flex;
+          width: 20px;
+          height: 20px;
+          align-items: center;
+          justify-content: center;
+          opacity: .95;
+        }
+        .nv-text {
+          letter-spacing: .2px;
+          font-weight: 700;
         }
 
         /* Burger button (mobile) */
@@ -237,19 +294,32 @@ export default function TopNav({ active, clubName }) {
           display: grid; gap: 8px;
         }
         .drawer-link {
-          display: block;
-          padding: 12px 12px;
-          border-radius: 12px;
+          display: grid;
+          grid-template-columns: 22px 1fr 18px;
+          align-items: center;
+          gap: 12px;
+          padding: 12px 14px;
+          border-radius: 14px;
           color: var(--nv-text);
           text-decoration: none;
           border: 1px solid var(--nv-border);
           background: #0b1424;
+          transition: background .12s ease, border-color .12s ease, transform .12s ease;
+        }
+        .drawer-link:hover {
+          background: color-mix(in oklab, var(--nv-panel) 86%, black 14%);
+          border-color: color-mix(in oklab, var(--nv-border) 60%, white 40%);
+          transform: translateX(1px);
         }
         .drawer-link.is-active {
-          background: var(--nv-accent);
+          background: linear-gradient(140deg, var(--nv-accent), #7cf7ff);
           color: #001018;
           border-color: transparent;
           font-weight: 800;
+        }
+        .nv-arrow {
+          justify-self: end;
+          opacity: .8;
         }
 
         /* Breakpoint: desktop desde 900px */
