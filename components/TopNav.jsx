@@ -227,8 +227,8 @@ export default function TopNav({ active, clubName }) {
 
         .nv-ico {
           display: inline-flex;
-          width: 20px;
-          height: 20px;
+          width: 21px;
+          height: 21px;
           align-items: center;
           justify-content: center;
           opacity: .95;
@@ -236,6 +236,7 @@ export default function TopNav({ active, clubName }) {
         .nv-text {
           letter-spacing: .2px;
           font-weight: 700;
+          font-size: 14.5px;
         }
 
         /* Burger button (mobile) */
@@ -290,50 +291,81 @@ export default function TopNav({ active, clubName }) {
           cursor: pointer;
         }
         .drawer-links {
-          padding: 16px;
-          display: grid; 
-          gap: 14px; /* más separación entre entradas */
+          padding: 18px 16px 24px;
+          display: grid;
+          gap: 18px; /* separación más generosa entre entradas */
         }
         .drawer-link {
+          --ring: color-mix(in oklab, var(--nv-accent) 65%, white 0%);
+          --tile: color-mix(in oklab, var(--nv-panel) 90%, black 10%);
           display: grid;
-          grid-template-columns: 24px 1fr 18px;
+          grid-template-columns: 26px 1fr 18px;
           align-items: center;
-          gap: 14px;
-          padding: 14px 16px; /* celdas más grandes para dedo */
-          border-radius: 16px; /* bordes más redondeados */
+          gap: 16px;
+          padding: 16px 18px;
+          border-radius: 18px;
           color: var(--nv-text);
           text-decoration: none;
-          border: 1.5px solid color-mix(in oklab, var(--nv-accent) 65%, transparent); /* borde en color de app */
-          background: color-mix(in oklab, var(--nv-panel) 92%, black 8%);
-          transition: background .12s ease, border-color .12s ease, transform .12s ease, box-shadow .12s ease;
-          box-shadow: 0 1px 0 rgba(255,255,255,.03), 0 6px 18px rgba(0,0,0,.25);
+          position: relative;
+          border: 1px solid color-mix(in oklab, var(--nv-accent) 35%, transparent);
+          background: radial-gradient(120% 120% at 0% 0%, rgba(255,255,255,.03) 0, transparent 50%) , var(--tile);
+          transition: background .14s ease, border-color .14s ease, transform .12s ease, box-shadow .14s ease, opacity .14s ease;
+          box-shadow: 0 1px 0 rgba(255,255,255,.03), 0 10px 26px rgba(0,0,0,.28);
+          -webkit-tap-highlight-color: transparent;
+        }
+        .drawer-link::before {
+          content: "";
+          position: absolute;
+          inset: -2px;
+          border-radius: 20px;
+          pointer-events: none;
+          background: linear-gradient(140deg, color-mix(in oklab, var(--nv-accent) 60%, transparent), transparent 40%);
+          opacity: .35;
+          filter: blur(10px);
+          transition: opacity .14s ease, filter .14s ease;
         }
         .drawer-link:hover {
-          background: color-mix(in oklab, var(--nv-panel) 86%, black 14%);
-          border-color: color-mix(in oklab, var(--nv-accent) 80%, white 20%);
-          transform: translateX(2px);
-          box-shadow: 0 1px 0 rgba(255,255,255,.04), 0 10px 24px rgba(0,0,0,.3);
+          background: radial-gradient(120% 120% at 0% 0%, rgba(255,255,255,.05) 0, transparent 55%), color-mix(in oklab, var(--nv-panel) 85%, black 15%);
+          border-color: color-mix(in oklab, var(--nv-accent) 55%, white 10%);
+          transform: translateX(3px);
+          box-shadow: 0 2px 0 rgba(255,255,255,.04), 0 14px 32px rgba(0,0,0,.34);
+        }
+        .drawer-link:hover::before {
+          opacity: .55;
+          filter: blur(8px);
         }
         .drawer-link.is-active {
-          background: linear-gradient(140deg, var(--nv-accent), #7cf7ff);
+          background: linear-gradient(140deg, color-mix(in oklab, var(--nv-accent) 90%, #7cf7ff 10%), #7cf7ff);
           color: #001018;
           border-color: transparent;
           font-weight: 900;
-          box-shadow: 0 10px 28px rgba(0,229,255,.28);
+          transform: translateX(2px);
+          box-shadow: 0 10px 30px rgba(0,229,255,.30), inset 0 1px 0 rgba(255,255,255,.35);
+        }
+        .drawer-link.is-active .nv-ico,
+        .drawer-link.is-active .nv-arrow {
+          opacity: .95;
         }
         @media (max-width: 899px) {
-          /* tipografía más grande en móvil */
-          .drawer-link .nv-text { 
-            font-size: 17px; 
-            letter-spacing: .3px; 
-            font-weight: 800; 
+          /* tipografía y tamaños mayores en móvil */
+          .drawer-link .nv-text {
+            font-size: 18px;
+            line-height: 1.25;
+            letter-spacing: .2px;
+            font-weight: 800;
           }
-          .drawer-header .brand { font-size: 16px; }
-          .nv-burger { width: 42px; height: 42px; }
+          .nv-ico { width: 22px; height: 22px; }
+          .nv-arrow { width: 18px; height: 18px; }
+          .drawer-header .brand { font-size: 17px; }
+          .nv-burger { width: 44px; height: 44px; }
         }
         .nv-arrow {
           justify-self: end;
           opacity: .8;
+        }
+        .drawer-link:active {
+          transform: translateX(2px) scale(.995);
+          opacity: .98;
         }
 
         /* Breakpoint: desktop desde 900px */
