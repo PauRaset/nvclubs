@@ -32,7 +32,7 @@ export default function ScannerCheckin({ backendBase='https://api.nightvibe.life
 
   const [status, setStatus] = useState('scanning'); // scanning | posting | success | duplicate | invalid | badsig | error
   const [message, setMessage] = useState('Apunta el QR');
-  const [last, setLast] = useState(null); // { serial, status, checkedInAt, eventId, buyerName, buyerEmail, clubName }
+  const [last, setLast] = useState(null); // { serial, status, checkedInAt, eventId, buyerName, buyerEmail }
 
   const setStatusSafe = (s) => { statusRef.current = s; setStatus(s); };
 
@@ -97,7 +97,7 @@ export default function ScannerCheckin({ backendBase='https://api.nightvibe.life
               eventId: parsed.eventId,
               buyerName: data.buyerName || '',
               buyerEmail: data.buyerEmail || '',
-              clubName: data.clubName || ''
+              clubName: data.clubName || '',
             });
             navigator.vibrate?.([40,60,40]);
             return; // se queda en tarjeta
@@ -113,7 +113,7 @@ export default function ScannerCheckin({ backendBase='https://api.nightvibe.life
               eventId: parsed.eventId,
               buyerName: data.buyerName || '',
               buyerEmail: data.buyerEmail || '',
-              clubName: data.clubName || ''
+              clubName: data.clubName || '',
             });
             navigator.vibrate?.([160,80,160]);
             return;
@@ -182,11 +182,15 @@ export default function ScannerCheckin({ backendBase='https://api.nightvibe.life
           <div style={{padding:18,color:'#cbd5e1',lineHeight:1.35}}>
             {last?.serial && <div style={{marginBottom:8}}><b>Serial:</b> {last.serial}</div>}
             {last?.eventId && <div style={{marginBottom:8}}><b>Evento:</b> {last.eventId}</div>}
-            {last?.clubName && <div style={{marginBottom:8}}><b>Club:</b> {last.clubName}</div>}
             {(last?.buyerName || last?.buyerEmail) && (
               <div style={{marginBottom:8}}>
                 <b>Comprador:</b> {last.buyerName || last.buyerEmail}
                 {last?.buyerName && last?.buyerEmail ? ` · ${last.buyerEmail}` : ''}
+              </div>
+            )}
+            {last?.clubName && (
+              <div style={{marginBottom:8}}>
+                <b>Club:</b> {last.clubName}
               </div>
             )}
             {last?.checkedInAt && status !== 'success' && (
@@ -238,56 +242,3 @@ export default function ScannerCheckin({ backendBase='https://api.nightvibe.life
     </div>
   );
 }
----
-// index.js (Express backend entrypoint)
-app.post('/api/checkin', async (req, res) => {
-  const { token, eventId, hmac } = req.body;
-
-  // ... existing validation and lookup logic ...
-
-  let buyerName = "";
-  let buyerEmail = "";
-  let clubName = "";
-
-  // ... existing code to find the ticket/order ...
-
-  if (found.orderId) {
-    const ord = await Order.findById(found.orderId)
-      .select("buyerName email clubId")
-      .lean();
-    if (ord) {
-      buyerName = ord.buyerName || "";
-      buyerEmail = ord.email || "";
-      if (ord.clubId && typeof Club !== "undefined" && Club) {
-        try {
-          const c = await Club.findById(ord.clubId).select("name").lean();
-          if (c?.name) clubName = c.name;
-        } catch { /* noop */ }
-      }
-    }
-  }
-
-  if (found.checkedInAt) {
-    return res.json({
-      ok: false,
-      reason: "duplicate",
-      serial: found.serial,
-      checkedInAt: found.checkedInAt,
-      buyerName,
-      buyerEmail,
-      clubName,
-    });
-  }
-
-  // ... atomic update and other logic ...
-
-  return res.json({
-    ok: result === "ok",
-    serial: found.serial,
-    status: updated?.status || found.status,
-    checkedInAt: updated?.checkedInAt || found.checkedInAt,
-    buyerName,
-    buyerEmail,
-    clubName,
-  });
-});
