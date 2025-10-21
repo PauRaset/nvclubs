@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 
+
 const parseNV1 = (txt) => {
   const clean = txt.startsWith('NV1:') ? txt.slice(4) : txt;
   const qp = new URLSearchParams(clean);
@@ -12,6 +13,49 @@ const parseNV1 = (txt) => {
   if (!token || !eventId || !hmac) return null;
   return { token, eventId, hmac };
 };
+
+// --- Helpers to resolve club name on the client if backend didn't send it ---
+const _safeBase = (b) => (b || '').replace(/\/+$/, '');
+
+async function fetchJson(url) {
+  try {
+    const r = await fetch(url, { credentials: 'include' });
+    if (!r.ok) return null;
+    return await r.json();
+  } catch {
+    return null;
+  }
+}
+
+async function resolveClubNameClient(backendBase, eventId) {
+  if (!backendBase || !eventId) return '';
+  const base = _safeBase(backendBase);
+
+  // 1) Intenta obtener el propio evento
+  const evRes = await fetchJson(`${base}/api/events/${encodeURIComponent(eventId)}`);
+  // Formatos posibles según tu API: { event: { ... } } o el evento plano
+  const ev = evRes?.event || evRes;
+
+  if (!ev || typeof ev !== 'object') return '';
+
+  // a) Si el endpoint del evento ya trae club.name:
+  if (ev.club?.name) return ev.club.name;
+
+  // b) Si trae clubId -> buscar el club por id
+  if (ev.clubId) {
+    const clubs = await fetchJson(`${base}/api/clubs?id=${encodeURIComponent(ev.clubId)}`);
+    if (Array.isArray(clubs) && clubs.length && clubs[0]?.name) return clubs[0].name;
+  }
+
+  // c) Si no, buscar por ownerUserId/createdBy
+  const createdBy = ev.createdBy?._id || ev.createdBy || '';
+  if (createdBy) {
+    const clubsByOwner = await fetchJson(`${base}/api/clubs?ownerUserId=${encodeURIComponent(createdBy)}`);
+    if (Array.isArray(clubsByOwner) && clubsByOwner.length && clubsByOwner[0]?.name) return clubsByOwner[0].name;
+  }
+
+  return '';
+}
 
 const Banner = ({ type='info', children }) => {
   const c = { success:'#22c55e', warn:'#f59e0b', error:'#ef4444', info:'#0ea5e9' }[type];
@@ -24,6 +68,7 @@ const Banner = ({ type='info', children }) => {
 
 export default function ScannerCheckin({ backendBase='https://api.nightvibe.life', scannerKey }) {
   const endpoint = `${(backendBase||'').replace(/\/+$/,'')}/api/checkin`;
+  const apiBase = (backendBase || '').replace(/\/+$/, '');
 
   const videoRef  = useRef(null);
   const readerRef = useRef(null);
@@ -99,6 +144,12 @@ export default function ScannerCheckin({ backendBase='https://api.nightvibe.life
               buyerEmail: data.buyerEmail || '',
               clubName: data.clubName || '',
             });
+            // Resolver nombre del club en cliente si no vino del backend
+            if (!data.clubName) {
+              resolveClubNameClient(apiBase, parsed.eventId).then((nm) => {
+                if (nm) setLast((prev) => prev ? { ...prev, clubName: nm } : prev);
+              });
+            }
             navigator.vibrate?.([40,60,40]);
             return; // se queda en tarjeta
           }
@@ -115,6 +166,11 @@ export default function ScannerCheckin({ backendBase='https://api.nightvibe.life
               buyerEmail: data.buyerEmail || '',
               clubName: data.clubName || '',
             });
+            if (!data.clubName) {
+              resolveClubNameClient(apiBase, parsed.eventId).then((nm) => {
+                if (nm) setLast((prev) => prev ? { ...prev, clubName: nm } : prev);
+              });
+            }
             navigator.vibrate?.([160,80,160]);
             return;
           }
