@@ -290,32 +290,46 @@ export default function TopNav({ active, clubName }) {
           cursor: pointer;
         }
         .drawer-links {
-          padding: 12px;
-          display: grid; gap: 8px;
+          padding: 16px;
+          display: grid; 
+          gap: 14px; /* más separación entre entradas */
         }
         .drawer-link {
           display: grid;
-          grid-template-columns: 22px 1fr 18px;
+          grid-template-columns: 24px 1fr 18px;
           align-items: center;
-          gap: 12px;
-          padding: 12px 14px;
-          border-radius: 14px;
+          gap: 14px;
+          padding: 14px 16px; /* celdas más grandes para dedo */
+          border-radius: 16px; /* bordes más redondeados */
           color: var(--nv-text);
           text-decoration: none;
-          border: 1px solid var(--nv-border);
-          background: #0b1424;
-          transition: background .12s ease, border-color .12s ease, transform .12s ease;
+          border: 1.5px solid color-mix(in oklab, var(--nv-accent) 65%, transparent); /* borde en color de app */
+          background: color-mix(in oklab, var(--nv-panel) 92%, black 8%);
+          transition: background .12s ease, border-color .12s ease, transform .12s ease, box-shadow .12s ease;
+          box-shadow: 0 1px 0 rgba(255,255,255,.03), 0 6px 18px rgba(0,0,0,.25);
         }
         .drawer-link:hover {
           background: color-mix(in oklab, var(--nv-panel) 86%, black 14%);
-          border-color: color-mix(in oklab, var(--nv-border) 60%, white 40%);
-          transform: translateX(1px);
+          border-color: color-mix(in oklab, var(--nv-accent) 80%, white 20%);
+          transform: translateX(2px);
+          box-shadow: 0 1px 0 rgba(255,255,255,.04), 0 10px 24px rgba(0,0,0,.3);
         }
         .drawer-link.is-active {
           background: linear-gradient(140deg, var(--nv-accent), #7cf7ff);
           color: #001018;
           border-color: transparent;
-          font-weight: 800;
+          font-weight: 900;
+          box-shadow: 0 10px 28px rgba(0,229,255,.28);
+        }
+        @media (max-width: 899px) {
+          /* tipografía más grande en móvil */
+          .drawer-link .nv-text { 
+            font-size: 17px; 
+            letter-spacing: .3px; 
+            font-weight: 800; 
+          }
+          .drawer-header .brand { font-size: 16px; }
+          .nv-burger { width: 42px; height: 42px; }
         }
         .nv-arrow {
           justify-self: end;
