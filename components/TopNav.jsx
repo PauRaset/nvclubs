@@ -1,6 +1,5 @@
 'use client';
 
-
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
@@ -76,15 +75,18 @@ export default function TopNav({ active, clubName }) {
     <>
       <header className="nv-nav">
         <div className="nv-container">
-          {/* Left: logo */}
+          {/* Left: brand */}
           <div className="nv-left">
-            <Link href="/" className="nv-logo">
-              <span className="nv-dot" /> {clubName || 'NightVibe'}
+            <Link href="/" className="nv-logo" aria-label="Inicio">
+              <span className="nv-badge">
+                <span className="nv-badge-dot" />
+              </span>
+              <span className="nv-brand">{clubName || 'NightVibe'}</span>
             </Link>
           </div>
 
           {/* Desktop nav */}
-          <nav className="nv-links">
+          <nav className="nv-links" aria-label="Navegación principal">
             {items.map(it => (
               <Link
                 key={it.href}
@@ -97,19 +99,20 @@ export default function TopNav({ active, clubName }) {
             ))}
           </nav>
 
-          {/* Mobile toggle */}
+          {/* Mobile toggle (derecha) */}
           <button
             className="nv-burger"
-            aria-label="Abrir menú"
+            aria-label={open ? 'Cerrar menú' : 'Abrir menú'}
             aria-expanded={open ? 'true' : 'false'}
+            aria-controls="nv-drawer"
             onClick={() => setOpen(v => !v)}
           >
             {open ? (
-              <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M6 6 L18 18 M18 6 L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
               </svg>
             ) : (
-              <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
               </svg>
             )}
@@ -117,19 +120,21 @@ export default function TopNav({ active, clubName }) {
         </div>
       </header>
 
-      {/* Overlay + drawer móvil (fuera del header para evitar stacking issues) */}
+      {/* Overlay + drawer móvil */}
       <div
         className={`nv-overlay ${open ? 'show' : ''}`}
         onClick={() => setOpen(false)}
       />
-      <aside className={`nv-drawer ${open ? 'open' : ''}`} role="dialog" aria-modal="true">
+      <aside id="nv-drawer" className={`nv-drawer ${open ? 'open' : ''}`} role="dialog" aria-modal="true" aria-label="Menú">
         <div className="drawer-header">
           <span className="brand">
-            <span className="nv-dot" /> {clubName || 'NightVibe'}
+            <span className="nv-badge"><span className="nv-badge-dot" /></span>
+            <span className="nv-brand">{clubName || 'NightVibe'}</span>
           </span>
           <button className="close" aria-label="Cerrar" onClick={() => setOpen(false)}>×</button>
         </div>
-        <nav className="drawer-links">
+
+        <nav className="drawer-links" aria-label="Opciones">
           {items.map(it => (
             <Link
               key={it.href}
@@ -138,21 +143,25 @@ export default function TopNav({ active, clubName }) {
             >
               <span className="nv-ico"><Icon name={it.key} /></span>
               <span className="nv-text">{it.label}</span>
-              <svg className="nv-arrow" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              <svg className="nv-arrow" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
             </Link>
           ))}
         </nav>
       </aside>
 
-      {/* IMPORTANTE: Un SOLO bloque de styled-jsx para evitar el error de "nested styled-jsx tag" */}
+      {/* Un SOLO bloque styled-jsx */}
       <style jsx>{`
         :global(:root) {
           --nv-bg: #0b1220;
           --nv-panel: #0f172a;
-          --nv-border: #243044;
-          --nv-text: #e6f0ff;
+          --nv-border: #233146;
+          --nv-text: #e7efff;
           --nv-muted: #a7b3c8;
           --nv-accent: #00e5ff;
+          --nv-accent-2: #7cf7ff;
+          --nv-glow: 0 0 22px rgba(0,229,255,.45);
         }
 
         /* Header */
@@ -160,7 +169,7 @@ export default function TopNav({ active, clubName }) {
           position: sticky;
           top: 0;
           z-index: 40;
-          background: color-mix(in oklab, var(--nv-bg) 88%, black 12%);
+          background: color-mix(in oklab, var(--nv-bg) 90%, black 10%);
           backdrop-filter: saturate(140%) blur(8px);
           border-bottom: 1px solid var(--nv-border);
         }
@@ -174,20 +183,31 @@ export default function TopNav({ active, clubName }) {
           align-items: center;
           gap: 12px;
         }
+
         .nv-logo {
           display: inline-flex;
           align-items: center;
-          gap: 8px;
-          font-weight: 800;
-          color: var(--nv-text);
+          gap: 10px;
           text-decoration: none;
-          letter-spacing: .2px;
         }
-        .nv-dot {
-          width: 10px; height: 10px; border-radius: 50%;
+        .nv-badge {
+          width: 24px; height: 24px;
+          border-radius: 9px;
+          display: inline-flex; align-items: center; justify-content: center;
+          background: linear-gradient(145deg, rgba(0,229,255,.22), rgba(0,229,255,.06));
+          border: 1px solid color-mix(in oklab, var(--nv-accent) 40%, transparent);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.05), var(--nv-glow);
+        }
+        .nv-badge-dot {
+          width: 9px; height: 9px; border-radius: 50%;
           background: var(--nv-accent);
-          box-shadow: 0 0 18px var(--nv-accent);
+          box-shadow: 0 0 12px var(--nv-accent);
           display: inline-block;
+        }
+        .nv-brand {
+          color: var(--nv-text);
+          font-weight: 900;
+          letter-spacing: .2px;
         }
 
         /* Desktop links */
@@ -219,32 +239,20 @@ export default function TopNav({ active, clubName }) {
         }
         .nv-link.is-active {
           color: #001018;
-          background: linear-gradient(140deg, var(--nv-accent), #7cf7ff);
+          background: linear-gradient(140deg, var(--nv-accent), var(--nv-accent-2));
           border-color: transparent;
           box-shadow: 0 8px 24px rgba(0,229,255,.25);
           font-weight: 800;
         }
+        .nv-ico { width: 21px; height: 21px; display: inline-flex; align-items: center; justify-content: center; opacity: .95; }
+        .nv-text { letter-spacing: .2px; font-weight: 800; font-size: 14.5px; }
 
-        .nv-ico {
-          display: inline-flex;
-          width: 21px;
-          height: 21px;
-          align-items: center;
-          justify-content: center;
-          opacity: .95;
-        }
-        .nv-text {
-          letter-spacing: .2px;
-          font-weight: 700;
-          font-size: 14.5px;
-        }
-
-        /* Burger button (mobile) */
+        /* Burger */
         .nv-burger {
           display: inline-flex;
-          width: 40px; height: 40px;
+          width: 42px; height: 42px;
           align-items: center; justify-content: center;
-          border-radius: 10px;
+          border-radius: 12px;
           border: 1px solid var(--nv-border);
           background: var(--nv-panel);
           cursor: pointer;
@@ -252,10 +260,10 @@ export default function TopNav({ active, clubName }) {
           outline: none;
         }
 
-        /* Overlay + Drawer (global para ocupar toda la pantalla) */
+        /* Overlay + Drawer */
         :global(.nv-overlay) {
           position: fixed; inset: 0;
-          background: rgba(0,0,0,.96);
+          background: rgba(5,8,15,.96);
           opacity: 0; pointer-events: none;
           transition: opacity .2s ease;
           z-index: 90;
@@ -265,7 +273,7 @@ export default function TopNav({ active, clubName }) {
         :global(.nv-drawer) {
           position: fixed; top: 0; right: 0; bottom: 0;
           width: min(86vw, 360px);
-          background: var(--nv-panel);
+          background: color-mix(in oklab, var(--nv-panel) 96%, black 4%);
           color: var(--nv-text);
           border-left: 1px solid var(--nv-border);
           transform: translateX(100%);
@@ -273,15 +281,18 @@ export default function TopNav({ active, clubName }) {
           display: grid; grid-template-rows: auto 1fr;
           z-index: 95;
           padding-bottom: env(safe-area-inset-bottom);
+          box-shadow: -10px 0 36px rgba(0,0,0,.5);
         }
         :global(.nv-drawer.open) { transform: translateX(0); }
+
         .drawer-header {
           display: flex; align-items: center; justify-content: space-between;
           padding: calc(8px + env(safe-area-inset-top)) 14px 10px;
           border-bottom: 1px solid var(--nv-border);
         }
         .drawer-header .brand {
-          display: inline-flex; align-items: center; gap: 8px; color: var(--nv-text); font-weight: 800;
+          display: inline-flex; align-items: center; gap: 10px;
+          color: var(--nv-text); font-weight: 900;
         }
         .drawer-header .close {
           font-size: 28px; line-height: 1;
@@ -290,13 +301,13 @@ export default function TopNav({ active, clubName }) {
           border-radius: 10px; width: 36px; height: 36px;
           cursor: pointer;
         }
+
         .drawer-links {
           padding: 18px 16px 24px;
-          display: grid;
-          gap: 18px; /* separación más generosa entre entradas */
+          display: grid; gap: 16px;
         }
         .drawer-link {
-          --ring: color-mix(in oklab, var(--nv-accent) 65%, white 0%);
+          --ring: color-mix(in oklab, var(--nv-accent) 55%, white 0%);
           --tile: color-mix(in oklab, var(--nv-panel) 90%, black 10%);
           display: grid;
           grid-template-columns: 26px 1fr 18px;
@@ -307,22 +318,21 @@ export default function TopNav({ active, clubName }) {
           color: var(--nv-text);
           text-decoration: none;
           position: relative;
-          border: 1px solid color-mix(in oklab, var(--nv-accent) 35%, transparent);
-          background: radial-gradient(120% 120% at 0% 0%, rgba(255,255,255,.03) 0, transparent 50%) , var(--tile);
+          border: 1px solid color-mix(in oklab, var(--nv-accent) 28%, transparent);
+          background: radial-gradient(120% 120% at 0% 0%, rgba(255,255,255,.03) 0, transparent 50%), var(--tile);
           transition: background .14s ease, border-color .14s ease, transform .12s ease, box-shadow .14s ease, opacity .14s ease;
           box-shadow: 0 1px 0 rgba(255,255,255,.03), 0 10px 26px rgba(0,0,0,.28);
           -webkit-tap-highlight-color: transparent;
         }
-        .drawer-link::before {
+        .drawer-link::after {
           content: "";
           position: absolute;
-          inset: -2px;
-          border-radius: 20px;
-          pointer-events: none;
-          background: linear-gradient(140deg, color-mix(in oklab, var(--nv-accent) 60%, transparent), transparent 40%);
+          right: 8px; top: 10px; bottom: 10px;
+          width: 3px;
+          border-radius: 2px;
+          background: linear-gradient(180deg, transparent, color-mix(in oklab, var(--nv-accent) 60%, transparent), transparent);
           opacity: .35;
-          filter: blur(10px);
-          transition: opacity .14s ease, filter .14s ease;
+          transition: opacity .14s ease;
         }
         .drawer-link:hover {
           background: radial-gradient(120% 120% at 0% 0%, rgba(255,255,255,.05) 0, transparent 55%), color-mix(in oklab, var(--nv-panel) 85%, black 15%);
@@ -330,10 +340,7 @@ export default function TopNav({ active, clubName }) {
           transform: translateX(3px);
           box-shadow: 0 2px 0 rgba(255,255,255,.04), 0 14px 32px rgba(0,0,0,.34);
         }
-        .drawer-link:hover::before {
-          opacity: .55;
-          filter: blur(8px);
-        }
+        .drawer-link:hover::after { opacity: .6; }
         .drawer-link.is-active {
           background: linear-gradient(140deg, color-mix(in oklab, var(--nv-accent) 90%, #7cf7ff 10%), #7cf7ff);
           color: #001018;
@@ -343,32 +350,26 @@ export default function TopNav({ active, clubName }) {
           box-shadow: 0 10px 30px rgba(0,229,255,.30), inset 0 1px 0 rgba(255,255,255,.35);
         }
         .drawer-link.is-active .nv-ico,
-        .drawer-link.is-active .nv-arrow {
-          opacity: .95;
-        }
+        .drawer-link.is-active .nv-arrow { opacity: .95; }
+
+        /* Móvil: tipografía + hit area mayores */
         @media (max-width: 899px) {
-          /* tipografía y tamaños mayores en móvil */
           .drawer-link .nv-text {
             font-size: 18px;
             line-height: 1.25;
             letter-spacing: .2px;
-            font-weight: 800;
+            font-weight: 850;
           }
           .nv-ico { width: 22px; height: 22px; }
           .nv-arrow { width: 18px; height: 18px; }
           .drawer-header .brand { font-size: 17px; }
           .nv-burger { width: 44px; height: 44px; }
         }
-        .nv-arrow {
-          justify-self: end;
-          opacity: .8;
-        }
-        .drawer-link:active {
-          transform: translateX(2px) scale(.995);
-          opacity: .98;
-        }
 
-        /* Breakpoint: desktop desde 900px */
+        .nv-arrow { justify-self: end; opacity: .8; }
+        .drawer-link:active { transform: translateX(2px) scale(.995); opacity: .98; }
+
+        /* Desktop */
         @media (min-width: 900px) {
           .nv-container { grid-template-columns: auto auto 1fr; }
           .nv-links { display: inline-flex; grid-column: 3; justify-self: end; margin-left: auto; justify-content: flex-end; }
