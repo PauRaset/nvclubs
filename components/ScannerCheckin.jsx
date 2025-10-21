@@ -188,11 +188,9 @@ export default function ScannerCheckin({ backendBase='https://api.nightvibe.life
                 {last?.buyerName && last?.buyerEmail ? ` · ${last.buyerEmail}` : ''}
               </div>
             )}
-            {last?.clubName && (
-              <div style={{marginBottom:8}}>
-                <b>Club:</b> {last.clubName}
-              </div>
-            )}
+            <div style={{marginBottom:8}}>
+              <b>Organizador:</b> {last?.clubName || last?.buyerName || last?.buyerEmail || '—'}
+            </div>
             {last?.checkedInAt && status !== 'success' && (
               <div style={{marginBottom:8}}><b>Primer check-in:</b> {new Date(last.checkedInAt).toLocaleString()}</div>
             )}
