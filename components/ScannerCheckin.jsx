@@ -5,11 +5,30 @@ import { BrowserMultiFormatReader } from '@zxing/browser';
 
 
 const parseNV1 = (txt) => {
-  const clean = txt.startsWith('NV1:') ? txt.slice(4) : txt;
+  if (!txt) return null;
+
+  let clean = txt.trim();
+
+  // Si viene con prefijo "NV1:" lo quitamos
+  if (clean.startsWith('NV1:')) {
+    clean = clean.slice(4);
+  }
+
+  // Si viene una URL completa, nos quedamos solo con la parte de query (?t=...&e=...&s=...)
+  const qIndex = clean.indexOf('?');
+  if (qIndex !== -1) {
+    const maybeQuery = clean.slice(qIndex + 1);
+    // Solo tratamos como query si realmente tiene parámetros
+    if (maybeQuery.includes('=')) {
+      clean = maybeQuery;
+    }
+  }
+
   const qp = new URLSearchParams(clean);
-  const token = qp.get('t') || qp.get('token');
-  const eventId = qp.get('e') || qp.get('event') || qp.get('eventId');
-  const hmac = qp.get('s') || qp.get('sig') || qp.get('signature');
+  const token   = qp.get('t')      || qp.get('token');
+  const eventId = qp.get('e')      || qp.get('event') || qp.get('eventId');
+  const hmac    = qp.get('s')      || qp.get('sig')   || qp.get('signature');
+
   if (!token || !eventId || !hmac) return null;
   return { token, eventId, hmac };
 };
