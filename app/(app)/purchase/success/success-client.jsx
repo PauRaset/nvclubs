@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
 const API = process.env.NEXT_PUBLIC_API_BASE || process.env.NEXT_PUBLIC_BACKEND_URL || '';
@@ -53,7 +52,6 @@ export default function SuccessClient() {
             <br />
             Si pagaste con éxito, revisa tu correo: te hemos enviado las entradas.
           </p>
-          <Link href="/events" style={styles.cta}>Volver a eventos</Link>
         </div>
       </main>
     );
@@ -66,7 +64,6 @@ export default function SuccessClient() {
           <div style={styles.iconCircleOk}>✓</div>
           <h1 style={styles.title}>Pago efectuado</h1>
           <p style={styles.subtitle}>Te hemos enviado tus entradas por email.</p>
-          <Link href="/events" style={styles.cta}>Volver a eventos</Link>
         </div>
       </main>
     );
@@ -82,5 +79,4 @@ const styles = {
   iconCircleError: { width:80, height:80, borderRadius:'50%', background:'#ef4444', display:'flex', alignItems:'center', justifyContent:'center', fontSize:42, fontWeight:900, color:'#0b0f19', boxShadow:'0 0 40px rgba(239,68,68,0.5)' },
   title: { fontSize:24, fontWeight:800 },
   subtitle: { fontSize:15, opacity:.8 },
-  cta: { background:'#00e5ff', color:'#0b0f19', padding:'12px 24px', borderRadius:10, textDecoration:'none', fontWeight:800, display:'inline-block' }
 };
