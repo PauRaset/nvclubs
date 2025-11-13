@@ -73,7 +73,18 @@ export default function SuccessClient() {
 }
 
 const styles = {
-  main: { minHeight:'100vh', background:'#020617', color:'#e5e7eb', padding:'32px 16px', display:'flex', alignItems:'center', justifyContent:'center', textAlign:'center' },
+  main: {
+    position: 'fixed',
+    inset: 0, // top:0, right:0, bottom:0, left:0
+    background: '#020617',
+    color: '#e5e7eb',
+    padding: '32px 16px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    textAlign: 'center',
+    zIndex: 50,
+  },
   centerBox: { maxWidth:420, margin:'0 auto', display:'flex', flexDirection:'column', alignItems:'center', gap:16 },
   iconCircleOk: { width:80, height:80, borderRadius:'50%', background:'#00e5ff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:42, fontWeight:900, color:'#0b0f19', boxShadow:'0 0 40px rgba(0,229,255,0.5)' },
   iconCircleError: { width:80, height:80, borderRadius:'50%', background:'#ef4444', display:'flex', alignItems:'center', justifyContent:'center', fontSize:42, fontWeight:900, color:'#0b0f19', boxShadow:'0 0 40px rgba(239,68,68,0.5)' },
