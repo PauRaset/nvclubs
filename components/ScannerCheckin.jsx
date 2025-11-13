@@ -9,15 +9,14 @@ const parseNV1 = (txt) => {
 
   let clean = String(txt).trim();
 
-  // Debug: muestra en consola siempre lo que lee el escáner
+  // Debug: siempre log del QR leído
   try {
     console.log('[ScannerCheckin] raw QR text:', clean);
   } catch {
-    // no pasa nada en navegadores que no tengan consola
+    // navegadores sin consola
   }
 
-  // --- Normalizamos posibles prefijos "NV1" ---
-  // Aceptamos: "NV1:...", "NV1?...", "NV1 ...".
+  // --- Normalizar prefijo "NV1" (por si acaso) ---
   if (clean.startsWith('NV1')) {
     const firstSep = (() => {
       const i1 = clean.indexOf(':');
@@ -29,13 +28,12 @@ const parseNV1 = (txt) => {
     if (firstSep !== -1) {
       clean = clean.slice(firstSep + 1);
     } else {
-      // solo "NV1xxxxx" -> quitamos "NV1"
       clean = clean.slice(3);
     }
     clean = clean.trim();
   }
 
-  // --- Si viene una URL completa, nos quedamos con la query ---
+  // --- Si viene como URL, nos quedamos con la query ---
   const qIndex = clean.indexOf('?');
   if (qIndex !== -1) {
     const maybeQuery = clean.slice(qIndex + 1);
@@ -44,38 +42,48 @@ const parseNV1 = (txt) => {
     }
   }
 
-  // --- Intento 1: query string (t=...&e=...&s=...) ---
-  let token = null;
+  // Campos posibles
+  let token   = null;
   let eventId = null;
-  let hmac = null;
+  let hmac    = null;
+  let serial  = null;
 
+  // --- Intento 1: query string (t=...&e=...&s=...&serial=...) ---
   try {
     const qp = new URLSearchParams(clean);
-    token   = qp.get('t')      || qp.get('token');
-    eventId = qp.get('e')      || qp.get('event') || qp.get('eventId');
-    hmac    = qp.get('s')      || qp.get('sig')   || qp.get('signature');
+    token   = qp.get('t')      || qp.get('token')  || token;
+    eventId = qp.get('e')      || qp.get('event')  || qp.get('eventId') || eventId;
+    hmac    = qp.get('s')      || qp.get('sig')    || qp.get('signature') || hmac;
+    serial  = qp.get('serial') || serial;
   } catch {
-    // seguimos probando otros formatos
+    // seguimos probando
   }
 
-  // --- Intento 2: JSON en el QR: {"t":"...","e":"...","s":"..."} ---
-  if (!token && !eventId && !hmac && clean.startsWith('{') && clean.endsWith('}')) {
+  // --- Intento 2: JSON en el QR ---
+  if (clean.startsWith('{') && clean.endsWith('}')) {
     try {
       const obj = JSON.parse(clean);
-      token   = obj.t || obj.token   || null;
-      eventId = obj.e || obj.eventId || obj.event || null;
-      hmac    = obj.s || obj.sig     || obj.signature || null;
+
+      // Formato nuevo: { serial, token }
+      if (obj.serial) serial = obj.serial;
+      if (obj.token || obj.t) token = obj.token || obj.t;
+
+      // Formato antiguo: { t, e, s } o variantes
+      eventId = eventId || obj.e || obj.eventId || obj.event || null;
+      hmac    = hmac    || obj.s || obj.sig     || obj.signature || null;
     } catch {
       // ignoramos error JSON
     }
   }
 
-  if (!token || !eventId || !hmac) {
-    console.warn('[ScannerCheckin] parseNV1 no pudo extraer token/eventId/hmac desde:', clean);
+  // Necesitamos al menos el token para poder verificar el QR
+  if (!token) {
+    console.warn('[ScannerCheckin] no se pudo extraer token desde:', clean);
     return null;
   }
 
-  return { token, eventId, hmac };
+  // eventId / hmac / serial son opcionales, se mandan por si el backend los quiere usar
+  return { token, eventId, hmac, serial };
 };
 
 // --- Helpers to resolve club name on the client if backend didn't send it ---
