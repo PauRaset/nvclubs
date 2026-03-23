@@ -26,6 +26,49 @@ function Icon({ name }) {
           <path d="M7 4H5a1 1 0 0 0-1 1v2M17 4h2a1 1 0 0 1 1 1v2M7 20H5a1 1 0 0 1-1-1v-2M17 20h2a1 1 0 0 0 1-1v-2M8 12h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       );
+    case "sales":
+      return (
+        <svg {...common}>
+          <path d="M5 19V9M12 19V5M19 19v-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M4 19h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+        </svg>
+      );
+    case "promotions":
+      return (
+        <svg {...common}>
+          <path d="M9 7.5V6a2 2 0 1 1 4 0v1.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <rect x="5" y="7.5" width="14" height="11.5" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+          <path d="M12 11.5v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+        </svg>
+      );
+    case "missions":
+      return (
+        <svg {...common}>
+          <path d="M12 3l2.6 5.3 5.9.9-4.3 4.2 1 5.9L12 16.8 6.8 19.3l1-5.9L3.5 9.2l5.9-.9L12 3z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
+        </svg>
+      );
+    case "content":
+      return (
+        <svg {...common}>
+          <rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+          <circle cx="9" cy="10" r="1.5" fill="currentColor"/>
+          <path d="M21 15l-4.5-4.5L8 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      );
+    case "diffusion":
+      return (
+        <svg {...common}>
+          <path d="M15 8a3 3 0 1 0-3-3 3 3 0 0 0 3 3ZM6 14a3 3 0 1 0-3-3 3 3 0 0 0 3 3Zm12 7a3 3 0 1 0-3-3 3 3 0 0 0 3 3Z" fill="currentColor"/>
+          <path d="M8.6 12.5l4.2 2.1M12.8 7.4 8.2 9.8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      );
+    case "settings":
+      return (
+        <svg {...common}>
+          <path d="M12 8.5A3.5 3.5 0 1 0 12 15.5 3.5 3.5 0 1 0 12 8.5z" stroke="currentColor" strokeWidth="2" fill="none"/>
+          <path d="M19.4 15a1 1 0 0 0 .2 1.1l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1 1 0 0 0-1.1-.2 1 1 0 0 0-.6.9V20a2 2 0 1 1-4 0v-.2a1 1 0 0 0-.7-.9 1 1 0 0 0-1.1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1 1 0 0 0 .2-1.1 1 1 0 0 0-.9-.6H4a2 2 0 1 1 0-4h.2a1 1 0 0 0 .9-.7 1 1 0 0 0-.2-1.1l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1 1 0 0 0 1.1.2h.1a1 1 0 0 0 .6-.9V4a2 2 0 1 1 4 0v.2a1 1 0 0 0 .7.9 1 1 0 0 0 1.1-.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1 1 0 0 0-.2 1.1v.1a1 1 0 0 0 .9.6H20a2 2 0 1 1 0 4h-.2a1 1 0 0 0-.9.7z" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinejoin="round"/>
+        </svg>
+      );
     case "profile":
     default:
       return (
@@ -60,11 +103,20 @@ export default function TopNav({ active, clubName }) {
   }, [open]);
 
   const items = [
-    { href: '/events', label: 'Eventos', key: 'events' },
-    { href: '/dashboard', label: 'Panel', key: 'dashboard' },
-    { href: '/scanner', label: 'Escáner', key: 'scanner' },
-    { href: '/profile', label: 'Perfil', key: 'profile' },
+    { href: '/dashboard', label: 'Dashboard', key: 'dashboard', desktop: true, mobile: true },
+    { href: '/events', label: 'Eventos', key: 'events', desktop: true, mobile: true },
+    { href: '/sales', label: 'Ventas', key: 'sales', desktop: true, mobile: true },
+    { href: '/scanner', label: 'Escáner', key: 'scanner', desktop: true, mobile: true },
+    { href: '/promotions', label: 'Promociones', key: 'promotions', desktop: false, mobile: true },
+    { href: '/missions', label: 'Misiones', key: 'missions', desktop: false, mobile: true },
+    { href: '/content', label: 'Contenido', key: 'content', desktop: false, mobile: true },
+    { href: '/diffusion', label: 'Difusión', key: 'diffusion', desktop: false, mobile: true },
+    { href: '/profile', label: 'Perfil', key: 'profile', desktop: true, mobile: true },
+    { href: '/settings', label: 'Ajustes', key: 'settings', desktop: false, mobile: true },
   ];
+
+  const desktopItems = items.filter(item => item.desktop !== false);
+  const mobileItems = items.filter(item => item.mobile !== false);
 
   function isActive(href, key) {
     if (active && key) return active === key;
@@ -77,17 +129,20 @@ export default function TopNav({ active, clubName }) {
         <div className="nv-container">
           {/* Left: brand */}
           <div className="nv-left">
-            <Link href="/" className="nv-logo" aria-label="Inicio">
+            <Link href="/dashboard" className="nv-logo" aria-label="Ir al dashboard">
               <span className="nv-badge">
                 <span className="nv-badge-dot" />
               </span>
-              <span className="nv-brand">{clubName || 'NightVibe'}</span>
+              <span className="nv-brand-wrap">
+                <span className="nv-brand">{clubName || 'NightVibe'}</span>
+                <span className="nv-brand-sub">Clubs panel</span>
+              </span>
             </Link>
           </div>
 
           {/* Desktop nav */}
           <nav className="nv-links" aria-label="Navegación principal">
-            {items.map(it => (
+            {desktopItems.map(it => (
               <Link
                 key={it.href}
                 href={it.href}
@@ -129,13 +184,16 @@ export default function TopNav({ active, clubName }) {
         <div className="drawer-header">
           <span className="brand">
             <span className="nv-badge"><span className="nv-badge-dot" /></span>
-            <span className="nv-brand">{clubName || 'NightVibe'}</span>
+            <span className="nv-brand-wrap">
+              <span className="nv-brand">{clubName || 'NightVibe'}</span>
+              <span className="nv-brand-sub">Clubs panel</span>
+            </span>
           </span>
           <button className="close" aria-label="Cerrar" onClick={() => setOpen(false)}>×</button>
         </div>
 
         <nav className="drawer-links" aria-label="Opciones">
-          {items.map(it => (
+          {mobileItems.map(it => (
             <Link
               key={it.href}
               href={it.href}
@@ -174,21 +232,28 @@ export default function TopNav({ active, clubName }) {
           border-bottom: 1px solid var(--nv-border);
         }
         .nv-container {
-          height: 56px;
-          padding: max(8px, env(safe-area-inset-top)) 16px 8px;
-          max-width: 1100px;
+          min-height: 64px;
+          padding: max(10px, env(safe-area-inset-top)) 18px 10px;
+          max-width: 1240px;
           margin: 0 auto;
           display: grid;
           grid-template-columns: auto 1fr auto;
           align-items: center;
-          gap: 12px;
+          gap: 14px;
         }
 
         .nv-logo {
           display: inline-flex;
           align-items: center;
-          gap: 10px;
+          gap: 12px;
           text-decoration: none;
+          min-width: 0;
+        }
+
+        .nv-brand-wrap {
+          display: grid;
+          gap: 2px;
+          min-width: 0;
         }
         .nv-badge {
           width: 24px; height: 24px;
@@ -208,6 +273,20 @@ export default function TopNav({ active, clubName }) {
           color: var(--nv-text);
           font-weight: 900;
           letter-spacing: .2px;
+          line-height: 1;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          max-width: 240px;
+        }
+
+        .nv-brand-sub {
+          color: var(--nv-muted);
+          font-size: 11.5px;
+          font-weight: 700;
+          letter-spacing: .18em;
+          text-transform: uppercase;
+          line-height: 1;
         }
 
         /* Desktop links */
@@ -217,18 +296,20 @@ export default function TopNav({ active, clubName }) {
           gap: 10px;
           margin-left: auto;
           justify-content: flex-end;
+          flex-wrap: wrap;
         }
         .nv-link {
           display: inline-flex;
           align-items: center;
           gap: 10px;
-          padding: 8px 12px;
-          border-radius: 12px;
+          padding: 9px 14px;
+          border-radius: 14px;
           color: var(--nv-muted);
           text-decoration: none;
           border: 1px solid transparent;
           background: transparent;
           transition: transform .12s ease, background .12s ease, border-color .12s ease, color .12s ease, box-shadow .12s ease;
+          white-space: nowrap;
         }
         .nv-link:hover {
           color: var(--nv-text);
@@ -241,20 +322,25 @@ export default function TopNav({ active, clubName }) {
           color: #001018;
           background: linear-gradient(140deg, var(--nv-accent), var(--nv-accent-2));
           border-color: transparent;
-          box-shadow: 0 8px 24px rgba(0,229,255,.25);
+          box-shadow: 0 10px 28px rgba(0,229,255,.24), inset 0 1px 0 rgba(255,255,255,.24);
           font-weight: 800;
         }
         .nv-ico { width: 21px; height: 21px; display: inline-flex; align-items: center; justify-content: center; opacity: .95; }
-        .nv-text { letter-spacing: .2px; font-weight: 800; font-size: 14.5px; }
+        .nv-text {
+          letter-spacing: .2px;
+          font-weight: 800;
+          font-size: 14.5px;
+          line-height: 1;
+        }
 
         /* Burger */
         .nv-burger {
           display: inline-flex;
-          width: 42px; height: 42px;
+          width: 44px; height: 44px;
           align-items: center; justify-content: center;
-          border-radius: 12px;
+          border-radius: 14px;
           border: 1px solid var(--nv-border);
-          background: var(--nv-panel);
+          background: color-mix(in oklab, var(--nv-panel) 88%, black 12%);
           cursor: pointer;
           color: var(--nv-text);
           outline: none;
@@ -293,6 +379,7 @@ export default function TopNav({ active, clubName }) {
         .drawer-header .brand {
           display: inline-flex; align-items: center; gap: 10px;
           color: var(--nv-text); font-weight: 900;
+          min-width: 0;
         }
         .drawer-header .close {
           font-size: 28px; line-height: 1;
@@ -304,7 +391,7 @@ export default function TopNav({ active, clubName }) {
 
         .drawer-links {
           padding: 18px 16px 24px;
-          display: grid; gap: 16px;
+          display: grid; gap: 14px;
         }
         .drawer-link {
           --ring: color-mix(in oklab, var(--nv-accent) 55%, white 0%);
@@ -313,8 +400,8 @@ export default function TopNav({ active, clubName }) {
           grid-template-columns: 26px 1fr 18px;
           align-items: center;
           gap: 16px;
-          padding: 16px 18px;
-          border-radius: 18px;
+          padding: 15px 17px;
+          border-radius: 20px;
           color: var(--nv-text);
           text-decoration: none;
           position: relative;
@@ -363,6 +450,7 @@ export default function TopNav({ active, clubName }) {
           .nv-ico { width: 22px; height: 22px; }
           .nv-arrow { width: 18px; height: 18px; }
           .drawer-header .brand { font-size: 17px; }
+          .nv-brand { max-width: 180px; }
           .nv-burger { width: 44px; height: 44px; }
         }
 
@@ -370,9 +458,29 @@ export default function TopNav({ active, clubName }) {
         .drawer-link:active { transform: translateX(2px) scale(.995); opacity: .98; }
 
         /* Desktop */
+        @media (min-width: 900px) and (max-width: 1160px) {
+          .nv-text {
+            font-size: 13.5px;
+          }
+          .nv-link {
+            padding: 8px 12px;
+          }
+          .nv-brand {
+            max-width: 180px;
+          }
+        }
+
         @media (min-width: 900px) {
-          .nv-container { grid-template-columns: auto auto 1fr; }
-          .nv-links { display: inline-flex; grid-column: 3; justify-self: end; margin-left: auto; justify-content: flex-end; }
+          .nv-container {
+            grid-template-columns: auto 1fr auto;
+          }
+          .nv-links {
+            display: inline-flex;
+            grid-column: 2;
+            justify-self: end;
+            margin-left: auto;
+            justify-content: flex-end;
+          }
           .nv-burger { display: none; }
           :global(.nv-overlay), :global(.nv-drawer) { display: none; }
           .nv-left { grid-column: 1; }
