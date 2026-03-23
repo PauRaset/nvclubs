@@ -75,8 +75,36 @@ function toLocalInputValue(v) {
 /* Pasa valor de <input datetime-local> a ISO */
 function localToISO(v) {
   if (!v) return null;
-  const d = new Date(v);
-  return isNaN(d.getTime()) ? null : d.toISOString();
+
+  const m = String(v).match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
+  if (!m) return null;
+
+  const [, ys, ms, ds, hs, mins] = m;
+  const year = Number(ys);
+  const month = Number(ms);
+  const day = Number(ds);
+  const hour = Number(hs);
+  const minute = Number(mins);
+
+  const d = new Date(year, month - 1, day, hour, minute, 0, 0);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+function formatLocalPreview(v) {
+  if (!v) return 'No seleccionada';
+  const m = String(v).match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
+  if (!m) return v;
+
+  const [, ys, ms, ds, hs, mins] = m;
+  const d = new Date(Number(ys), Number(ms) - 1, Number(ds), Number(hs), Number(mins), 0, 0);
+
+  return d.toLocaleString('es-ES', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
 /* Extrae un id de propietario desde createdBy (string u objeto) */
@@ -371,6 +399,7 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
               required
               style={sx.input}
             />
+            <span style={sx.helperText}>Hora seleccionada: {formatLocalPreview(startAt)}</span>
           </label>
           <label style={sx.label}>
             Fin <span style={sx.req}>*</span>
@@ -381,7 +410,12 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
               required
               style={sx.input}
             />
+            <span style={sx.helperText}>Hora seleccionada: {formatLocalPreview(endAt)}</span>
           </label>
+        </div>
+
+        <div style={sx.infoNotice}>
+          La base de datos puede guardar la fecha en UTC. Eso es normal. Lo importante es que en la app se respete la hora local que seleccionas aquí.
         </div>
       </section>
 
@@ -619,6 +653,17 @@ const sx = {
   h2: { fontSize:18, margin:'0 0 10px 0', fontWeight:800 },
   muted: { opacity:.8, marginTop:4 },
   mutedSmall: { opacity:.7, fontSize:12 },
+  helperText: { opacity:.78, fontSize:12, color:'#94a3b8' },
+  infoNotice: {
+    marginTop: 12,
+    background: 'rgba(0,229,255,0.06)',
+    border: '1px solid rgba(0,229,255,0.16)',
+    color: '#cbd5e1',
+    padding: 12,
+    borderRadius: 10,
+    fontSize: 13,
+    lineHeight: 1.55,
+  },
   card: {
     background:'#0b1220',
     border:'1px solid #1f2b43',
@@ -799,8 +844,9 @@ const sx = {
   },
 };
 
+
 /*'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   createEvent,
   updateEvent,
@@ -810,7 +856,6 @@ import {
 } from '@/lib/eventsApi';
 import { getUser } from '@/lib/apiClient';
 
-// --- Recorte simple: centra y reescala a 800x450 --- 
 async function cropTo800x450(file) {
   const img = document.createElement('img');
   img.src = URL.createObjectURL(file);
@@ -845,19 +890,22 @@ async function cropTo800x450(file) {
   });
 }
 
-// Lista base de géneros (puedes editarla libremente) 
-const GENRES = [
-  'House', 'Techno', 'EDM', 'Reggaeton', 'Hip-Hop', 'Trap',
-  'Commercial', 'Deep House', 'Tech House', 'Drum & Bass',
-  'Afro', 'Latin', 'R&B'
-];
+const ALL_GENRES = [
+  'Afro', 'Afrobeat', 'Afrobeats', 'Amapiano',
+  'Ambient', 'Bass House', 'Big Room', 'Breakbeat', 'Breaks',
+  'Commercial', 'Dancehall', 'Dembow', 'Deep House', 'Disco', 'Drum & Bass',
+  'Dubstep', 'EDM', 'Electro', 'Funk', 'Garage', 'Hardcore', 'Hardstyle',
+  'Hip-Hop', 'House', 'Indie Dance', 'J-Pop', 'K-Pop', 'Latin',
+  'Lo-Fi', 'Melodic Techno', 'Minimal / Deep Tech', 'Nu-Disco',
+  'Pop', 'Progressive House', 'Psytrance', 'R&B', 'Rap', 'Reggaeton',
+  'Salsa', 'Synthwave', 'Tech House', 'Techno', 'Trap', 'Trance',
+  'UK Garage', 'Bachata', 'Merengue', 'Chillout', 'Soul'
+].sort((a, b) => a.localeCompare(b));
 
-// Convierte Date o ISO a valor para <input type="datetime-local"> (YYYY-MM-DDTHH:mm) 
 function toLocalInputValue(v) {
   if (!v) return '';
   const d = new Date(v);
   if (isNaN(d.getTime())) return '';
-  // A datetime-local NO lleva zona; rellenamos con hora local
   const pad = (n) => String(n).padStart(2, '0');
   const yyyy = d.getFullYear();
   const mm = pad(d.getMonth() + 1);
@@ -867,26 +915,27 @@ function toLocalInputValue(v) {
   return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
 }
 
-// Pasa valor de <input datetime-local> a ISO 
 function localToISO(v) {
   if (!v) return null;
-  // 'YYYY-MM-DDTHH:mm' se interpreta en local → Date → toISOString()
   const d = new Date(v);
   return isNaN(d.getTime()) ? null : d.toISOString();
 }
 
-// Extrae un id de propietario desde createdBy (string u objeto) 
 function ownerIdFrom(createdBy) {
   if (!createdBy) return null;
   if (typeof createdBy === 'string') return createdBy;
   return createdBy._id || createdBy.id || createdBy.toString?.() || null;
 }
 
+const uniq = (arr) => Array.from(new Set(arr));
+const clamp = (n, min, max) => Math.min(max, Math.max(min, n));
+
 export default function EventForm({ initial = null, onSaved, mode = 'create' }) {
   // Normaliza props iniciales (acepta claves nuevas o antiguas)
   const initialStart = initial?.startAtISO || initial?.startAt || initial?.dateISO || initial?.date || null;
   const initialEnd   = initial?.endAtISO   || initial?.endAt   || null;
 
+  // Básicos
   const [title, setTitle] = useState(initial?.title || '');
   const [description, setDescription] = useState(initial?.description || '');
 
@@ -903,7 +952,8 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
   const [categories, setCategories] = useState(
     Array.isArray(initial?.categories) ? initial.categories.map(String) : []
   );
-  const [otherCats, setOtherCats] = useState(''); // extra por comas opcional
+  const [genreQuery, setGenreQuery] = useState('');
+  const [otherCats, setOtherCats] = useState(''); // extra por comas
   const [dressCode, setDressCode] = useState(initial?.dressCode || '');
   const [age, setAge] = useState(initial?.age ?? '');
   const [price, setPrice] = useState(initial?.price ?? '');
@@ -913,16 +963,17 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
   const [preview, setPreview] = useState(null);
 
   // Galería (solo en edición)
-  const [photos, setPhotos] = useState([]);       // [{url, byUsername?, uploadedAt?}]
+  const [photos, setPhotos] = useState([]); // [{url, byUsername?, uploadedAt?}]
   const [loadingPhotos, setLoadingPhotos] = useState(false);
   const [deletingIdx, setDeletingIdx] = useState(null);
 
   // Estado
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
+  const [formError, setFormError] = useState('');
 
+  // Previsualización inicial
   useEffect(() => {
-    // Previsualización: usa imageUrl o image si es string absoluta/relativa
     const p = initial?.imageUrl || initial?.image || null;
     if (p && typeof p === 'string') setPreview(p);
   }, [initial]);
@@ -943,7 +994,23 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
     })();
   }, [initial, mode]);
 
-  // Handlers categorías
+  // ====== owner ======
+  const currentUserId = getUser()?.id || null;
+  const createdByCandidate = initial?.createdBy ?? initial?._raw?.createdBy ?? null;
+  const createdById = ownerIdFrom(createdByCandidate);
+  const computedIsOwner = currentUserId && createdById
+    ? String(currentUserId) === String(createdById)
+    : false;
+
+  const isOwner = initial?.isOwner ?? computedIsOwner;
+
+  // ====== Géneros: filtrado por búsqueda ======
+  const visibleGenres = useMemo(() => {
+    const q = genreQuery.trim().toLowerCase();
+    if (!q) return ALL_GENRES;
+    return ALL_GENRES.filter(g => g.toLowerCase().includes(q));
+  }, [genreQuery]);
+
   function toggleCategory(cat) {
     setCategories((prev) =>
       prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
@@ -953,7 +1020,10 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
   function mergedCategories() {
     const base = new Set(categories.map(String));
     if (otherCats.trim()) {
-      otherCats.split(',').map(s => s.trim()).filter(Boolean).forEach(s => base.add(s));
+      otherCats.split(',')
+        .map(s => s.trim())
+        .filter(Boolean)
+        .forEach(s => base.add(s));
     }
     return Array.from(base);
   }
@@ -968,34 +1038,46 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
 
   async function handleSubmit(e) {
     e.preventDefault();
+    setFormError('');
     setSaving(true);
     setMsg('Guardando...');
 
-    // Validación mínima fechas
+    // Validación mínima
     const startISO = localToISO(startAt);
     const endISO = localToISO(endAt);
     if (!startISO || !endISO) {
       setSaving(false);
-      return setMsg('Introduce fechas de inicio y fin válidas.');
+      setMsg('');
+      return setFormError('Introduce fechas de inicio y fin válidas.');
     }
     if (new Date(endISO) < new Date(startISO)) {
       setSaving(false);
-      return setMsg('La fecha de fin no puede ser anterior al inicio.');
+      setMsg('');
+      return setFormError('La fecha de fin no puede ser anterior al inicio.');
+    }
+    if (!title.trim()) {
+      setSaving(false);
+      setMsg('');
+      return setFormError('El título es obligatorio.');
     }
 
-    // Construye payload esperado por lib/eventsApi (mapEventForSave lo adaptará)
+    // Normaliza números
+    const priceNum = price === '' ? null : clamp(Math.round(Number(price)), 0, 999999);
+    const ageNum = age === '' ? null : clamp(Math.round(Number(age)), 0, 99);
+
+    // Construye payload
     const payload = {
-      title,
-      description,
+      title: title.trim(),
+      description: description?.trim() || '',
       startAt: startISO,
       endAt: endISO,
-      street,
-      city,
-      postalCode,
+      street: street?.trim() || '',
+      city: city?.trim() || '',
+      postalCode: postalCode?.trim() || '',
       categories: mergedCategories(),
-      dressCode,
-      age: age === '' ? null : Number(age),
-      price: price === '' ? null : Number(price),
+      dressCode: dressCode?.trim() || '',
+      age: ageNum,
+      price: priceNum,
     };
 
     const res = mode === 'create'
@@ -1004,7 +1086,8 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
 
     if (!res.ok) {
       setSaving(false);
-      return setMsg(res.data?.message || `Error (HTTP ${res.status})`);
+      setMsg('');
+      return setFormError(res.data?.message || `Error (HTTP ${res.status})`);
     }
 
     const saved = res.data;
@@ -1016,11 +1099,13 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
         const targetId = saved?.id || saved?._raw?._id || initial?._id || initial?.id;
         const up = await uploadEventImage(targetId, cropped);
         if (!up.ok) {
-          setMsg(`Evento guardado, pero la imagen falló (HTTP ${up.status})`);
+          setMsg('');
+          setFormError(`Evento guardado, pero la imagen falló (HTTP ${up.status})`);
         }
       } catch (err) {
         console.error(err);
-        setMsg('Evento guardado, pero no se pudo procesar la imagen.');
+        setMsg('');
+        setFormError('Evento guardado, pero no se pudo procesar la imagen.');
       }
     }
 
@@ -1033,8 +1118,7 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
     if (idx < 0 || idx >= photos.length) return;
     const id = initial?.id || initial?._id || initial?._raw?._id;
     if (!id) return;
-
-    if (!isOwner) return; // doble cierre en cliente
+    if (!isOwner) return;
 
     const photo = photos[idx];
     setDeletingIdx(idx);
@@ -1053,229 +1137,268 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
     }
   }
 
-  // ====== CÁLCULO DEL OWNER EN CLIENTE (si el backend no trajo initial.isOwner) ======
-  const currentUserId = getUser()?.id || null;
-  const createdByCandidate =
-    initial?.createdBy ??
-    initial?._raw?.createdBy ??
-    null;
-  const createdById = ownerIdFrom(createdByCandidate);
-  const computedIsOwner = currentUserId && createdById
-    ? String(currentUserId) === String(createdById)
-    : false;
-
-  const isOwner = initial?.isOwner ?? computedIsOwner;
-
+  // ====== UI ======
   return (
-    <form onSubmit={handleSubmit} style={{ display:'grid', gap:12, maxWidth:720 }}>
-      <h2 style={{ margin:'6px 0 2px', fontSize:18, fontWeight:700 }}>Datos básicos</h2>
-
-      <label>
-        Título
-        <input
-          value={title}
-          onChange={e=>setTitle(e.target.value)}
-          required
-          style={{ width:'100%', padding:10, borderRadius:8 }}
-        />
-      </label>
-
-      <label>
-        Descripción
-        <textarea
-          value={description}
-          onChange={e=>setDescription(e.target.value)}
-          rows={4}
-          style={{ width:'100%', padding:10, borderRadius:8 }}
-        />
-      </label>
-
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
-        <label>
-          Inicio
-          <input
-            type="datetime-local"
-            value={startAt}
-            onChange={e=>setStartAt(e.target.value)}
-            required
-            style={{ width:'100%', padding:10, borderRadius:8 }}
-          />
-        </label>
-        <label>
-          Fin
-          <input
-            type="datetime-local"
-            value={endAt}
-            onChange={e=>setEndAt(e.target.value)}
-            required
-            style={{ width:'100%', padding:10, borderRadius:8 }}
-          />
-        </label>
+    <form onSubmit={handleSubmit} style={sx.form}>
+      <div style={sx.header}>
+        <div>
+          <h1 style={sx.h1}>{mode === 'create' ? 'Crear evento' : 'Editar evento'}</h1>
+          <p style={sx.muted}>Completa los detalles del evento. La imagen se recorta automáticamente a 800×450.</p>
+        </div>
+        <button
+          disabled={saving}
+          type="submit"
+          style={sx.primary}
+        >
+          {saving ? 'Guardando...' : (mode === 'create' ? 'Crear evento' : 'Guardar cambios')}
+        </button>
       </div>
 
-      <h2 style={{ margin:'12px 0 2px', fontSize:18, fontWeight:700 }}>Ubicación</h2>
-      <div style={{ display:'grid', gridTemplateColumns:'1fr', gap:12 }}>
-        <label>
+      {formError && <div role="alert" style={sx.errorBox}>{formError}</div>}
+      {msg && !formError && <div style={sx.okBox}>{msg}</div>}
+
+      <section style={sx.card}>
+        <h2 style={sx.h2}>Datos básicos</h2>
+        <div style={sx.grid2}>
+          <label style={sx.label}>
+            Título <span style={sx.req}>*</span>
+            <input
+              value={title}
+              onChange={e=>setTitle(e.target.value)}
+              required
+              maxLength={120}
+              placeholder="Nombre del evento"
+              style={sx.input}
+            />
+          </label>
+
+          <label style={sx.label}>
+            Código de vestimenta
+            <input
+              value={dressCode}
+              onChange={e=>setDressCode(e.target.value)}
+              placeholder="casual, elegante..."
+              maxLength={80}
+              style={sx.input}
+            />
+          </label>
+        </div>
+
+        <label style={sx.label}>
+          Descripción
+          <textarea
+            value={description}
+            onChange={e=>setDescription(e.target.value)}
+            rows={5}
+            placeholder="Cuéntale a la gente qué hará especial tu evento…"
+            style={sx.textarea}
+          />
+        </label>
+      </section>
+
+      <section style={sx.card}>
+        <h2 style={sx.h2}>Fechas</h2>
+        <div style={sx.grid2}>
+          <label style={sx.label}>
+            Inicio <span style={sx.req}>*</span>
+            <input
+              type="datetime-local"
+              value={startAt}
+              onChange={e=>setStartAt(e.target.value)}
+              required
+              style={sx.input}
+            />
+          </label>
+          <label style={sx.label}>
+            Fin <span style={sx.req}>*</span>
+            <input
+              type="datetime-local"
+              value={endAt}
+              onChange={e=>setEndAt(e.target.value)}
+              required
+              style={sx.input}
+            />
+          </label>
+        </div>
+      </section>
+
+      <section style={sx.card}>
+        <h2 style={sx.h2}>Ubicación</h2>
+        <label style={sx.label}>
           Calle
           <input
             value={street}
             onChange={e=>setStreet(e.target.value)}
             placeholder="Calle, número, piso..."
-            style={{ width:'100%', padding:10, borderRadius:8 }}
+            style={sx.input}
           />
         </label>
-        <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr', gap:12 }}>
-          <label>
+        <div style={sx.grid2}>
+          <label style={sx.label}>
             Ciudad
             <input
               value={city}
               onChange={e=>setCity(e.target.value)}
-              style={{ width:'100%', padding:10, borderRadius:8 }}
+              style={sx.input}
             />
           </label>
-          <label>
+          <label style={sx.label}>
             Código postal
             <input
               value={postalCode}
               onChange={e=>setPostalCode(e.target.value)}
-              style={{ width:'100%', padding:10, borderRadius:8 }}
+              style={sx.input}
             />
           </label>
         </div>
-      </div>
+      </section>
 
-      <h2 style={{ margin:'12px 0 2px', fontSize:18, fontWeight:700 }}>Categorías musicales</h2>
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(140px, 1fr))', gap:8 }}>
-        {GENRES.map(cat => (
-          <label key={cat} style={{ display:'flex', alignItems:'center', gap:8, fontSize:14 }}>
+      <section style={sx.card}>
+        <h2 style={sx.h2}>Categorías musicales</h2>
+        {categories.length > 0 && (
+          <div style={sx.chipsWrap}>
+            {categories.map(cat => (
+              <button
+                key={`chip-${cat}`}
+                type="button"
+                onClick={() => toggleCategory(cat)}
+                title="Quitar"
+                style={sx.chip}
+              >
+                {cat} <span style={sx.chipX}>×</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div style={sx.genreActions}>
+          <div style={{display:'flex', gap:8, flex:1}}>
             <input
-              type="checkbox"
-              checked={categories.includes(cat)}
-              onChange={()=>toggleCategory(cat)}
+              placeholder="Buscar género…"
+              value={genreQuery}
+              onChange={e=>setGenreQuery(e.target.value)}
+              style={{...sx.input, maxWidth:360}}
             />
-            {cat}
-          </label>
-        ))}
-      </div>
-      <label>
-        Otras categorías (separadas por comas)
-        <input
-          value={otherCats}
-          onChange={e=>setOtherCats(e.target.value)}
-          placeholder="p.ej. techno melódico, indie dance"
-          style={{ width:'100%', padding:10, borderRadius:8 }}
-        />
-      </label>
-
-      <h2 style={{ margin:'12px 0 2px', fontSize:18, fontWeight:700 }}>Detalles</h2>
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:12 }}>
-        <label>
-          Precio (€)
-          <input
-            type="number"
-            min="0"
-            step="1"
-            value={price}
-            onChange={e=>setPrice(e.target.value)}
-            placeholder="p.ej. 15"
-            style={{ width:'100%', padding:10, borderRadius:8 }}
-          />
-        </label>
-        <label>
-          Edad mínima
-          <input
-            type="number"
-            min="0"
-            step="1"
-            value={age}
-            onChange={e=>setAge(e.target.value)}
-            placeholder="18"
-            style={{ width:'100%', padding:10, borderRadius:8 }}
-          />
-        </label>
-        <label>
-          Código de vestimenta
-          <input
-            value={dressCode}
-            onChange={e=>setDressCode(e.target.value)}
-            placeholder="casual, elegante..."
-            style={{ width:'100%', padding:10, borderRadius:8 }}
-          />
-        </label>
-      </div>
-
-      <h2 style={{ margin:'12px 0 2px', fontSize:18, fontWeight:700 }}>Imagen principal</h2>
-      <label>
-        (Se recorta automáticamente a 800×450)
-        <input type="file" accept="image/*" onChange={onPick}/>
-      </label>
-
-      {preview && (
-        <div>
-          <div style={{ fontSize:12, opacity:0.7, marginBottom:6 }}>Previsualización</div>
-          <img
-            src={preview}
-            alt="preview"
-            style={{ width:400, height:225, objectFit:'cover', borderRadius:8, border:'1px solid #243044' }}
-          />
+            <button type="button" style={sx.ghost} onClick={() => setGenreQuery('')}>Limpiar búsqueda</button>
+          </div>
+          <div style={{display:'flex', gap:8}}>
+            <button
+              type="button"
+              style={sx.ghost}
+              onClick={() => setCategories(uniq([...ALL_GENRES]))}
+              title="Seleccionar todos los géneros"
+            >
+              Seleccionar todo
+            </button>
+            <button
+              type="button"
+              style={sx.ghostDanger}
+              onClick={() => setCategories([])}
+              title="Limpiar selección"
+            >
+              Limpiar
+            </button>
+          </div>
         </div>
-      )}
+
+        <div style={sx.genreGrid}>
+          {visibleGenres.map(cat => {
+            const checked = categories.includes(cat);
+            return (
+              <label key={cat} style={sx.genreItem(checked)}>
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={()=>toggleCategory(cat)}
+                  style={{marginRight:8}}
+                />
+                {cat}
+              </label>
+            );
+          })}
+        </div>
+
+        <label style={{...sx.label, marginTop:12}}>
+          Otras categorías (separadas por comas)
+          <input
+            value={otherCats}
+            onChange={e=>setOtherCats(e.target.value)}
+            placeholder="p.ej. techno melódico, indie dance"
+            style={sx.input}
+          />
+        </label>
+      </section>
+
+      <section style={sx.card}>
+        <h2 style={sx.h2}>Detalles</h2>
+        <div style={sx.grid3}>
+          <label style={sx.label}>
+            Precio (€)
+            <input
+              type="number"
+              min="0"
+              step="1"
+              value={price}
+              onChange={e=>setPrice(e.target.value)}
+              placeholder="p.ej. 15"
+              style={sx.input}
+            />
+          </label>
+          <label style={sx.label}>
+            Edad mínima
+            <input
+              type="number"
+              min="0"
+              step="1"
+              value={age}
+              onChange={e=>setAge(e.target.value)}
+              placeholder="18"
+              style={sx.input}
+            />
+          </label>
+          <div />
+        </div>
+      </section>
+
+      <section style={sx.card}>
+        <h2 style={sx.h2}>Imagen principal</h2>
+        <p style={sx.mutedSmall}>Se recorta automáticamente a 800×450 (formato .webp).</p>
+        <label style={sx.fileLabel}>
+          <span>Seleccionar imagen…</span>
+          <input type="file" accept="image/*" onChange={onPick} style={{ display:'none' }}/>
+        </label>
+
+        {preview && (
+          <div style={{marginTop:12}}>
+            <div style={sx.mutedSmall}>Previsualización</div>
+            <img
+              src={preview}
+              alt="preview"
+              style={{ width:480, height:270, objectFit:'cover', borderRadius:10, border:'1px solid #243044' }}
+            />
+          </div>
+        )}
+      </section>
 
       {mode !== 'create' && (
-        <div style={{ marginTop:16 }}>
-          <h2 style={{ margin:'12px 0 8px', fontSize:18, fontWeight:700 }}>
-            Fotos subidas por asistentes
-          </h2>
+        <section style={sx.card}>
+          <h2 style={sx.h2}>Fotos subidas por asistentes</h2>
           {loadingPhotos ? (
-            <div style={{ opacity:0.8 }}>Cargando galería…</div>
+            <div style={sx.muted}>Cargando galería…</div>
           ) : photos.length === 0 ? (
-            <div style={{ opacity:0.8 }}>Aún no hay fotos en la galería.</div>
+            <div style={sx.muted}>Aún no hay fotos en la galería.</div>
           ) : (
-            <div
-              style={{
-                display:'grid',
-                gridTemplateColumns:'repeat(auto-fill, minmax(140px, 1fr))',
-                gap:12
-              }}
-            >
+            <div style={sx.galleryGrid}>
               {photos.map((ph, idx) => (
-                <div
-                  key={`${ph.url}-${idx}`}
-                  style={{
-                    position:'relative',
-                    border:'1px solid #243044',
-                    borderRadius:10,
-                    overflow:'hidden',
-                    height:120,
-                    display:'flex',
-                    alignItems:'center',
-                    justifyContent:'center',
-                    background:'#0b1220'
-                  }}
-                >
-                  <img
-                    src={ph.url}
-                    alt={`photo-${idx}`}
-                    style={{ width:'100%', height:'100%', objectFit:'cover' }}
-                  />
+                <div key={`${ph.url}-${idx}`} style={sx.photoCell}>
+                  <img src={ph.url} alt={`photo-${idx}`} style={sx.photoImg}/>
                   {isOwner && (
                     <button
                       type="button"
                       onClick={() => handleDeletePhoto(idx)}
                       disabled={deletingIdx === idx}
                       title="Eliminar foto"
-                      style={{
-                        position:'absolute',
-                        top:6,
-                        right:6,
-                        padding:'6px 8px',
-                        borderRadius:8,
-                        border:'1px solid #ef4444',
-                        background: deletingIdx === idx ? '#1f2937' : '#111827',
-                        color:'#ef4444',
-                        fontWeight:700,
-                        cursor: deletingIdx === idx ? 'not-allowed' : 'pointer'
-                      }}
+                      style={sx.deleteBtn(deletingIdx === idx)}
                     >
                       {deletingIdx === idx ? 'Borrando…' : 'Eliminar'}
                     </button>
@@ -1285,22 +1408,219 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
             </div>
           )}
           {!isOwner && photos.length > 0 && (
-            <div style={{ marginTop:8, fontSize:12, opacity:0.7 }}>
-              * Solo el creador del evento puede eliminar fotos.
-            </div>
+            <div style={sx.mutedSmall}>* Solo el creador del evento puede eliminar fotos.</div>
           )}
-        </div>
+        </section>
       )}
 
-      <button
-        disabled={saving}
-        type="submit"
-        style={{ padding:12, borderRadius:10, background:'#00e5ff', color:'#001018', fontWeight:600, marginTop:12 }}
-      >
-        {saving ? 'Guardando...' : (mode === 'create' ? 'Crear evento' : 'Guardar cambios')}
-      </button>
-
-      <div style={{ minHeight:20 }}>{msg}</div>
+      <div style={sx.footer}>
+        <button
+          disabled={saving}
+          type="submit"
+          style={sx.primary}
+        >
+          {saving ? 'Guardando...' : (mode === 'create' ? 'Crear evento' : 'Guardar cambios')}
+        </button>
+        {msg && !formError && <span style={sx.okInline}>{msg}</span>}
+      </div>
     </form>
   );
-}*/
+}
+
+const sx = {
+  form: {
+    display:'grid',
+    gap:16,
+    maxWidth:920,
+    margin:'0 auto',
+    color:'#e5e7eb',
+  },
+  header: {
+    display:'flex',
+    alignItems:'center',
+    justifyContent:'space-between',
+    background:'#0d1526',
+    border:'1px solid #1f2b43',
+    borderRadius:12,
+    padding:16,
+  },
+  h1: { fontSize:22, margin:0, fontWeight:800 },
+  h2: { fontSize:18, margin:'0 0 10px 0', fontWeight:800 },
+  muted: { opacity:.8, marginTop:4 },
+  mutedSmall: { opacity:.7, fontSize:12 },
+  card: {
+    background:'#0b1220',
+    border:'1px solid #1f2b43',
+    borderRadius:12,
+    padding:16,
+  },
+  grid2: {
+    display:'grid',
+    gridTemplateColumns:'1fr 1fr',
+    gap:12,
+  },
+  grid3: {
+    display:'grid',
+    gridTemplateColumns:'1fr 1fr 1fr',
+    gap:12,
+  },
+  label: { display:'grid', gap:6, fontSize:14 },
+  input: {
+    width:'100%',
+    padding:'10px 12px',
+    borderRadius:10,
+    border:'1px solid #243044',
+    background:'#0d1526',
+    color:'#e5e7eb',
+    outline:'none',
+  },
+  textarea: {
+    width:'100%',
+    padding:'10px 12px',
+    minHeight:120,
+    borderRadius:10,
+    border:'1px solid #243044',
+    background:'#0d1526',
+    color:'#e5e7eb',
+    outline:'none',
+    resize:'vertical',
+  },
+  req: { color:'#00e5ff', marginLeft:6, fontWeight:800 },
+  primary: {
+    background:'#00e5ff',
+    color:'#001018',
+    padding:'10px 16px',
+    borderRadius:10,
+    fontWeight:800,
+    border:'1px solid #00b9d1',
+    cursor:'pointer',
+  },
+  ghost: {
+    background:'#0d1526',
+    color:'#cbd5e1',
+    padding:'10px 12px',
+    borderRadius:10,
+    fontWeight:700,
+    border:'1px solid #243044',
+    cursor:'pointer',
+  },
+  ghostDanger: {
+    background:'#111827',
+    color:'#f87171',
+    padding:'10px 12px',
+    borderRadius:10,
+    fontWeight:800,
+    border:'1px solid #7f1d1d',
+    cursor:'pointer',
+  },
+  errorBox: {
+    background:'#1b0e12',
+    border:'1px solid #7f1d1d',
+    color:'#fecaca',
+    padding:12,
+    borderRadius:10,
+  },
+  okBox: {
+    background:'#0e1b17',
+    border:'1px solid #14532d',
+    color:'#bbf7d0',
+    padding:12,
+    borderRadius:10,
+  },
+  okInline: { color:'#86efac', marginLeft:12, fontSize:13 },
+
+  genreActions: {
+    display:'flex',
+    justifyContent:'space-between',
+    alignItems:'center',
+    gap:12,
+    margin:'8px 0 12px',
+    flexWrap:'wrap',
+  },
+  genreGrid: {
+    display:'grid',
+    gridTemplateColumns:'repeat(auto-fill, minmax(180px, 1fr))',
+    gap:8,
+  },
+  genreItem: (checked) => ({
+    display:'flex',
+    alignItems:'center',
+    gap:8,
+    padding:'8px 10px',
+    borderRadius:10,
+    border:'1px solid ' + (checked ? '#00b9d1' : '#243044'),
+    background: checked ? '#08222a' : '#0d1526',
+    cursor:'pointer',
+    userSelect:'none',
+    fontSize:14,
+  }),
+  chipsWrap: {
+    display:'flex',
+    flexWrap:'wrap',
+    gap:8,
+    marginBottom:8,
+  },
+  chip: {
+    border:'1px solid #00b9d1',
+    background:'#08222a',
+    color:'#c3f3fb',
+    padding:'6px 10px',
+    borderRadius:999,
+    fontSize:13,
+    cursor:'pointer',
+  },
+  chipX: { marginLeft:6, opacity:.8 },
+
+  fileLabel: {
+    display:'inline-flex',
+    alignItems:'center',
+    gap:8,
+    background:'#0d1526',
+    border:'1px solid #243044',
+    color:'#cbd5e1',
+    padding:'10px 12px',
+    borderRadius:10,
+    fontWeight:700,
+    cursor:'pointer',
+    width:'fit-content',
+  },
+
+  galleryGrid: {
+    display:'grid',
+    gridTemplateColumns:'repeat(auto-fill, minmax(140px, 1fr))',
+    gap:12,
+    marginTop:8,
+  },
+  photoCell: {
+    position:'relative',
+    border:'1px solid #243044',
+    borderRadius:10,
+    overflow:'hidden',
+    height:140,
+    display:'flex',
+    alignItems:'center',
+    justifyContent:'center',
+    background:'#0b1220'
+  },
+  photoImg: { width:'100%', height:'100%', objectFit:'cover' },
+  deleteBtn: (disabled) => ({
+    position:'absolute',
+    top:6,
+    right:6,
+    padding:'6px 8px',
+    borderRadius:8,
+    border:'1px solid #ef4444',
+    background: disabled ? '#1f2937' : '#111827',
+    color:'#ef4444',
+    fontWeight:700,
+    cursor: disabled ? 'not-allowed' : 'pointer'
+  }),
+
+  footer: {
+    display:'flex',
+    alignItems:'center',
+    gap:12,
+    justifyContent:'flex-end',
+    marginTop:4,
+  },
+};*/
