@@ -4,62 +4,69 @@
 
 import RequireClub from '@/components/RequireClub';
 
-const promotions = [
+const levels = [
   {
-    id: 'promo-early-access',
-    name: 'Early access',
-    type: 'Entrada anticipada',
-    reward: 'Acceso preferente hasta la 01:00',
-    event: 'Asignable a cualquier evento',
+    id: 'level-1',
+    level: 1,
+    title: 'Nivel 1',
+    reward: 'Shot gratis',
     status: 'active',
-    statusLabel: 'Activa',
-    mission: 'Llegar antes de la hora límite',
-    validation: 'Automática por horario',
+    statusLabel: 'Activo',
+    missions: [
+      { id: 'l1-m1', title: 'Asistir a 1 evento', type: 'Asistencia', validation: 'Automática' },
+      { id: 'l1-m2', title: 'Subir 1 foto válida', type: 'Contenido', validation: 'Manual por el club' },
+      { id: 'l1-m3', title: 'Compartir 1 evento', type: 'Difusión', validation: 'Link único por usuario' },
+    ],
   },
   {
-    id: 'promo-photo-mission',
-    name: 'Misión foto validada',
-    type: 'Misión con contenido',
-    reward: 'Consumición gratis o subida de nivel',
-    event: 'Eventos seleccionados',
+    id: 'level-2',
+    level: 2,
+    title: 'Nivel 2',
+    reward: 'Descuento en entrada',
+    status: 'active',
+    statusLabel: 'Activo',
+    missions: [
+      { id: 'l2-m1', title: 'Asistir a 2 eventos', type: 'Asistencia', validation: 'Automática' },
+      { id: 'l2-m2', title: 'Subir 2 fotos correctas', type: 'Contenido', validation: 'Manual por el club' },
+      { id: 'l2-m3', title: 'Conseguir 5 clicks en tu link', type: 'Difusión', validation: 'Clicks atribuidos' },
+    ],
+  },
+  {
+    id: 'level-3',
+    level: 3,
+    title: 'Nivel 3',
+    reward: 'Acceso prioritario o VIP',
     status: 'draft',
     statusLabel: 'Borrador',
-    mission: 'Subir foto correcta durante el evento',
-    validation: 'Manual por el club',
-  },
-  {
-    id: 'promo-share-ranking',
-    name: 'Top compartidores',
-    type: 'Difusión / referidos',
-    reward: 'VIP, descuento o acceso prioritario',
-    event: 'Campañas especiales',
-    status: 'paused',
-    statusLabel: 'Pausada',
-    mission: 'Traer tráfico con link único por usuario',
-    validation: 'Según clicks y conversiones',
+    missions: [
+      { id: 'l3-m1', title: 'Asistir a 3 eventos', type: 'Asistencia', validation: 'Automática' },
+      { id: 'l3-m2', title: 'Subir foto temática aprobada', type: 'Contenido', validation: 'Manual por misión' },
+      { id: 'l3-m3', title: 'Traer usuarios con tu link', type: 'Difusión', validation: 'Clicks y usuarios únicos' },
+      { id: 'l3-m4', title: 'Completar reto especial del club', type: 'Misión especial', validation: 'Según configuración' },
+    ],
   },
 ];
 
-const upcomingModules = [
+const roadmap = [
   {
-    title: 'Sin promociones activas',
+    title: '10 niveles por defecto',
     description:
-      'El club podrá decidir no usar promociones, pero en sus eventos seguirá apareciendo una referencia sutil para activar esta funcionalidad más adelante.',
+      'Cada club tendrá una estructura inicial de 10 niveles. Después podrá modificar nombre, recompensa, misiones y condiciones de cada uno.',
   },
   {
-    title: 'Promociones por misión',
+    title: 'Premio al completar el nivel',
     description:
-      'Cada promoción podrá vincularse a una misión concreta: asistencia, foto validada, compartir evento o traer usuarios nuevos.',
+      'La recompensa no se entrega por una misión suelta. El usuario la obtiene cuando completa todas las misiones del nivel.',
   },
   {
-    title: 'Validación de fotos',
+    title: 'Misiones con validación distinta',
     description:
-      'Las fotos se revisarán según el tipo de misión. El club podrá aprobar, rechazar y dejar motivo de rechazo para cada envío.',
+      'Habrá misiones automáticas como asistencia o clicks, y otras manuales como fotos que tendrán que ser revisadas por el club.',
   },
   {
-    title: 'Links únicos por usuario',
+    title: 'Links únicos por usuario y evento',
     description:
-      'Cada usuario tendrá un enlace propio para compartir un evento. Así podrás medir clicks, usuarios únicos, asistencias y compras generadas por cada uno.',
+      'Cada usuario tendrá un enlace exclusivo para compartir cada evento. Así podrás atribuir tráfico, usuarios únicos, asistencias y compras.',
   },
 ];
 
@@ -87,7 +94,46 @@ function getStatusStyles(status) {
   };
 }
 
+function getMissionTypeStyle(type) {
+  if (type === 'Contenido') {
+    return {
+      background: 'rgba(0,229,255,0.08)',
+      border: '1px solid rgba(0,229,255,0.18)',
+      color: '#8be9f7',
+    };
+  }
+
+  if (type === 'Difusión') {
+    return {
+      background: 'rgba(168,85,247,0.12)',
+      border: '1px solid rgba(168,85,247,0.20)',
+      color: '#d8b4fe',
+    };
+  }
+
+  if (type === 'Asistencia') {
+    return {
+      background: 'rgba(34,197,94,0.10)',
+      border: '1px solid rgba(34,197,94,0.18)',
+      color: '#86efac',
+    };
+  }
+
+  return {
+    background: 'rgba(255,255,255,0.04)',
+    border: '1px solid rgba(255,255,255,0.08)',
+    color: '#cbd5e1',
+  };
+}
+
 export default function PromotionsPage() {
+  const totalMissions = levels.reduce((acc, level) => acc + level.missions.length, 0);
+  const activeLevels = levels.filter((level) => level.status === 'active').length;
+  const manualReviewMissions = levels.reduce(
+    (acc, level) => acc + level.missions.filter((mission) => mission.validation.toLowerCase().includes('manual')).length,
+    0
+  );
+
   const pageStyle = {
     padding: '28px 24px 44px',
     color: '#e5e7eb',
@@ -192,72 +238,72 @@ export default function PromotionsPage() {
                   marginBottom: 14,
                 }}
               >
-                Promociones del club
+                Sistema de niveles del club
               </div>
               <h1 style={titleStyle}>Promociones</h1>
               <p style={{ ...mutedStyle, margin: '12px 0 0', maxWidth: 760 }}>
-                Diseña recompensas, misiones y campañas especiales para tus eventos. Esta primera
-                pantalla deja preparada toda la estructura para promociones, validación de fotos y
-                difusión con links únicos por usuario.
+                En NightVibe cada promoción es un nivel. Cada nivel tiene sus misiones y una recompensa final
+                que el usuario desbloquea al completarlo. Aquí prepararemos la estructura para niveles,
+                validación de fotos y difusión mediante links únicos por usuario.
               </p>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
               <a href="/promotions/new" style={primaryBtn}>
-                + Crear promoción
+                + Crear nivel
               </a>
             </div>
           </section>
 
           <section style={statGridStyle}>
             <article style={statCardStyle}>
-              <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 10 }}>Promociones</div>
-              <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.03em' }}>3</div>
-              <div style={{ color: '#cbd5e1', fontSize: 13, marginTop: 10 }}>Estructura inicial visible</div>
+              <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 10 }}>Niveles visibles</div>
+              <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.03em' }}>{levels.length}</div>
+              <div style={{ color: '#cbd5e1', fontSize: 13, marginTop: 10 }}>Mock inicial del sistema por niveles</div>
             </article>
             <article style={statCardStyle}>
-              <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 10 }}>Activas</div>
-              <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.03em' }}>1</div>
-              <div style={{ color: '#cbd5e1', fontSize: 13, marginTop: 10 }}>Preparadas para impulsar eventos</div>
+              <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 10 }}>Niveles activos</div>
+              <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.03em' }}>{activeLevels}</div>
+              <div style={{ color: '#cbd5e1', fontSize: 13, marginTop: 10 }}>Listos para estar visibles en el club</div>
             </article>
             <article style={statCardStyle}>
-              <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 10 }}>Validación</div>
-              <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.03em' }}>Manual</div>
-              <div style={{ color: '#cbd5e1', fontSize: 13, marginTop: 10 }}>Fotos y misiones revisables</div>
+              <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 10 }}>Misiones</div>
+              <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.03em' }}>{totalMissions}</div>
+              <div style={{ color: '#cbd5e1', fontSize: 13, marginTop: 10 }}>Tareas repartidas dentro de los niveles</div>
             </article>
             <article style={statCardStyle}>
-              <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 10 }}>Difusión</div>
-              <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.03em' }}>Links</div>
-              <div style={{ color: '#cbd5e1', fontSize: 13, marginTop: 10 }}>Cada usuario tendrá el suyo</div>
+              <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 10 }}>Revisión manual</div>
+              <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.03em' }}>{manualReviewMissions}</div>
+              <div style={{ color: '#cbd5e1', fontSize: 13, marginTop: 10 }}>Misiones que requerirán validar contenido</div>
             </article>
           </section>
 
           <section style={panelStyle}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
               <div>
-                <div style={{ fontWeight: 900, fontSize: 22, letterSpacing: '-0.02em' }}>Promociones creadas</div>
+                <div style={{ fontWeight: 900, fontSize: 22, letterSpacing: '-0.02em' }}>Niveles del club</div>
                 <div style={{ color: '#94a3b8', fontSize: 14, marginTop: 8, lineHeight: 1.6 }}>
-                  Vista inicial de cómo se organizarán las promociones, las misiones y la validación.
+                  Cada tarjeta representa un nivel-promoción. Dentro verás su recompensa final y las misiones necesarias para completarlo.
                 </div>
               </div>
-              <div style={{ color: '#94a3b8', fontSize: 14 }}>Base visual lista para conectar backend después</div>
+              <div style={{ color: '#94a3b8', fontSize: 14 }}>Más adelante cada club tendrá 10 niveles por defecto</div>
             </div>
           </section>
 
           <section style={listStyle}>
-            {promotions.map((promo) => {
-              const statusStyle = getStatusStyles(promo.status);
+            {levels.map((level) => {
+              const statusStyle = getStatusStyles(level.status);
 
               return (
                 <article
-                  key={promo.id}
+                  key={level.id}
                   style={{
                     ...panelStyle,
                     padding: 18,
                     display: 'grid',
                     gridTemplateColumns: 'minmax(0, 1fr) auto',
                     gap: 18,
-                    alignItems: 'center',
+                    alignItems: 'start',
                   }}
                 >
                   <div style={{ minWidth: 0 }}>
@@ -270,7 +316,7 @@ export default function PromotionsPage() {
                           letterSpacing: '-0.03em',
                         }}
                       >
-                        {promo.name}
+                        {level.title}
                       </h2>
                       <span
                         style={{
@@ -285,57 +331,59 @@ export default function PromotionsPage() {
                           whiteSpace: 'nowrap',
                         }}
                       >
-                        {promo.statusLabel}
+                        {level.statusLabel}
                       </span>
                     </div>
 
                     <div style={{ marginTop: 12, color: '#cbd5e1', fontSize: 15, lineHeight: 1.6 }}>
-                      {promo.type} · {promo.reward}
+                      Recompensa final: <strong>{level.reward}</strong>
                     </div>
 
                     <div
                       style={{
                         marginTop: 14,
                         display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
                         gap: 10,
                       }}
                     >
-                      <div
-                        style={{
-                          padding: '12px 14px',
-                          borderRadius: 14,
-                          background: 'rgba(255,255,255,0.03)',
-                          border: '1px solid rgba(255,255,255,0.06)',
-                        }}
-                      >
-                        <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 700, marginBottom: 6 }}>Evento</div>
-                        <div style={{ color: '#e5e7eb', fontSize: 14, lineHeight: 1.55 }}>{promo.event}</div>
-                      </div>
-
-                      <div
-                        style={{
-                          padding: '12px 14px',
-                          borderRadius: 14,
-                          background: 'rgba(255,255,255,0.03)',
-                          border: '1px solid rgba(255,255,255,0.06)',
-                        }}
-                      >
-                        <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 700, marginBottom: 6 }}>Misión</div>
-                        <div style={{ color: '#e5e7eb', fontSize: 14, lineHeight: 1.55 }}>{promo.mission}</div>
-                      </div>
-
-                      <div
-                        style={{
-                          padding: '12px 14px',
-                          borderRadius: 14,
-                          background: 'rgba(255,255,255,0.03)',
-                          border: '1px solid rgba(255,255,255,0.06)',
-                        }}
-                      >
-                        <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 700, marginBottom: 6 }}>Validación</div>
-                        <div style={{ color: '#e5e7eb', fontSize: 14, lineHeight: 1.55 }}>{promo.validation}</div>
-                      </div>
+                      {level.missions.map((mission) => {
+                        const missionTypeStyle = getMissionTypeStyle(mission.type);
+                        return (
+                          <div
+                            key={mission.id}
+                            style={{
+                              padding: '14px 14px',
+                              borderRadius: 16,
+                              background: 'rgba(255,255,255,0.03)',
+                              border: '1px solid rgba(255,255,255,0.06)',
+                              display: 'grid',
+                              gap: 10,
+                            }}
+                          >
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+                              <div style={{ fontWeight: 800, fontSize: 15 }}>{mission.title}</div>
+                              <span
+                                style={{
+                                  ...missionTypeStyle,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  minHeight: 28,
+                                  padding: '0 10px',
+                                  borderRadius: 999,
+                                  fontSize: 11.5,
+                                  fontWeight: 800,
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                {mission.type}
+                              </span>
+                            </div>
+                            <div style={{ color: '#94a3b8', fontSize: 13.5, lineHeight: 1.55 }}>
+                              Validación: {mission.validation}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -348,7 +396,7 @@ export default function PromotionsPage() {
                     }}
                   >
                     <a
-                      href={`/promotions/${promo.id}`}
+                      href={`/promotions/${level.id}`}
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
@@ -378,7 +426,7 @@ export default function PromotionsPage() {
                         cursor: 'pointer',
                       }}
                     >
-                      Activar después
+                      Reordenar después
                     </button>
                   </div>
                 </article>
@@ -396,11 +444,11 @@ export default function PromotionsPage() {
             <article style={panelStyle}>
               <div style={{ fontWeight: 900, fontSize: 22, letterSpacing: '-0.02em' }}>Qué prepararemos aquí</div>
               <div style={{ color: '#94a3b8', fontSize: 14, marginTop: 8, lineHeight: 1.6 }}>
-                Esta sección ya queda lista para crecer hacia todo lo que definimos para el panel de clubs.
+                Esta pantalla ya queda alineada con la lógica real del sistema de promociones por niveles.
               </div>
 
               <div style={{ display: 'grid', gap: 12, marginTop: 18 }}>
-                {upcomingModules.map((item) => (
+                {roadmap.map((item) => (
                   <div
                     key={item.title}
                     style={{
@@ -420,7 +468,7 @@ export default function PromotionsPage() {
             <article style={panelStyle}>
               <div style={{ fontWeight: 900, fontSize: 22, letterSpacing: '-0.02em' }}>Sin promociones activas</div>
               <div style={{ color: '#94a3b8', fontSize: 14, marginTop: 8, lineHeight: 1.6 }}>
-                El club podrá decidir no usar promociones, pero el sistema seguirá mostrando la función de forma sutil dentro del evento para que siempre exista una vía de activación futura.
+                El club podrá decidir no activar el sistema de niveles, pero en el evento seguirá apareciendo una referencia sutil para dejar preparada esa capa de engagement.
               </div>
 
               <div
@@ -437,7 +485,7 @@ export default function PromotionsPage() {
                   Promociones no activadas
                 </div>
                 <div style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.6 }}>
-                  Este evento no tiene promociones disponibles por el momento. El club puede activarlas más adelante para desbloquear recompensas, misiones y campañas de difusión.
+                  Este evento no tiene niveles activos por el momento. El club puede activarlos más adelante para desbloquear recompensas, misiones y campañas de difusión.
                 </div>
               </div>
             </article>
