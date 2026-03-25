@@ -105,7 +105,7 @@ export default function TopNav({ active, clubName }) {
   const items = [
     { href: '/dashboard', label: 'Dashboard', key: 'dashboard', desktop: true, mobile: true },
     { href: '/events', label: 'Eventos', key: 'events', desktop: true, mobile: true },
-    { href: '/sales', label: 'Ventas', key: 'sales', desktop: true, mobile: true },
+    { href: '/promotions', label: 'Promociones', key: 'promotions', desktop: true, mobile: true },
     { href: '/scanner', label: 'Escáner', key: 'scanner', desktop: true, mobile: true },
     { href: '/promotions', label: 'Promociones', key: 'promotions', desktop: false, mobile: true },
     { href: '/missions', label: 'Misiones', key: 'missions', desktop: false, mobile: true },
