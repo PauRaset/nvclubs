@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import RequireClub from '@/components/RequireClub';
 
@@ -186,6 +186,18 @@ export default function PromotionDetailPage() {
   const [description, setDescription] = useState(level?.description || '');
   const [status, setStatus] = useState(level?.status || 'draft');
   const [saved, setSaved] = useState(false);
+  const [missions, setMissions] = useState(level?.missions || []);
+  const [editingMissionId, setEditingMissionId] = useState(level?.missions?.[0]?.id || '');
+  
+  useEffect(() => {
+    if (!level) return;
+    setTitle(level.title || '');
+    setReward(level.reward || '');
+    setDescription(level.description || '');
+    setStatus(level.status || 'draft');
+    setMissions(level.missions || []);
+    setEditingMissionId(level.missions?.[0]?.id || '');
+  }, [level]);
 
   const pageStyle = {
     padding: '28px 24px 44px',
@@ -300,6 +312,19 @@ export default function PromotionDetailPage() {
     fontSize: 14,
     fontWeight: 700,
   };
+  const smallLabelStyle = {
+    display: 'grid',
+    gap: 8,
+    color: '#cbd5e1',
+    fontSize: 13,
+    fontWeight: 700,
+  };
+  
+  const helperStyle = {
+    color: '#94a3b8',
+    fontSize: 13,
+    lineHeight: 1.55,
+  };
 
   if (!level) {
     return (
@@ -324,9 +349,9 @@ export default function PromotionDetailPage() {
   }
 
   const statusStyle = getStatusStyles(status);
-  const missionCount = level.missions.length;
-  const manualCount = level.missions.filter((mission) => mission.validation.toLowerCase().includes('manual')).length;
-
+  const missionCount = missions.length;
+  const manualCount = missions.filter((mission) => mission.validation.toLowerCase().includes('manual')).length;
+  const editingMission = missions.find((mission) => mission.id === editingMissionId) || missions[0] || null;
   return (
     <RequireClub>
       <main style={pageStyle}>
@@ -517,12 +542,159 @@ export default function PromotionDetailPage() {
                   Cada misión representa una condición parcial. El premio solo se entrega cuando el usuario completa todo el nivel.
                 </div>
               </div>
-              <button type="button" style={buttonGhost}>+ Añadir misión después</button>
+              <button
+                type="button"
+                onClick={() => {
+                    const nextId = `mission-${Date.now()}`;
+                    const nextMission = {
+                    id: nextId,
+                    title: 'Nueva misión',
+                    type: 'Misión especial',
+                    validation: 'Según configuración',
+                    details: 'Define aquí la condición concreta de esta misión.',
+                    };
+                    setMissions((prev) => [...prev, nextMission]);
+                    setEditingMissionId(nextId);
+                }}
+                style={buttonGhost}
+                >
+                + Añadir misión
+                </button>
             </div>
           </section>
 
+          {editingMission && (
+            <section
+              style={{
+                ...panelStyle,
+                display: 'grid',
+                gridTemplateColumns: 'minmax(0, 1fr) minmax(320px, 0.9fr)',
+                gap: 20,
+                alignItems: 'start',
+              }}
+            >
+              <article style={{ display: 'grid', gap: 14 }}>
+                <div style={{ fontWeight: 900, fontSize: 22, letterSpacing: '-0.02em' }}>Editor de misión</div>
+                <div style={{ color: '#94a3b8', fontSize: 14, lineHeight: 1.6 }}>
+                  Aquí ya puedes editar visualmente cada misión del nivel. Más adelante lo conectaremos al backend real.
+                </div>
+
+                <label style={smallLabelStyle}>
+                  Título de la misión
+                  <input
+                    value={editingMission.title}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setMissions((prev) => prev.map((mission) => (
+                        mission.id === editingMission.id ? { ...mission, title: value } : mission
+                      )));
+                    }}
+                    style={inputStyle}
+                  />
+                </label>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+                  <label style={smallLabelStyle}>
+                    Tipo de misión
+                    <select
+                      value={editingMission.type}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setMissions((prev) => prev.map((mission) => (
+                          mission.id === editingMission.id ? { ...mission, type: value } : mission
+                        )));
+                      }}
+                      style={inputStyle}
+                    >
+                      <option value="Asistencia">Asistencia</option>
+                      <option value="Contenido">Contenido</option>
+                      <option value="Difusión">Difusión</option>
+                      <option value="Misión especial">Misión especial</option>
+                    </select>
+                  </label>
+
+                  <label style={smallLabelStyle}>
+                    Validación
+                    <input
+                      value={editingMission.validation}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setMissions((prev) => prev.map((mission) => (
+                          mission.id === editingMission.id ? { ...mission, validation: value } : mission
+                        )));
+                      }}
+                      style={inputStyle}
+                    />
+                  </label>
+                </div>
+
+                <label style={smallLabelStyle}>
+                  Detalles de la misión
+                  <textarea
+                    value={editingMission.details}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setMissions((prev) => prev.map((mission) => (
+                        mission.id === editingMission.id ? { ...mission, details: value } : mission
+                      )));
+                    }}
+                    style={textareaStyle}
+                  />
+                </label>
+              </article>
+
+              <article style={{ display: 'grid', gap: 14 }}>
+                <div style={{ fontWeight: 900, fontSize: 22, letterSpacing: '-0.02em' }}>Vista rápida de la misión</div>
+                <div
+                  style={{
+                    padding: 16,
+                    borderRadius: 18,
+                    background: 'linear-gradient(135deg, rgba(255,255,255,0.03), rgba(0,229,255,0.05))',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    display: 'grid',
+                    gap: 12,
+                  }}
+                >
+                  <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 700 }}>Misión seleccionada</div>
+                  <div style={{ fontSize: 24, fontWeight: 900, letterSpacing: '-0.03em' }}>
+                    {editingMission.title || 'Misión sin título'}
+                  </div>
+                  <div>
+                    <span
+                      style={{
+                        ...getMissionTypeStyle(editingMission.type),
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        minHeight: 28,
+                        padding: '0 10px',
+                        borderRadius: 999,
+                        fontSize: 11.5,
+                        fontWeight: 800,
+                      }}
+                    >
+                      {editingMission.type}
+                    </span>
+                  </div>
+                  <div style={helperStyle}>{editingMission.details || 'Añade una explicación para esta misión.'}</div>
+                  <div
+                    style={{
+                      padding: '12px 14px',
+                      borderRadius: 14,
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid rgba(255,255,255,0.06)',
+                    }}
+                  >
+                    <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 700, marginBottom: 6 }}>Validación actual</div>
+                    <div style={{ color: '#e5e7eb', fontSize: 14, lineHeight: 1.55 }}>
+                      {editingMission.validation || 'Pendiente de definir'}
+                    </div>
+                  </div>
+                </div>
+              </article>
+            </section>
+          )}
           <section style={{ display: 'grid', gap: 16 }}>
-            {level.missions.map((mission, index) => {
+            {missions.map((mission, index) => {
               const missionTypeStyle = getMissionTypeStyle(mission.type);
               return (
                 <article
@@ -594,9 +766,33 @@ export default function PromotionDetailPage() {
                   </div>
 
                   <div style={{ display: 'grid', gap: 10, minWidth: 180 }}>
-                    <button type="button" style={buttonGhost}>Editar misión</button>
                     <button
                       type="button"
+                      onClick={() => setEditingMissionId(mission.id)}
+                      style={{
+                        ...buttonGhost,
+                        border: editingMissionId === mission.id
+                          ? '1px solid rgba(0,229,255,0.26)'
+                          : buttonGhost.border,
+                        background: editingMissionId === mission.id
+                          ? 'rgba(0,229,255,0.08)'
+                          : buttonGhost.background,
+                        color: editingMissionId === mission.id ? '#7dd3fc' : buttonGhost.color,
+                      }}
+                    >
+                      {editingMissionId === mission.id ? 'Editando' : 'Editar misión'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMissions((prev) => {
+                          const next = prev.filter((item) => item.id !== mission.id);
+                          if (editingMissionId === mission.id) {
+                            setEditingMissionId(next[0]?.id || '');
+                          }
+                          return next;
+                        });
+                      }}
                       style={{
                         ...buttonGhost,
                         color: '#fda4af',
@@ -604,7 +800,7 @@ export default function PromotionDetailPage() {
                         background: 'rgba(244,63,94,0.06)',
                       }}
                     >
-                      Eliminar después
+                      Eliminar misión
                     </button>
                   </div>
                 </article>
