@@ -1,11 +1,18 @@
-
-
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 import RequireClub from '@/components/RequireClub';
 
+
 const API_BASE = 'https://api.nightvibe.life';
+
+function toAbsoluteMediaUrl(input) {
+  if (!input) return '';
+  const value = String(input).trim();
+  if (!value) return '';
+  if (/^https?:\/\//i.test(value)) return value;
+  return `${API_BASE}${value.startsWith('/') ? value : `/${value}`}`;
+}
 
 function getAuthHeaders() {
   if (typeof window === 'undefined') return {};
@@ -142,9 +149,10 @@ export default function ContentPage() {
               const list = Array.isArray(data?.photos) ? data.photos : [];
               return list.map((photo) => ({
                 ...photo,
+                url: toAbsoluteMediaUrl(photo.url || photo.image || photo.path || photo.photoUrl || ''),
                 eventId,
                 eventTitle: event.title || 'Evento sin título',
-                eventImage: event.imageUrl || event.image || event.heroImage || '',
+                eventImage: toAbsoluteMediaUrl(event.imageUrl || event.image || event.heroImage || ''),
               }));
             } catch {
               return [];
@@ -221,9 +229,10 @@ export default function ContentPage() {
             const list = Array.isArray(data?.photos) ? data.photos : [];
             return list.map((photo) => ({
               ...photo,
+              url: toAbsoluteMediaUrl(photo.url || photo.image || photo.path || photo.photoUrl || ''),
               eventId,
               eventTitle: event.title || 'Evento sin título',
-              eventImage: event.imageUrl || event.image || event.heroImage || '',
+              eventImage: toAbsoluteMediaUrl(event.imageUrl || event.image || event.heroImage || ''),
             }));
           } catch {
             return [];
@@ -542,7 +551,7 @@ export default function ContentPage() {
                   >
                     <div style={{ width: '100%', height: 210, background: 'rgba(255,255,255,0.03)' }}>
                       <img
-                        src={photo.url}
+                        src={toAbsoluteMediaUrl(photo.url)}
                         alt="Foto subida por asistente"
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         loading="lazy"
@@ -616,7 +625,7 @@ export default function ContentPage() {
               >
                 <div style={{ background: '#020617', minHeight: 560 }}>
                   <img
-                    src={selectedPhoto.url}
+                    src={toAbsoluteMediaUrl(selectedPhoto.url)}
                     alt="Foto seleccionada"
                     style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                   />
