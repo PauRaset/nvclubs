@@ -117,13 +117,65 @@ function statusStyles(status) {
 
 function SmartPhoto({ photo, alt, style }) {
   const candidates = useMemo(() => buildPhotoCandidates(photo), [photo]);
-  const [index, setIndex] = useState(0);
+  const [resolvedSrc, setResolvedSrc] = useState('');
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
-    setIndex(0);
-  }, [photo]);
+    let cancelled = false;
+    let objectUrl = '';
 
-  if (!candidates.length) {
+    async function resolveImage() {
+      setResolvedSrc('');
+      setFailed(false);
+
+      if (!candidates.length) {
+        setFailed(true);
+        return;
+      }
+
+      for (const candidate of candidates) {
+        try {
+          const res = await fetch(candidate, {
+            method: 'GET',
+            headers: {
+              ...getAuthHeaders(),
+            },
+            credentials: 'include',
+            cache: 'no-store',
+          });
+
+          if (!res.ok) continue;
+
+          const blob = await res.blob();
+          if (!blob || !blob.size) continue;
+
+          objectUrl = URL.createObjectURL(blob);
+          if (!cancelled) {
+            setResolvedSrc(objectUrl);
+            setFailed(false);
+          }
+          return;
+        } catch (_) {
+          // probar siguiente candidata
+        }
+      }
+
+      if (!cancelled) {
+        setFailed(true);
+      }
+    }
+
+    resolveImage();
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [candidates]);
+
+  if (!candidates.length || failed) {
     return (
       <div
         style={{
@@ -142,20 +194,26 @@ function SmartPhoto({ photo, alt, style }) {
     );
   }
 
-  return (
-    <img
-      src={candidates[index]}
-      alt={alt}
-      style={style}
-      loading="lazy"
-      onError={() => {
-        setIndex((prev) => {
-          if (prev < candidates.length - 1) return prev + 1;
-          return prev;
-        });
-      }}
-    />
-  );
+  if (!resolvedSrc) {
+    return (
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          display: 'grid',
+          placeItems: 'center',
+          color: '#94a3b8',
+          fontSize: 13,
+          textAlign: 'center',
+          padding: 12,
+        }}
+      >
+        Cargando imagen...
+      </div>
+    );
+  }
+
+  return <img src={resolvedSrc} alt={alt} style={style} loading="lazy" />;
 }
 
 export default function ContentPage() {
