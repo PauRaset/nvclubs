@@ -1,18 +1,11 @@
+
+
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 import RequireClub from '@/components/RequireClub';
 
-
 const API_BASE = 'https://api.nightvibe.life';
-
-function toAbsoluteMediaUrl(input) {
-  if (!input) return '';
-  const value = String(input).trim();
-  if (!value) return '';
-  if (/^https?:\/\//i.test(value)) return value;
-  return `${API_BASE}${value.startsWith('/') ? value : `/${value}`}`;
-}
 
 function getAuthHeaders() {
   if (typeof window === 'undefined') return {};
@@ -58,6 +51,48 @@ async function apiJson(url, opts = {}) {
   return data;
 }
 
+function toAbsoluteMediaUrl(input) {
+  if (!input) return '';
+  const value = String(input).trim();
+  if (!value) return '';
+  if (/^https?:\/\//i.test(value)) return value;
+  return `${API_BASE}${value.startsWith('/') ? value : `/${value}`}`;
+}
+
+function buildPhotoCandidates(photo) {
+  const rawValues = [
+    photo?.url,
+    photo?.image,
+    photo?.path,
+    photo?.photoUrl,
+    photo?.src,
+    photo?.filename,
+    photo?.fileName,
+    photo?.rawUrl,
+  ].filter(Boolean);
+
+  const expanded = [];
+
+  for (const raw of rawValues) {
+    const value = String(raw).trim();
+    if (!value) continue;
+
+    expanded.push(value);
+    expanded.push(toAbsoluteMediaUrl(value));
+
+    if (!/^https?:\/\//i.test(value)) {
+      const clean = value.replace(/^\/+/, '');
+      expanded.push(`${API_BASE}/${clean}`);
+      expanded.push(`${API_BASE}/uploads/${clean}`);
+      expanded.push(`${API_BASE}/uploads/eventPhotos/${clean}`);
+      expanded.push(`${API_BASE}/uploads/events/${clean}`);
+      expanded.push(`${API_BASE}/uploads/${value}`);
+    }
+  }
+
+  return Array.from(new Set(expanded.filter(Boolean)));
+}
+
 function statusStyles(status) {
   if (status === 'approved') {
     return {
@@ -78,6 +113,49 @@ function statusStyles(status) {
     border: '1px solid rgba(250,204,21,0.20)',
     color: '#fde68a',
   };
+}
+
+function SmartPhoto({ photo, alt, style }) {
+  const candidates = useMemo(() => buildPhotoCandidates(photo), [photo]);
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    setIndex(0);
+  }, [photo]);
+
+  if (!candidates.length) {
+    return (
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          display: 'grid',
+          placeItems: 'center',
+          color: '#94a3b8',
+          fontSize: 13,
+          textAlign: 'center',
+          padding: 12,
+        }}
+      >
+        Imagen no disponible
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={candidates[index]}
+      alt={alt}
+      style={style}
+      loading="lazy"
+      onError={() => {
+        setIndex((prev) => {
+          if (prev < candidates.length - 1) return prev + 1;
+          return prev;
+        });
+      }}
+    />
+  );
 }
 
 export default function ContentPage() {
@@ -149,7 +227,7 @@ export default function ContentPage() {
               const list = Array.isArray(data?.photos) ? data.photos : [];
               return list.map((photo) => ({
                 ...photo,
-                url: toAbsoluteMediaUrl(photo.url || photo.image || photo.path || photo.photoUrl || ''),
+                rawUrl: photo.url || photo.image || photo.path || photo.photoUrl || photo.src || photo.filename || photo.fileName || '',
                 eventId,
                 eventTitle: event.title || 'Evento sin título',
                 eventImage: toAbsoluteMediaUrl(event.imageUrl || event.image || event.heroImage || ''),
@@ -229,7 +307,7 @@ export default function ContentPage() {
             const list = Array.isArray(data?.photos) ? data.photos : [];
             return list.map((photo) => ({
               ...photo,
-              url: toAbsoluteMediaUrl(photo.url || photo.image || photo.path || photo.photoUrl || ''),
+              rawUrl: photo.url || photo.image || photo.path || photo.photoUrl || photo.src || photo.filename || photo.fileName || '',
               eventId,
               eventTitle: event.title || 'Evento sin título',
               eventImage: toAbsoluteMediaUrl(event.imageUrl || event.image || event.heroImage || ''),
@@ -550,11 +628,10 @@ export default function ContentPage() {
                     }}
                   >
                     <div style={{ width: '100%', height: 210, background: 'rgba(255,255,255,0.03)' }}>
-                      <img
-                        src={toAbsoluteMediaUrl(photo.url)}
+                      <SmartPhoto
+                        photo={photo}
                         alt="Foto subida por asistente"
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        loading="lazy"
                       />
                     </div>
                     <div style={{ padding: 12, display: 'grid', gap: 8 }}>
@@ -563,6 +640,9 @@ export default function ContentPage() {
                       </div>
                       <div style={{ color: '#94a3b8', fontSize: 12.5, lineHeight: 1.5 }}>
                         @{photo.byUsername || 'usuario'}
+                      </div>
+                      <div style={{ color: '#64748b', fontSize: 11, lineHeight: 1.45, wordBreak: 'break-all' }}>
+                        {photo.rawUrl || photo.url || photo.path || photo.photoUrl || 'sin ruta'}
                       </div>
                       <div
                         style={{
@@ -624,8 +704,8 @@ export default function ContentPage() {
                 }}
               >
                 <div style={{ background: '#020617', minHeight: 560 }}>
-                  <img
-                    src={toAbsoluteMediaUrl(selectedPhoto.url)}
+                  <SmartPhoto
+                    photo={selectedPhoto}
                     alt="Foto seleccionada"
                     style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                   />
