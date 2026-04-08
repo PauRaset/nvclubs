@@ -1,74 +1,78 @@
-
-
 'use client';
 
+import { useEffect, useMemo, useState } from 'react';
 import RequireClub from '@/components/RequireClub';
+import { getUser } from '@/lib/apiClient';
 
-const levels = [
-  {
-    id: 'level-1',
-    level: 1,
-    title: 'Nivel 1',
-    reward: 'Shot gratis',
-    status: 'active',
-    statusLabel: 'Activo',
-    missions: [
-      { id: 'l1-m1', title: 'Asistir a 1 evento', type: 'Asistencia', validation: 'Automática' },
-      { id: 'l1-m2', title: 'Subir 1 foto válida', type: 'Contenido', validation: 'Manual por el club' },
-      { id: 'l1-m3', title: 'Compartir 1 evento', type: 'Difusión', validation: 'Link único por usuario' },
-    ],
-  },
-  {
-    id: 'level-2',
-    level: 2,
-    title: 'Nivel 2',
-    reward: 'Descuento en entrada',
-    status: 'active',
-    statusLabel: 'Activo',
-    missions: [
-      { id: 'l2-m1', title: 'Asistir a 2 eventos', type: 'Asistencia', validation: 'Automática' },
-      { id: 'l2-m2', title: 'Subir 2 fotos correctas', type: 'Contenido', validation: 'Manual por el club' },
-      { id: 'l2-m3', title: 'Conseguir 5 clicks en tu link', type: 'Difusión', validation: 'Clicks atribuidos' },
-    ],
-  },
-  {
-    id: 'level-3',
-    level: 3,
-    title: 'Nivel 3',
-    reward: 'Acceso prioritario o VIP',
-    status: 'draft',
-    statusLabel: 'Borrador',
-    missions: [
-      { id: 'l3-m1', title: 'Asistir a 3 eventos', type: 'Asistencia', validation: 'Automática' },
-      { id: 'l3-m2', title: 'Subir foto temática aprobada', type: 'Contenido', validation: 'Manual por misión' },
-      { id: 'l3-m3', title: 'Traer usuarios con tu link', type: 'Difusión', validation: 'Clicks y usuarios únicos' },
-      { id: 'l3-m4', title: 'Completar reto especial del club', type: 'Misión especial', validation: 'Según configuración' },
-    ],
-  },
-];
+const API_BASE = 'https://api.nightvibe.life';
 
 const roadmap = [
   {
     title: '10 niveles por defecto',
     description:
-      'Cada club tendrá una estructura inicial de 10 niveles. Después podrá modificar nombre, recompensa, misiones y condiciones de cada uno.',
+      'Cada club parte de una estructura inicial y luego puede personalizar nombre, dificultad, recompensa, orden y misiones.',
   },
   {
     title: 'Premio al completar el nivel',
     description:
-      'La recompensa no se entrega por una misión suelta. El usuario la obtiene cuando completa todas las misiones del nivel.',
+      'La recompensa se desbloquea cuando el usuario completa todo el nivel, no al terminar una misión suelta.',
   },
   {
     title: 'Misiones con validación distinta',
     description:
-      'Habrá misiones automáticas como asistencia o clicks, y otras manuales como fotos que tendrán que ser revisadas por el club.',
+      'Habrá misiones automáticas, manuales y ligadas a tracking, para que el sistema sea entendible tanto en panel como en app.',
   },
   {
-    title: 'Links únicos por usuario y evento',
+    title: 'Sistema editable por club',
     description:
-      'Cada usuario tendrá un enlace exclusivo para compartir cada evento. Así podrás atribuir tráfico, usuarios únicos, asistencias y compras.',
+      'El club podrá ajustar su propio sistema de promociones y la app leerá esa configuración real desde backend.',
   },
 ];
+
+function getAuthHeaders() {
+  if (typeof window === 'undefined') return {};
+  const token =
+    localStorage.getItem('token') ||
+    localStorage.getItem('nv_token') ||
+    localStorage.getItem('authToken') ||
+    '';
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+async function apiJson(url, opts = {}) {
+  const res = await fetch(url, {
+    ...opts,
+    headers: {
+      ...(opts.headers || {}),
+      ...getAuthHeaders(),
+      ...(opts.body ? { 'Content-Type': 'application/json' } : {}),
+    },
+    credentials: 'include',
+    cache: 'no-store',
+  });
+
+  const text = await res.text().catch(() => '');
+  let data = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = text;
+  }
+
+  if (!res.ok) {
+    const message =
+      (data && data.error) ||
+      (data && data.message) ||
+      (typeof data === 'string' && data) ||
+      `Error (HTTP ${res.status})`;
+    const err = new Error(message);
+    err.status = res.status;
+    err.data = data;
+    throw err;
+  }
+
+  return data;
+}
 
 function getStatusStyles(status) {
   if (status === 'active') {
@@ -92,6 +96,47 @@ function getStatusStyles(status) {
     border: '1px solid rgba(148,163,184,0.20)',
     color: '#cbd5e1',
   };
+}
+
+function getStatusLabel(status) {
+  if (status === 'active') return 'Activo';
+  if (status === 'paused') return 'Pausado';
+  return 'Borrador';
+}
+
+function getDifficultyLabel(difficulty) {
+  if (difficulty === 'easy') return 'Fácil';
+  if (difficulty === 'hard') return 'Difícil';
+  if (difficulty === 'extreme') return 'Extremo';
+  return 'Media';
+}
+
+function getMissionTypeLabel(type) {
+  const map = {
+    attend_event: 'Asistencia',
+    upload_event_photo: 'Contenido',
+    approved_event_photo: 'Contenido',
+    follow_users: 'Social',
+    group_photo_with_followed: 'Contenido',
+    scan_qr: 'QR',
+    theme_photo: 'Contenido',
+    photocall_photo: 'Contenido',
+    show_prizes_photo: 'Contenido',
+    stamps_competition: 'Misión especial',
+    share_event: 'Difusión',
+    link_clicks: 'Difusión',
+    unique_visits: 'Difusión',
+    referred_purchases: 'Difusión',
+  };
+  return map[type] || 'Misión';
+}
+
+function getMissionValidationLabel(mission) {
+  const validation = mission?.validationType || (mission?.requiresApproval ? 'manual' : 'automatic');
+  if (validation === 'manual') return 'Manual por el club';
+  if (validation === 'link_tracking') return 'Tracking de enlace';
+  if (validation === 'hybrid') return 'Híbrida';
+  return 'Automática';
 }
 
 function getMissionTypeStyle(type) {
@@ -119,6 +164,14 @@ function getMissionTypeStyle(type) {
     };
   }
 
+  if (type === 'QR') {
+    return {
+      background: 'rgba(249,115,22,0.10)',
+      border: '1px solid rgba(249,115,22,0.18)',
+      color: '#fdba74',
+    };
+  }
+
   return {
     background: 'rgba(255,255,255,0.04)',
     border: '1px solid rgba(255,255,255,0.08)',
@@ -126,11 +179,72 @@ function getMissionTypeStyle(type) {
   };
 }
 
+function extractClubId() {
+  const user = getUser?.() || null;
+  return (
+    user?._id ||
+    user?.id ||
+    user?.clubId ||
+    user?.club?._id ||
+    user?.club?.id ||
+    ''
+  );
+}
+
 export default function PromotionsPage() {
-  const totalMissions = levels.reduce((acc, level) => acc + level.missions.length, 0);
+  const [clubId, setClubId] = useState('');
+  const [levels, setLevels] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [notice, setNotice] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadConfig() {
+      const resolvedClubId = extractClubId();
+      setClubId(resolvedClubId);
+
+      if (!resolvedClubId) {
+        if (!cancelled) {
+          setLoading(false);
+          setNotice('No se ha podido resolver el club actual para cargar promociones.');
+        }
+        return;
+      }
+
+      setLoading(true);
+      setNotice('');
+
+      try {
+        const data = await apiJson(`${API_BASE}/api/promotions/clubs/${resolvedClubId}/levels`);
+        if (!cancelled) {
+          setLevels(Array.isArray(data?.levels) ? data.levels : []);
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setLevels([]);
+          setNotice(e?.message || 'No se pudo cargar la configuración de promociones.');
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    loadConfig();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const totalMissions = levels.reduce((acc, level) => acc + (Array.isArray(level.missions) ? level.missions.length : 0), 0);
   const activeLevels = levels.filter((level) => level.status === 'active').length;
   const manualReviewMissions = levels.reduce(
-    (acc, level) => acc + level.missions.filter((mission) => mission.validation.toLowerCase().includes('manual')).length,
+    (acc, level) =>
+      acc +
+      (Array.isArray(level.missions)
+        ? level.missions.filter((mission) => getMissionValidationLabel(mission).toLowerCase().includes('manual')).length
+        : 0),
     0
   );
 
@@ -243,8 +357,7 @@ export default function PromotionsPage() {
               <h1 style={titleStyle}>Promociones</h1>
               <p style={{ ...mutedStyle, margin: '12px 0 0', maxWidth: 760 }}>
                 En NightVibe cada promoción es un nivel. Cada nivel tiene sus misiones y una recompensa final
-                que el usuario desbloquea al completarlo. Aquí prepararemos la estructura para niveles,
-                validación de fotos y difusión mediante links únicos por usuario.
+                que el usuario desbloquea al completarlo. Esta vista ya carga la configuración real del club desde backend.
               </p>
             </div>
 
@@ -255,16 +368,29 @@ export default function PromotionsPage() {
             </div>
           </section>
 
+          {notice && (
+            <section
+              style={{
+                ...panelStyle,
+                border: '1px solid rgba(0,229,255,0.14)',
+                background: 'rgba(0,229,255,0.05)',
+                color: '#dff9ff',
+              }}
+            >
+              {notice}
+            </section>
+          )}
+
           <section style={statGridStyle}>
             <article style={statCardStyle}>
               <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 10 }}>Niveles visibles</div>
               <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.03em' }}>{levels.length}</div>
-              <div style={{ color: '#cbd5e1', fontSize: 13, marginTop: 10 }}>Mock inicial del sistema por niveles</div>
+              <div style={{ color: '#cbd5e1', fontSize: 13, marginTop: 10 }}>Configuración real cargada para este club</div>
             </article>
             <article style={statCardStyle}>
               <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 10 }}>Niveles activos</div>
               <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.03em' }}>{activeLevels}</div>
-              <div style={{ color: '#cbd5e1', fontSize: 13, marginTop: 10 }}>Listos para estar visibles en el club</div>
+              <div style={{ color: '#cbd5e1', fontSize: 13, marginTop: 10 }}>Listos para estar visibles en la app</div>
             </article>
             <article style={statCardStyle}>
               <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 10 }}>Misiones</div>
@@ -274,7 +400,7 @@ export default function PromotionsPage() {
             <article style={statCardStyle}>
               <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 10 }}>Revisión manual</div>
               <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.03em' }}>{manualReviewMissions}</div>
-              <div style={{ color: '#cbd5e1', fontSize: 13, marginTop: 10 }}>Misiones que requerirán validar contenido</div>
+              <div style={{ color: '#cbd5e1', fontSize: 13, marginTop: 10 }}>Misiones que requieren validación manual</div>
             </article>
           </section>
 
@@ -283,155 +409,190 @@ export default function PromotionsPage() {
               <div>
                 <div style={{ fontWeight: 900, fontSize: 22, letterSpacing: '-0.02em' }}>Niveles del club</div>
                 <div style={{ color: '#94a3b8', fontSize: 14, marginTop: 8, lineHeight: 1.6 }}>
-                  Cada tarjeta representa un nivel-promoción. Dentro verás su recompensa final y las misiones necesarias para completarlo.
+                  Cada tarjeta representa un nivel-promoción real del club. Desde aquí puedes revisar recompensa, dificultad y misiones antes de editarlo.
                 </div>
               </div>
-              <div style={{ color: '#94a3b8', fontSize: 14 }}>Más adelante cada club tendrá 10 niveles por defecto</div>
+              <div style={{ color: '#94a3b8', fontSize: 14 }}>
+                {clubId ? `Club actual: ${clubId}` : 'Club no resuelto'}
+              </div>
             </div>
           </section>
 
           <section style={listStyle}>
-            {levels.map((level) => {
-              const statusStyle = getStatusStyles(level.status);
+            {loading ? (
+              <section style={panelStyle}>Cargando niveles del club...</section>
+            ) : levels.length === 0 ? (
+              <section style={panelStyle}>
+                <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 8 }}>No hay niveles disponibles</div>
+                <div style={{ color: '#94a3b8', fontSize: 14, lineHeight: 1.6 }}>
+                  Cuando el backend genere o guarde la configuración del club, aparecerá aquí el sistema completo de promociones por niveles.
+                </div>
+              </section>
+            ) : (
+              levels.map((level) => {
+                const statusStyle = getStatusStyles(level.status);
 
-              return (
-                <article
-                  key={level.id}
-                  style={{
-                    ...panelStyle,
-                    padding: 18,
-                    display: 'grid',
-                    gridTemplateColumns: 'minmax(0, 1fr) auto',
-                    gap: 18,
-                    alignItems: 'start',
-                  }}
-                >
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
-                      <h2
+                return (
+                  <article
+                    key={level.id || `${level.levelNumber}`}
+                    style={{
+                      ...panelStyle,
+                      padding: 18,
+                      display: 'grid',
+                      gridTemplateColumns: 'minmax(0, 1fr) auto',
+                      gap: 18,
+                      alignItems: 'start',
+                    }}
+                  >
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+                        <h2
+                          style={{
+                            margin: 0,
+                            fontSize: 24,
+                            fontWeight: 900,
+                            letterSpacing: '-0.03em',
+                          }}
+                        >
+                          {level.title}
+                        </h2>
+                        <span
+                          style={{
+                            ...statusStyle,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            minHeight: 32,
+                            padding: '0 12px',
+                            borderRadius: 999,
+                            fontSize: 12,
+                            fontWeight: 800,
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {getStatusLabel(level.status)}
+                        </span>
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            minHeight: 32,
+                            padding: '0 12px',
+                            borderRadius: 999,
+                            fontSize: 12,
+                            fontWeight: 800,
+                            whiteSpace: 'nowrap',
+                            background: 'rgba(255,255,255,0.04)',
+                            border: '1px solid rgba(255,255,255,0.08)',
+                            color: '#cbd5e1',
+                          }}
+                        >
+                          {getDifficultyLabel(level.difficulty)}
+                        </span>
+                      </div>
+
+                      <div style={{ marginTop: 12, color: '#cbd5e1', fontSize: 15, lineHeight: 1.6 }}>
+                        Recompensa final: <strong>{level.reward?.title || 'Sin recompensa definida'}</strong>
+                      </div>
+
+                      <div style={{ marginTop: 8, color: '#94a3b8', fontSize: 13.5, lineHeight: 1.55 }}>
+                        Orden: {level.order} · Nivel: {level.levelNumber} · Visible en app: {level.visibleInApp ? 'Sí' : 'No'}
+                      </div>
+
+                      <div
                         style={{
-                          margin: 0,
-                          fontSize: 24,
-                          fontWeight: 900,
-                          letterSpacing: '-0.03em',
+                          marginTop: 14,
+                          display: 'grid',
+                          gap: 10,
                         }}
                       >
-                        {level.title}
-                      </h2>
-                      <span
-                        style={{
-                          ...statusStyle,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          minHeight: 32,
-                          padding: '0 12px',
-                          borderRadius: 999,
-                          fontSize: 12,
-                          fontWeight: 800,
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {level.statusLabel}
-                      </span>
-                    </div>
-
-                    <div style={{ marginTop: 12, color: '#cbd5e1', fontSize: 15, lineHeight: 1.6 }}>
-                      Recompensa final: <strong>{level.reward}</strong>
+                        {(level.missions || []).map((mission) => {
+                          const missionTypeLabel = getMissionTypeLabel(mission.type);
+                          const missionTypeStyle = getMissionTypeStyle(missionTypeLabel);
+                          return (
+                            <div
+                              key={mission.id || `${mission.type}-${mission.order}`}
+                              style={{
+                                padding: '14px 14px',
+                                borderRadius: 16,
+                                background: 'rgba(255,255,255,0.03)',
+                                border: '1px solid rgba(255,255,255,0.06)',
+                                display: 'grid',
+                                gap: 10,
+                              }}
+                            >
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+                                <div style={{ fontWeight: 800, fontSize: 15 }}>{mission.title}</div>
+                                <span
+                                  style={{
+                                    ...missionTypeStyle,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    minHeight: 28,
+                                    padding: '0 10px',
+                                    borderRadius: 999,
+                                    fontSize: 11.5,
+                                    fontWeight: 800,
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                >
+                                  {missionTypeLabel}
+                                </span>
+                              </div>
+                              <div style={{ color: '#94a3b8', fontSize: 13.5, lineHeight: 1.55 }}>
+                                Validación: {getMissionValidationLabel(mission)} · Objetivo: {mission.target || 1} {mission.unit || ''}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
 
                     <div
                       style={{
-                        marginTop: 14,
                         display: 'grid',
                         gap: 10,
+                        justifyItems: 'stretch',
+                        minWidth: 180,
                       }}
                     >
-                      {level.missions.map((mission) => {
-                        const missionTypeStyle = getMissionTypeStyle(mission.type);
-                        return (
-                          <div
-                            key={mission.id}
-                            style={{
-                              padding: '14px 14px',
-                              borderRadius: 16,
-                              background: 'rgba(255,255,255,0.03)',
-                              border: '1px solid rgba(255,255,255,0.06)',
-                              display: 'grid',
-                              gap: 10,
-                            }}
-                          >
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
-                              <div style={{ fontWeight: 800, fontSize: 15 }}>{mission.title}</div>
-                              <span
-                                style={{
-                                  ...missionTypeStyle,
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  minHeight: 28,
-                                  padding: '0 10px',
-                                  borderRadius: 999,
-                                  fontSize: 11.5,
-                                  fontWeight: 800,
-                                  whiteSpace: 'nowrap',
-                                }}
-                              >
-                                {mission.type}
-                              </span>
-                            </div>
-                            <div style={{ color: '#94a3b8', fontSize: 13.5, lineHeight: 1.55 }}>
-                              Validación: {mission.validation}
-                            </div>
-                          </div>
-                        );
-                      })}
+                      <a
+                        href={`/promotions/${level.id || level.levelNumber}`}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          minHeight: 44,
+                          padding: '0 14px',
+                          borderRadius: 12,
+                          border: '1px solid rgba(255,255,255,0.1)',
+                          color: '#e5e7eb',
+                          textDecoration: 'none',
+                          fontWeight: 700,
+                          background: 'rgba(255,255,255,0.03)',
+                        }}
+                      >
+                        Ver / Editar
+                      </a>
+                      <button
+                        type="button"
+                        style={{
+                          minHeight: 44,
+                          padding: '0 14px',
+                          borderRadius: 12,
+                          border: '1px solid rgba(0,229,255,0.20)',
+                          background: 'rgba(0,229,255,0.06)',
+                          color: '#7dd3fc',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Reordenar después
+                      </button>
                     </div>
-                  </div>
-
-                  <div
-                    style={{
-                      display: 'grid',
-                      gap: 10,
-                      justifyItems: 'stretch',
-                      minWidth: 180,
-                    }}
-                  >
-                    <a
-                      href={`/promotions/${level.id}`}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        minHeight: 44,
-                        padding: '0 14px',
-                        borderRadius: 12,
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        color: '#e5e7eb',
-                        textDecoration: 'none',
-                        fontWeight: 700,
-                        background: 'rgba(255,255,255,0.03)',
-                      }}
-                    >
-                      Ver / Editar
-                    </a>
-                    <button
-                      type="button"
-                      style={{
-                        minHeight: 44,
-                        padding: '0 14px',
-                        borderRadius: 12,
-                        border: '1px solid rgba(0,229,255,0.20)',
-                        background: 'rgba(0,229,255,0.06)',
-                        color: '#7dd3fc',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Reordenar después
-                    </button>
-                  </div>
-                </article>
-              );
-            })}
+                  </article>
+                );
+              })
+            )}
           </section>
 
           <section
@@ -444,7 +605,7 @@ export default function PromotionsPage() {
             <article style={panelStyle}>
               <div style={{ fontWeight: 900, fontSize: 22, letterSpacing: '-0.02em' }}>Qué prepararemos aquí</div>
               <div style={{ color: '#94a3b8', fontSize: 14, marginTop: 8, lineHeight: 1.6 }}>
-                Esta pantalla ya queda alineada con la lógica real del sistema de promociones por niveles.
+                Esta pantalla ya queda conectada a la lógica real del sistema de promociones por niveles del club.
               </div>
 
               <div style={{ display: 'grid', gap: 12, marginTop: 18 }}>
