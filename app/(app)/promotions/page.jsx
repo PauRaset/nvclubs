@@ -196,6 +196,7 @@ export default function PromotionsPage() {
   const [levels, setLevels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState('');
+  const [deletingLevelNumber, setDeletingLevelNumber] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -236,6 +237,78 @@ export default function PromotionsPage() {
       cancelled = true;
     };
   }, []);
+
+  async function handleDeleteLevel(levelNumber) {
+    if (!clubId) {
+      setNotice('No se ha podido resolver el club actual.');
+      return;
+    }
+
+    const confirmed = window.confirm(`¿Seguro que quieres eliminar el nivel ${levelNumber}? Esta acción no se puede deshacer.`);
+    if (!confirmed) return;
+
+    try {
+      setDeletingLevelNumber(String(levelNumber));
+      setNotice('Eliminando nivel...');
+
+      const nextLevels = levels
+        .filter((level) => Number(level.levelNumber) !== Number(levelNumber))
+        .sort((a, b) => Number(a.order || a.levelNumber || 0) - Number(b.order || b.levelNumber || 0))
+        .map((level, idx) => ({
+          levelNumber: Number(level.levelNumber),
+          order: idx + 1,
+          title: level.title || `Nivel ${idx + 1}`,
+          description: level.description || '',
+          difficulty: level.difficulty || 'medium',
+          reward: {
+            type: level.reward?.type || 'custom',
+            title: level.reward?.title || '',
+            description: level.reward?.description || '',
+            value:
+              typeof level.reward?.value === 'number'
+                ? level.reward.value
+                : (typeof level.reward?.value === 'string' && level.reward.value.trim() !== '' && !Number.isNaN(Number(level.reward.value)))
+                  ? Number(level.reward.value)
+                  : null,
+            active: level.reward?.active !== false,
+          },
+          status: level.status || (level.active ? 'active' : 'paused') || 'draft',
+          active: typeof level.active === 'boolean' ? level.active : level.status === 'active',
+          visibleInApp: level.visibleInApp !== false,
+          version: Number(level.version || 1),
+          missions: Array.isArray(level.missions)
+            ? level.missions.map((mission, missionIdx) => ({
+                type: mission.type || 'stamps_competition',
+                title: mission.title || `Misión ${missionIdx + 1}`,
+                description: mission.description || '',
+                target: Number.isFinite(Number(mission.target)) ? Number(mission.target) : 1,
+                unit: mission.unit || '',
+                params: mission.params && typeof mission.params === 'object' ? mission.params : {},
+                validationType:
+                  mission.validationType || (mission.requiresApproval ? 'manual' : 'automatic') || 'automatic',
+                requiresApproval:
+                  typeof mission.requiresApproval === 'boolean'
+                    ? mission.requiresApproval
+                    : mission.validationType === 'manual',
+                order: Number.isFinite(Number(mission.order)) ? Number(mission.order) : missionIdx + 1,
+                active: mission.active !== false,
+              }))
+            : [],
+        }));
+
+      const data = await apiJson(`${API_BASE}/api/promotions/clubs/${clubId}/levels`, {
+        method: 'PUT',
+        body: JSON.stringify({ levels: nextLevels }),
+      });
+
+      setLevels(Array.isArray(data?.levels) ? data.levels : []);
+      setNotice('Nivel eliminado correctamente.');
+    } catch (e) {
+      setNotice(e?.message || 'No se pudo eliminar el nivel.');
+    } finally {
+      setDeletingLevelNumber('');
+    }
+  }
 
   const totalMissions = levels.reduce((acc, level) => acc + (Array.isArray(level.missions) ? level.missions.length : 0), 0);
   const activeLevels = levels.filter((level) => level.status === 'active').length;
@@ -575,18 +648,21 @@ export default function PromotionsPage() {
                       </a>
                       <button
                         type="button"
+                        onClick={() => handleDeleteLevel(level.levelNumber)}
+                        disabled={deletingLevelNumber === String(level.levelNumber)}
                         style={{
                           minHeight: 44,
                           padding: '0 14px',
                           borderRadius: 12,
-                          border: '1px solid rgba(0,229,255,0.20)',
-                          background: 'rgba(0,229,255,0.06)',
-                          color: '#7dd3fc',
+                          border: '1px solid rgba(244,63,94,0.18)',
+                          background: 'rgba(244,63,94,0.06)',
+                          color: '#fda4af',
                           fontWeight: 700,
-                          cursor: 'pointer',
+                          cursor: deletingLevelNumber === String(level.levelNumber) ? 'not-allowed' : 'pointer',
+                          opacity: deletingLevelNumber === String(level.levelNumber) ? 0.7 : 1,
                         }}
                       >
-                        Reordenar después
+                        {deletingLevelNumber === String(level.levelNumber) ? 'Eliminando...' : 'Eliminar nivel'}
                       </button>
                     </div>
                   </article>
