@@ -232,7 +232,7 @@ export default function PromotionDetailPage() {
 
   const level = useMemo(() => {
     if (!id) return null;
-    const found = levels.find((item) => String(item.id || item.levelNumber) === String(id));
+    const found = levels.find((item) => String(item.levelNumber) === String(id));
     return normalizeLevelForEditor(found || null);
   }, [levels, id]);
 
@@ -428,7 +428,7 @@ export default function PromotionDetailPage() {
     try {
       setNotice('Guardando cambios del nivel...');
       const nextLevels = levels.map((item) => {
-        if (String(item.id || item.levelNumber) !== String(id)) return item;
+        if (String(item.levelNumber) !== String(id)) return item;
         return serializeLevelForSave(item, {
           levelNumber,
           title,
@@ -448,6 +448,7 @@ export default function PromotionDetailPage() {
       setLevels(savedLevels);
       setSaved(true);
       setNotice('Cambios guardados correctamente en la configuración del club.');
+      router.replace(`/promotions/${levelNumber}`);
       setTimeout(() => setSaved(false), 2000);
     } catch (e) {
       setNotice(e?.message || 'No se pudieron guardar los cambios del nivel.');
