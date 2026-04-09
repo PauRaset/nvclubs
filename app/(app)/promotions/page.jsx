@@ -197,6 +197,7 @@ export default function PromotionsPage() {
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState('');
   const [deletingLevelNumber, setDeletingLevelNumber] = useState('');
+  const [reorderingLevelNumber, setReorderingLevelNumber] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -239,6 +240,90 @@ export default function PromotionsPage() {
   }, []);
 
   async function handleDeleteLevel(levelNumber) {
+  async function handleMoveLevel(levelNumber, direction) {
+    if (!clubId) {
+      setNotice('No se ha podido resolver el club actual.');
+      return;
+    }
+
+    const sortedLevels = [...levels].sort(
+      (a, b) => Number(a.order || a.levelNumber || 0) - Number(b.order || b.levelNumber || 0)
+    );
+
+    const currentIndex = sortedLevels.findIndex(
+      (level) => Number(level.levelNumber) === Number(levelNumber)
+    );
+    if (currentIndex === -1) return;
+
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (targetIndex < 0 || targetIndex >= sortedLevels.length) return;
+
+    const swapped = [...sortedLevels];
+    const temp = swapped[currentIndex];
+    swapped[currentIndex] = swapped[targetIndex];
+    swapped[targetIndex] = temp;
+
+    const payloadLevels = swapped.map((level, idx) => ({
+      levelNumber: Number(level.levelNumber),
+      order: idx + 1,
+      title: level.title || `Nivel ${idx + 1}`,
+      description: level.description || '',
+      difficulty: level.difficulty || 'medium',
+      reward: {
+        type: level.reward?.type || 'custom',
+        title: level.reward?.title || '',
+        description: level.reward?.description || '',
+        value:
+          typeof level.reward?.value === 'number'
+            ? level.reward.value
+            : (typeof level.reward?.value === 'string' &&
+                level.reward.value.trim() !== '' &&
+                !Number.isNaN(Number(level.reward.value)))
+              ? Number(level.reward.value)
+              : null,
+        active: level.reward?.active !== false,
+      },
+      status: level.status || (level.active ? 'active' : 'paused') || 'draft',
+      active: typeof level.active === 'boolean' ? level.active : level.status === 'active',
+      visibleInApp: level.visibleInApp !== false,
+      version: Number(level.version || 1),
+      missions: Array.isArray(level.missions)
+        ? level.missions.map((mission, missionIdx) => ({
+            type: mission.type || 'stamps_competition',
+            title: mission.title || `Misión ${missionIdx + 1}`,
+            description: mission.description || '',
+            target: Number.isFinite(Number(mission.target)) ? Number(mission.target) : 1,
+            unit: mission.unit || '',
+            params: mission.params && typeof mission.params === 'object' ? mission.params : {},
+            validationType:
+              mission.validationType || (mission.requiresApproval ? 'manual' : 'automatic') || 'automatic',
+            requiresApproval:
+              typeof mission.requiresApproval === 'boolean'
+                ? mission.requiresApproval
+                : mission.validationType === 'manual',
+            order: Number.isFinite(Number(mission.order)) ? Number(mission.order) : missionIdx + 1,
+            active: mission.active !== false,
+          }))
+        : [],
+    }));
+
+    try {
+      setReorderingLevelNumber(String(levelNumber));
+      setNotice(direction === 'up' ? 'Subiendo nivel...' : 'Bajando nivel...');
+
+      const data = await apiJson(`${API_BASE}/api/promotions/clubs/${clubId}/levels`, {
+        method: 'PUT',
+        body: JSON.stringify({ levels: payloadLevels }),
+      });
+
+      setLevels(Array.isArray(data?.levels) ? data.levels : []);
+      setNotice('Orden de niveles actualizado correctamente.');
+    } catch (e) {
+      setNotice(e?.message || 'No se pudo reordenar el nivel.');
+    } finally {
+      setReorderingLevelNumber('');
+    }
+  }
     if (!clubId) {
       setNotice('No se ha podido resolver el club actual.');
       return;
@@ -502,7 +587,9 @@ export default function PromotionsPage() {
                 </div>
               </section>
             ) : (
-              levels.map((level) => {
+              [...levels]
+                .sort((a, b) => Number(a.order || a.levelNumber || 0) - Number(b.order || b.levelNumber || 0))
+                .map((level, index, orderedLevels) => {
                 const statusStyle = getStatusStyles(level.status);
 
                 return (
@@ -568,7 +655,7 @@ export default function PromotionsPage() {
                       </div>
 
                       <div style={{ marginTop: 8, color: '#94a3b8', fontSize: 13.5, lineHeight: 1.55 }}>
-                        Orden: {level.order} · Nivel: {level.levelNumber} · Visible en app: {level.visibleInApp ? 'Sí' : 'No'}
+                        Orden: {index + 1} · Nivel: {level.levelNumber} · Visible en app: {level.visibleInApp ? 'Sí' : 'No'}
                       </div>
 
                       <div
@@ -628,6 +715,56 @@ export default function PromotionsPage() {
                         minWidth: 180,
                       }}
                     >
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                        <button
+                          type="button"
+                          onClick={() => handleMoveLevel(level.levelNumber, 'up')}
+                          disabled={index === 0 || reorderingLevelNumber === String(level.levelNumber)}
+                          style={{
+                            minHeight: 40,
+                            padding: '0 12px',
+                            borderRadius: 12,
+                            border: '1px solid rgba(0,229,255,0.20)',
+                            background: 'rgba(0,229,255,0.06)',
+                            color: '#7dd3fc',
+                            fontWeight: 700,
+                            cursor:
+                              index === 0 || reorderingLevelNumber === String(level.levelNumber)
+                                ? 'not-allowed'
+                                : 'pointer',
+                            opacity:
+                              index === 0 || reorderingLevelNumber === String(level.levelNumber)
+                                ? 0.55
+                                : 1,
+                          }}
+                        >
+                          ↑ Subir
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleMoveLevel(level.levelNumber, 'down')}
+                          disabled={index === orderedLevels.length - 1 || reorderingLevelNumber === String(level.levelNumber)}
+                          style={{
+                            minHeight: 40,
+                            padding: '0 12px',
+                            borderRadius: 12,
+                            border: '1px solid rgba(0,229,255,0.20)',
+                            background: 'rgba(0,229,255,0.06)',
+                            color: '#7dd3fc',
+                            fontWeight: 700,
+                            cursor:
+                              index === orderedLevels.length - 1 || reorderingLevelNumber === String(level.levelNumber)
+                                ? 'not-allowed'
+                                : 'pointer',
+                            opacity:
+                              index === orderedLevels.length - 1 || reorderingLevelNumber === String(level.levelNumber)
+                                ? 0.55
+                                : 1,
+                          }}
+                        >
+                          ↓ Bajar
+                        </button>
+                      </div>
                       <a
                         href={`/promotions/${level.levelNumber}`}
                         style={{
@@ -649,7 +786,7 @@ export default function PromotionsPage() {
                       <button
                         type="button"
                         onClick={() => handleDeleteLevel(level.levelNumber)}
-                        disabled={deletingLevelNumber === String(level.levelNumber)}
+                        disabled={deletingLevelNumber === String(level.levelNumber) || reorderingLevelNumber === String(level.levelNumber)}
                         style={{
                           minHeight: 44,
                           padding: '0 14px',
@@ -658,8 +795,14 @@ export default function PromotionsPage() {
                           background: 'rgba(244,63,94,0.06)',
                           color: '#fda4af',
                           fontWeight: 700,
-                          cursor: deletingLevelNumber === String(level.levelNumber) ? 'not-allowed' : 'pointer',
-                          opacity: deletingLevelNumber === String(level.levelNumber) ? 0.7 : 1,
+                          cursor:
+                            deletingLevelNumber === String(level.levelNumber) || reorderingLevelNumber === String(level.levelNumber)
+                              ? 'not-allowed'
+                              : 'pointer',
+                          opacity:
+                            deletingLevelNumber === String(level.levelNumber) || reorderingLevelNumber === String(level.levelNumber)
+                              ? 0.7
+                              : 1,
                         }}
                       >
                         {deletingLevelNumber === String(level.levelNumber) ? 'Eliminando...' : 'Eliminar nivel'}
