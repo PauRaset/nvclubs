@@ -556,7 +556,7 @@ export default function PromotionsPage() {
                       }}
                     >
                       <a
-                        href={`/promotions/${level.id || level.levelNumber}`}
+                        href={`/promotions/${level.levelNumber}`}
                         style={{
                           display: 'inline-flex',
                           alignItems: 'center',
