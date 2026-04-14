@@ -35,6 +35,27 @@ const CONTENT_MISSION_OPTIONS = [
   },
 ];
 
+function getMissionMeta(type) {
+  return (
+    CONTENT_MISSION_OPTIONS.find((item) => item.type === type) ||
+    CONTENT_MISSION_OPTIONS[0]
+  );
+}
+
+function missionDisplayLabel(photo) {
+  if (photo?.missionTitle && String(photo.missionTitle).trim()) {
+    return String(photo.missionTitle).trim();
+  }
+  return getMissionMeta(photo?.missionType || 'approved_event_photo')?.label || 'Foto aprobada del evento';
+}
+
+function validatedMissionDisplayLabel(photo) {
+  if (photo?.validatedForMissionTitle && String(photo.validatedForMissionTitle).trim()) {
+    return String(photo.validatedForMissionTitle).trim();
+  }
+  return getMissionMeta(photo?.validatedForMissionType || photo?.missionType || 'approved_event_photo')?.label || 'Foto aprobada del evento';
+}
+
 function getAuthHeaders() {
   if (typeof window === 'undefined') return {};
   const token =
@@ -378,11 +399,12 @@ export default function ContentPage() {
   }, [events, selectedEventId]);
 
   const selectedMissionMeta = useMemo(() => {
-    return (
-      CONTENT_MISSION_OPTIONS.find((item) => item.type === selectedMissionType) ||
-      CONTENT_MISSION_OPTIONS[0]
-    );
+    return getMissionMeta(selectedMissionType);
   }, [selectedMissionType]);
+
+  const selectedTargetMissionMeta = useMemo(() => {
+    return getMissionMeta(selectedPhoto?.missionType || 'approved_event_photo');
+  }, [selectedPhoto]);
 
   async function refreshCurrentPhotos() {
     if (!events.length) return;
@@ -436,12 +458,19 @@ export default function ContentPage() {
         method: 'POST',
         body: JSON.stringify({
           reviewNote: reviewNote || '',
-          missionType: selectedMissionType || 'approved_event_photo',
-          validatedForMissionType: selectedMissionType || 'approved_event_photo',
+          missionType: selectedPhoto?.missionType || selectedMissionType || 'approved_event_photo',
+          missionId: selectedPhoto?.missionId || null,
+          missionTitle: selectedPhoto?.missionTitle || missionDisplayLabel(selectedPhoto),
+          validatedForMissionType: selectedMissionType || selectedPhoto?.missionType || 'approved_event_photo',
+          validatedForMissionId: selectedPhoto?.missionId || null,
+          validatedForMissionTitle: selectedMissionMeta?.label || 'Foto aprobada del evento',
           validatedForLevelNumber:
             selectedLevelNumber.trim() !== '' && !Number.isNaN(Number(selectedLevelNumber))
               ? Number(selectedLevelNumber)
-              : null,
+              : selectedPhoto?.levelNumber != null
+                ? Number(selectedPhoto.levelNumber)
+                : null,
+          validationResult: 'matched',
         }),
       });
       setSelectedPhoto(null);
@@ -466,12 +495,19 @@ export default function ContentPage() {
         method: 'POST',
         body: JSON.stringify({
           reviewNote: reviewNote || '',
-          missionType: selectedMissionType || 'approved_event_photo',
-          validatedForMissionType: selectedMissionType || 'approved_event_photo',
+          missionType: selectedPhoto?.missionType || selectedMissionType || 'approved_event_photo',
+          missionId: selectedPhoto?.missionId || null,
+          missionTitle: selectedPhoto?.missionTitle || missionDisplayLabel(selectedPhoto),
+          validatedForMissionType: selectedMissionType || selectedPhoto?.missionType || 'approved_event_photo',
+          validatedForMissionId: selectedPhoto?.missionId || null,
+          validatedForMissionTitle: selectedMissionMeta?.label || 'Foto aprobada del evento',
           validatedForLevelNumber:
             selectedLevelNumber.trim() !== '' && !Number.isNaN(Number(selectedLevelNumber))
               ? Number(selectedLevelNumber)
-              : null,
+              : selectedPhoto?.levelNumber != null
+                ? Number(selectedPhoto.levelNumber)
+                : null,
+          validationResult: 'not_matched',
         }),
       });
       setSelectedPhoto(null);
@@ -776,27 +812,71 @@ export default function ContentPage() {
                       <div style={{ color: '#94a3b8', fontSize: 12.5, lineHeight: 1.5 }}>
                         @{photo.byUsername || 'usuario'}
                       </div>
+                      <div
+                        style={{
+                          display: 'grid',
+                          gap: 6,
+                          padding: '10px 12px',
+                          borderRadius: 14,
+                          background: 'rgba(255,255,255,0.03)',
+                          border: '1px solid rgba(255,255,255,0.06)',
+                        }}
+                      >
+                        <div style={{ color: '#94a3b8', fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                          Misión objetivo
+                        </div>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: '#e5e7eb', lineHeight: 1.4 }}>
+                          {missionDisplayLabel(photo)}
+                        </div>
+                        {photo.levelNumber != null && photo.levelNumber !== '' && (
+                          <div style={{ color: '#7dd3fc', fontSize: 12, fontWeight: 700 }}>
+                            Nivel {photo.levelNumber}
+                          </div>
+                        )}
+                      </div>
                       <div style={{ color: '#64748b', fontSize: 11, lineHeight: 1.45, wordBreak: 'break-all' }}>
                         {photo.rawUrl || photo.url || photo.path || photo.photoUrl || 'sin ruta'}
                       </div>
-                      <div
-                        style={{
-                          ...statusStyles(photo.status),
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          width: 'fit-content',
-                          minHeight: 28,
-                          padding: '0 10px',
-                          borderRadius: 999,
-                          fontSize: 11.5,
-                          fontWeight: 800,
-                        }}
-                      >
-                        {photo.status === 'approved'
-                          ? 'Aprobada'
-                          : photo.status === 'rejected'
-                            ? 'Rechazada'
-                            : 'Pendiente'}
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <div
+                          style={{
+                            ...statusStyles(photo.status),
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            width: 'fit-content',
+                            minHeight: 28,
+                            padding: '0 10px',
+                            borderRadius: 999,
+                            fontSize: 11.5,
+                            fontWeight: 800,
+                          }}
+                        >
+                          {photo.status === 'approved'
+                            ? 'Aprobada'
+                            : photo.status === 'rejected'
+                              ? 'Rechazada'
+                              : 'Pendiente'}
+                        </div>
+
+                        {photo.validatedForMissionType && (
+                          <div
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              width: 'fit-content',
+                              minHeight: 28,
+                              padding: '0 10px',
+                              borderRadius: 999,
+                              fontSize: 11.5,
+                              fontWeight: 800,
+                              background: 'rgba(0,229,255,0.10)',
+                              border: '1px solid rgba(0,229,255,0.20)',
+                              color: '#7dd3fc',
+                            }}
+                          >
+                            Validada como {validatedMissionDisplayLabel(photo)}
+                          </div>
+                        )}
                       </div>
                       <div style={{ color: '#94a3b8', fontSize: 12.5 }}>
                         {photo.uploadedAt ? new Date(photo.uploadedAt).toLocaleString('es-ES') : ''}
@@ -858,29 +938,92 @@ export default function ContentPage() {
                     </div>
                   </div>
 
-                  <div
-                    style={{
-                      ...statusStyles(selectedPhoto.status),
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      width: 'fit-content',
-                      minHeight: 30,
-                      padding: '0 10px',
-                      borderRadius: 999,
-                      fontSize: 12,
-                      fontWeight: 800,
-                    }}
-                  >
-                    {selectedPhoto.status === 'approved'
-                      ? 'Aprobada'
-                      : selectedPhoto.status === 'rejected'
-                        ? 'Rechazada'
-                        : 'Pendiente'}
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <div
+                      style={{
+                        ...statusStyles(selectedPhoto.status),
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        width: 'fit-content',
+                        minHeight: 30,
+                        padding: '0 10px',
+                        borderRadius: 999,
+                        fontSize: 12,
+                        fontWeight: 800,
+                      }}
+                    >
+                      {selectedPhoto.status === 'approved'
+                        ? 'Aprobada'
+                        : selectedPhoto.status === 'rejected'
+                          ? 'Rechazada'
+                          : 'Pendiente'}
+                    </div>
                   </div>
 
                   <div style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.6 }}>
-                    Selecciona la misión de contenido que debe cumplir esta foto y decide si realmente la valida. Solo debería aprobarse si encaja con la misión elegida.
+                    Aquí ves la misión objetivo de la foto y puedes decidir si realmente la cumple. Solo debería aprobarse si encaja con la misión requerida por ese usuario en ese momento.
                   </div>
+
+                  <div
+                    style={{
+                      padding: 14,
+                      borderRadius: 16,
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      display: 'grid',
+                      gap: 10,
+                    }}
+                  >
+                    <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                      Misión objetivo detectada en esta foto
+                    </div>
+                    <div style={{ fontSize: 18, fontWeight: 900, color: '#f8fafc', lineHeight: 1.3 }}>
+                      {selectedPhoto?.missionTitle || selectedTargetMissionMeta?.label || 'Foto aprobada del evento'}
+                    </div>
+                    <div style={{ color: '#cbd5e1', fontSize: 13.5, lineHeight: 1.6 }}>
+                      {selectedTargetMissionMeta?.description || 'La foto se validará como contenido general aprobado del evento.'}
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      {selectedPhoto?.levelNumber != null && selectedPhoto?.levelNumber !== '' && (
+                        <div
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            minHeight: 30,
+                            padding: '0 10px',
+                            borderRadius: 999,
+                            background: 'rgba(0,229,255,0.10)',
+                            border: '1px solid rgba(0,229,255,0.20)',
+                            color: '#7dd3fc',
+                            fontSize: 12,
+                            fontWeight: 800,
+                          }}
+                        >
+                          Nivel objetivo {selectedPhoto.levelNumber}
+                        </div>
+                      )}
+
+                      {selectedPhoto?.validationResult && (
+                        <div
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            minHeight: 30,
+                            padding: '0 10px',
+                            borderRadius: 999,
+                            background: 'rgba(255,255,255,0.04)',
+                            border: '1px solid rgba(255,255,255,0.08)',
+                            color: '#cbd5e1',
+                            fontSize: 12,
+                            fontWeight: 800,
+                          }}
+                        >
+                          {selectedPhoto.validationResult === 'matched' ? 'Coincide con la misión' : 'No coincide con la misión'}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   <div
                     style={{
                       padding: 14,
@@ -893,7 +1036,7 @@ export default function ContentPage() {
                   >
                     <div>
                       <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 800, marginBottom: 6 }}>
-                        Misión a validar
+                        Validar esta foto como
                       </div>
                       <select
                         value={selectedMissionType}
@@ -955,8 +1098,38 @@ export default function ContentPage() {
                         {selectedMissionMeta?.label || 'Foto aprobada del evento'}
                       </strong>
                       {selectedMissionMeta?.description || 'La foto se validará como contenido general aprobado.'}
+                      {selectedPhoto?.missionType && selectedMissionType !== selectedPhoto.missionType && (
+                        <div style={{ marginTop: 8, color: '#fcd34d', fontWeight: 700 }}>
+                          Atención: estás validando la foto con una misión distinta a la misión objetivo.
+                        </div>
+                      )}
                     </div>
                   </div>
+
+                  {selectedPhoto?.validatedForMissionType && (
+                    <div
+                      style={{
+                        padding: 14,
+                        borderRadius: 16,
+                        background: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        display: 'grid',
+                        gap: 8,
+                      }}
+                    >
+                      <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                        Última validación guardada
+                      </div>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: '#e5e7eb' }}>
+                        {validatedMissionDisplayLabel(selectedPhoto)}
+                      </div>
+                      {selectedPhoto?.validatedForLevelNumber != null && selectedPhoto?.validatedForLevelNumber !== '' && (
+                        <div style={{ color: '#7dd3fc', fontSize: 13, fontWeight: 700 }}>
+                          Nivel validado {selectedPhoto.validatedForLevelNumber}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   <label style={{ display: 'grid', gap: 8 }}>
                     <span style={{ fontSize: 13, color: '#94a3b8', fontWeight: 700 }}>Nota de revisión</span>
@@ -988,7 +1161,7 @@ export default function ContentPage() {
                           width: '100%',
                         }}
                       >
-                        {actionBusy ? 'Procesando...' : '✅ Aprobar foto'}
+                        {actionBusy ? 'Procesando...' : '✅ Aprobar porque sí cumple la misión'}
                       </button>
                     )}
 
@@ -1002,7 +1175,7 @@ export default function ContentPage() {
                           width: '100%',
                         }}
                       >
-                        {actionBusy ? 'Procesando...' : '❌ Rechazar foto'}
+                        {actionBusy ? 'Procesando...' : '❌ Rechazar porque no cumple la misión'}
                       </button>
                     )}
 
