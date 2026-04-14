@@ -166,65 +166,15 @@ function statusStyles(status) {
 
 function SmartPhoto({ photo, alt, style }) {
   const candidates = useMemo(() => buildPhotoCandidates(photo), [photo]);
-  const [resolvedSrc, setResolvedSrc] = useState('');
-  const [failed, setFailed] = useState(false);
+  const [index, setIndex] = useState(0);
 
   useEffect(() => {
-    let cancelled = false;
-    let objectUrl = '';
-
-    async function resolveImage() {
-      setResolvedSrc('');
-      setFailed(false);
-
-      if (!candidates.length) {
-        setFailed(true);
-        return;
-      }
-
-      for (const candidate of candidates) {
-        try {
-          const res = await fetch(candidate, {
-            method: 'GET',
-            headers: {
-              ...getAuthHeaders(),
-            },
-            credentials: 'include',
-            cache: 'no-store',
-          });
-
-          if (!res.ok) continue;
-
-          const blob = await res.blob();
-          if (!blob || !blob.size) continue;
-
-          objectUrl = URL.createObjectURL(blob);
-          if (!cancelled) {
-            setResolvedSrc(objectUrl);
-            setFailed(false);
-          }
-          return;
-        } catch (_) {
-          // probar siguiente candidata
-        }
-      }
-
-      if (!cancelled) {
-        setFailed(true);
-      }
-    }
-
-    resolveImage();
-
-    return () => {
-      cancelled = true;
-      if (objectUrl) {
-        URL.revokeObjectURL(objectUrl);
-      }
-    };
+    setIndex(0);
   }, [candidates]);
 
-  if (!candidates.length || failed) {
+  const currentSrc = candidates[index] || '';
+
+  if (!candidates.length) {
     return (
       <div
         style={{
@@ -243,26 +193,19 @@ function SmartPhoto({ photo, alt, style }) {
     );
   }
 
-  if (!resolvedSrc) {
-    return (
-      <div
-        style={{
-          width: '100%',
-          height: '100%',
-          display: 'grid',
-          placeItems: 'center',
-          color: '#94a3b8',
-          fontSize: 13,
-          textAlign: 'center',
-          padding: 12,
-        }}
-      >
-        Cargando imagen...
-      </div>
-    );
-  }
-
-  return <img src={resolvedSrc} alt={alt} style={style} loading="lazy" />;
+  return (
+    <img
+      src={currentSrc}
+      alt={alt}
+      style={style}
+      loading="lazy"
+      onError={() => {
+        if (index < candidates.length - 1) {
+          setIndex((prev) => prev + 1);
+        }
+      }}
+    />
+  );
 }
 
 export default function ContentPage() {
@@ -911,16 +854,21 @@ export default function ContentPage() {
               <div
                 onClick={(e) => e.stopPropagation()}
                 style={{
-                  width: 'min(1080px, 100%)',
+                  width: 'min(920px, 100%)',
+                  maxHeight: '88vh',
                   background: '#0b0f19',
                   border: '1px solid rgba(255,255,255,0.12)',
                   borderRadius: 20,
                   overflow: 'hidden',
                   display: 'grid',
-                  gridTemplateColumns: '1.3fr 0.9fr',
+                  gridTemplateColumns: 'minmax(0, 1fr) 380px',
                 }}
               >
-                <div style={{ background: '#020617', minHeight: 560 }}>
+                <div style={{
+                  background: '#020617',
+                  minHeight: 420,
+                  maxHeight: '88vh',
+                }}>
                   <SmartPhoto
                     photo={selectedPhoto}
                     alt="Foto seleccionada"
@@ -928,7 +876,14 @@ export default function ContentPage() {
                   />
                 </div>
 
-                <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{
+                  padding: 16,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 12,
+                  maxHeight: '88vh',
+                  overflowY: 'auto',
+                }}>
                   <div>
                     <div style={{ fontSize: 22, fontWeight: 900, letterSpacing: '-0.02em' }}>
                       {selectedPhoto.eventTitle || 'Evento sin título'}
