@@ -104,7 +104,22 @@ function toAbsoluteMediaUrl(input) {
   if (!input) return '';
   const value = String(input).trim();
   if (!value) return '';
-  if (/^https?:\/\//i.test(value)) return value;
+
+  if (/^https?:\/\//i.test(value)) {
+    try {
+      const url = new URL(value);
+      const path = `${url.pathname || ''}${url.search || ''}${url.hash || ''}`;
+
+      if (path.startsWith('/uploads/') || path.startsWith('/api/')) {
+        return `${API_BASE}${path}`;
+      }
+
+      return value;
+    } catch {
+      return value;
+    }
+  }
+
   return `${API_BASE}${value.startsWith('/') ? value : `/${value}`}`;
 }
 
@@ -126,16 +141,45 @@ function buildPhotoCandidates(photo) {
     const value = String(raw).trim();
     if (!value) continue;
 
-    expanded.push(value);
-    expanded.push(toAbsoluteMediaUrl(value));
+    const normalized = toAbsoluteMediaUrl(value);
+    expanded.push(normalized);
 
-    if (!/^https?:\/\//i.test(value)) {
-      const clean = value.replace(/^\/+/, '');
-      expanded.push(`${API_BASE}/${clean}`);
-      expanded.push(`${API_BASE}/uploads/${clean}`);
-      expanded.push(`${API_BASE}/uploads/eventPhotos/${clean}`);
-      expanded.push(`${API_BASE}/uploads/events/${clean}`);
-      expanded.push(`${API_BASE}/uploads/${value}`);
+    let pathname = '';
+    let filename = value.split('/').filter(Boolean).pop() || value;
+
+    if (/^https?:\/\//i.test(value)) {
+      try {
+        const url = new URL(value);
+        pathname = url.pathname || '';
+        filename = pathname.split('/').filter(Boolean).pop() || filename;
+      } catch {}
+    } else {
+      pathname = value.startsWith('/') ? value : `/${value}`;
+    }
+
+    const cleanPath = pathname.replace(/^\/+/, '');
+
+    if (pathname.startsWith('/api/')) {
+      expanded.push(`${API_BASE}${pathname}`);
+    }
+
+    if (pathname.startsWith('/uploads/')) {
+      expanded.push(`${API_BASE}${pathname}`);
+    }
+
+    if (cleanPath) {
+      expanded.push(`${API_BASE}/${cleanPath}`);
+      expanded.push(`${API_BASE}/uploads/${cleanPath}`);
+      expanded.push(`${API_BASE}/uploads/event-photos/${cleanPath}`);
+      expanded.push(`${API_BASE}/uploads/eventPhotos/${cleanPath}`);
+      expanded.push(`${API_BASE}/uploads/events/${cleanPath}`);
+    }
+
+    if (filename) {
+      expanded.push(`${API_BASE}/uploads/${filename}`);
+      expanded.push(`${API_BASE}/uploads/event-photos/${filename}`);
+      expanded.push(`${API_BASE}/uploads/eventPhotos/${filename}`);
+      expanded.push(`${API_BASE}/uploads/events/${filename}`);
     }
   }
 
@@ -777,7 +821,7 @@ export default function ContentPage() {
                           </div>
                         )}
                       </div>
-                      <div style={{ color: '#64748b', fontSize: 11, lineHeight: 1.45, wordBreak: 'break-all' }}>
+                      <div style={{ color: '#64748b', fontSize: 11, lineHeight: 1.45, wordBreak: 'break-all', display: 'none' }}>
                         {photo.rawUrl || photo.url || photo.path || photo.photoUrl || 'sin ruta'}
                       </div>
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -854,25 +898,30 @@ export default function ContentPage() {
               <div
                 onClick={(e) => e.stopPropagation()}
                 style={{
-                  width: 'min(920px, 100%)',
-                  maxHeight: '88vh',
+                  width: 'min(860px, 100%)',
+                  maxHeight: '84vh',
                   background: '#0b0f19',
                   border: '1px solid rgba(255,255,255,0.12)',
                   borderRadius: 20,
                   overflow: 'hidden',
                   display: 'grid',
-                  gridTemplateColumns: 'minmax(0, 1fr) 380px',
+                  gridTemplateColumns: 'minmax(0, 0.95fr) 340px',
                 }}
               >
                 <div style={{
                   background: '#020617',
-                  minHeight: 420,
-                  maxHeight: '88vh',
+                  minHeight: 320,
+                  maxHeight: '84vh',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: 12,
+                  overflow: 'hidden',
                 }}>
                   <SmartPhoto
                     photo={selectedPhoto}
                     alt="Foto seleccionada"
-                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                    style={{ width: '100%', height: '100%', maxHeight: '70vh', objectFit: 'contain', borderRadius: 14 }}
                   />
                 </div>
 
@@ -881,7 +930,7 @@ export default function ContentPage() {
                   display: 'flex',
                   flexDirection: 'column',
                   gap: 12,
-                  maxHeight: '88vh',
+                  maxHeight: '84vh',
                   overflowY: 'auto',
                 }}>
                   <div>
