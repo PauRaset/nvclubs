@@ -121,17 +121,49 @@ function toAbsoluteMediaUrl(input) {
   return `${API_BASE}${value.startsWith('/') ? value : `/${value}`}`;
 }
 
+function getFilenameFromValue(value) {
+  if (!value) return '';
+  const raw = String(value).trim();
+  if (!raw) return '';
+
+  try {
+    const parsed = /^https?:\/\//i.test(raw) ? new URL(raw) : null;
+    const pathname = parsed ? parsed.pathname || '' : raw;
+    const parts = pathname.split('/').filter(Boolean);
+    const last = parts[parts.length - 1] || '';
+
+    if (!last || last === 'file' || last === 'photos' || last === 'api' || last === 'events') {
+      return '';
+    }
+
+    if (!/\.(jpg|jpeg|png|webp|gif|bmp|heic|heif|avif)$/i.test(last)) {
+      return '';
+    }
+
+    return last;
+  } catch {
+    const parts = raw.split('/').filter(Boolean);
+    const last = parts[parts.length - 1] || '';
+    if (!last || last === 'file' || !/\.(jpg|jpeg|png|webp|gif|bmp|heic|heif|avif)$/i.test(last)) {
+      return '';
+    }
+    return last;
+  }
+}
+
 function buildPhotoCandidates(photo) {
   const expanded = [];
 
-  const eventId = photo?.eventId || photo?.event || photo?.event_id || '';
-  const photoId = photo?.photoId || photo?._id || photo?.id || '';
+  const eventId = String(photo?.eventId || photo?.event || photo?.event_id || '').trim();
+  const photoId = String(photo?.photoId || photo?._id || photo?.id || '').trim();
 
   if (eventId && photoId) {
     expanded.push(`${API_BASE}/api/events/${eventId}/photos/${photoId}/file`);
-    expanded.push(`${API_BASE}/api/events/${eventId}/photos/${photoId}/file?v=${encodeURIComponent(
-      photo?.updatedAt || photo?.reviewedAt || photo?.uploadedAt || photoId
-    )}`);
+    expanded.push(
+      `${API_BASE}/api/events/${eventId}/photos/${photoId}/file?v=${encodeURIComponent(
+        photo?.updatedAt || photo?.reviewedAt || photo?.uploadedAt || photoId
+      )}`
+    );
   }
 
   const rawValues = [
@@ -149,25 +181,30 @@ function buildPhotoCandidates(photo) {
     const value = String(raw).trim();
     if (!value) continue;
 
+    if (/\/photos\/\/file(?:\?|$)/i.test(value)) {
+      continue;
+    }
+
     const normalized = toAbsoluteMediaUrl(value);
-    expanded.push(normalized);
+    if (normalized && !/\/photos\/\/file(?:\?|$)/i.test(normalized)) {
+      expanded.push(normalized);
+    }
 
     let pathname = '';
-    let filename = value.split('/').filter(Boolean).pop() || value;
-
     if (/^https?:\/\//i.test(value)) {
       try {
         const url = new URL(value);
         pathname = url.pathname || '';
-        filename = pathname.split('/').filter(Boolean).pop() || filename;
-      } catch {}
+      } catch {
+        pathname = '';
+      }
     } else {
       pathname = value.startsWith('/') ? value : `/${value}`;
     }
 
     const cleanPath = pathname.replace(/^\/+/, '');
 
-    if (pathname.startsWith('/api/')) {
+    if (pathname.startsWith('/api/') && !/\/photos\/\/file(?:\?|$)/i.test(pathname)) {
       expanded.push(`${API_BASE}${pathname}`);
     }
 
@@ -175,27 +212,25 @@ function buildPhotoCandidates(photo) {
       expanded.push(`${API_BASE}${pathname}`);
     }
 
-    if (cleanPath) {
-      expanded.push(`${API_BASE}/${cleanPath}`);
-      expanded.push(`${API_BASE}/uploads/${cleanPath}`);
-      expanded.push(`${API_BASE}/uploads/event-photos/${cleanPath}`);
-      expanded.push(`${API_BASE}/uploads/eventPhotos/${cleanPath}`);
-      expanded.push(`${API_BASE}/uploads/events/${cleanPath}`);
-    }
+    const filename = getFilenameFromValue(value);
 
     if (filename) {
       expanded.push(`${API_BASE}/uploads/${filename}`);
       expanded.push(`${API_BASE}/uploads/event-photos/${filename}`);
       expanded.push(`${API_BASE}/uploads/eventPhotos/${filename}`);
       expanded.push(`${API_BASE}/uploads/events/${filename}`);
+    }
 
-      if (eventId && photoId) {
-        expanded.push(`${API_BASE}/api/events/${eventId}/photos/${photoId}/file?filename=${encodeURIComponent(filename)}`);
-      }
+    if (cleanPath && /^uploads\//i.test(cleanPath)) {
+      expanded.push(`${API_BASE}/${cleanPath}`);
     }
   }
 
-  return Array.from(new Set(expanded.filter(Boolean)));
+  return Array.from(
+    new Set(
+      expanded.filter((item) => Boolean(item) && !/\/photos\/\/file(?:\?|$)/i.test(item))
+    )
+  );
 }
 
 function statusStyles(status) {
@@ -229,6 +264,16 @@ function SmartPhoto({ photo, alt, style }) {
   }, [candidates]);
 
   const currentSrc = candidates[index] || '';
+
+  useEffect(() => {
+    if (currentSrc) {
+      console.log('[ContentPage] trying image candidate', {
+        currentSrc,
+        candidates,
+        photo,
+      });
+    }
+  }, [currentSrc, candidates, photo]);
 
   if (!candidates.length) {
     return (
@@ -344,6 +389,7 @@ export default function ContentPage() {
               const list = Array.isArray(data?.photos) ? data.photos : [];
               return list.map((photo) => ({
                 ...photo,
+                photoId: photo.photoId || photo._id || photo.id || '',
                 rawUrl: photo.url || photo.image || photo.path || photo.photoUrl || photo.src || photo.filename || photo.fileName || '',
                 eventId,
                 eventTitle: event.title || 'Evento sin título',
@@ -434,6 +480,7 @@ export default function ContentPage() {
             const list = Array.isArray(data?.photos) ? data.photos : [];
             return list.map((photo) => ({
               ...photo,
+              photoId: photo.photoId || photo._id || photo.id || '',
               rawUrl: photo.url || photo.image || photo.path || photo.photoUrl || photo.src || photo.filename || photo.fileName || '',
               eventId,
               eventTitle: event.title || 'Evento sin título',
