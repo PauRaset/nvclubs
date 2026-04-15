@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
@@ -124,6 +122,18 @@ function toAbsoluteMediaUrl(input) {
 }
 
 function buildPhotoCandidates(photo) {
+  const expanded = [];
+
+  const eventId = photo?.eventId || photo?.event || photo?.event_id || '';
+  const photoId = photo?.photoId || photo?._id || photo?.id || '';
+
+  if (eventId && photoId) {
+    expanded.push(`${API_BASE}/api/events/${eventId}/photos/${photoId}/file`);
+    expanded.push(`${API_BASE}/api/events/${eventId}/photos/${photoId}/file?v=${encodeURIComponent(
+      photo?.updatedAt || photo?.reviewedAt || photo?.uploadedAt || photoId
+    )}`);
+  }
+
   const rawValues = [
     photo?.url,
     photo?.image,
@@ -134,8 +144,6 @@ function buildPhotoCandidates(photo) {
     photo?.fileName,
     photo?.rawUrl,
   ].filter(Boolean);
-
-  const expanded = [];
 
   for (const raw of rawValues) {
     const value = String(raw).trim();
@@ -180,6 +188,10 @@ function buildPhotoCandidates(photo) {
       expanded.push(`${API_BASE}/uploads/event-photos/${filename}`);
       expanded.push(`${API_BASE}/uploads/eventPhotos/${filename}`);
       expanded.push(`${API_BASE}/uploads/events/${filename}`);
+
+      if (eventId && photoId) {
+        expanded.push(`${API_BASE}/api/events/${eventId}/photos/${photoId}/file?filename=${encodeURIComponent(filename)}`);
+      }
     }
   }
 
@@ -243,9 +255,18 @@ function SmartPhoto({ photo, alt, style }) {
       alt={alt}
       style={style}
       loading="lazy"
-      onError={() => {
+      referrerPolicy="no-referrer"
+      onError={(e) => {
+        console.warn('[ContentPage] image candidate failed', {
+          currentSrc,
+          nextCandidate: candidates[index + 1] || null,
+          photo,
+        });
+
         if (index < candidates.length - 1) {
           setIndex((prev) => prev + 1);
+        } else {
+          e.currentTarget.style.display = 'none';
         }
       }}
     />
@@ -785,11 +806,21 @@ export default function ContentPage() {
                       cursor: 'pointer',
                     }}
                   >
-                    <div style={{ width: '100%', height: 210, background: 'rgba(255,255,255,0.03)' }}>
+                    <div
+                      style={{
+                        width: '100%',
+                        height: 210,
+                        background: 'rgba(255,255,255,0.03)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        overflow: 'hidden',
+                      }}
+                    >
                       <SmartPhoto
                         photo={photo}
                         alt="Foto subida por asistente"
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                       />
                     </div>
                     <div style={{ padding: 12, display: 'grid', gap: 8 }}>
@@ -921,7 +952,14 @@ export default function ContentPage() {
                   <SmartPhoto
                     photo={selectedPhoto}
                     alt="Foto seleccionada"
-                    style={{ width: '100%', height: '100%', maxHeight: '70vh', objectFit: 'contain', borderRadius: 14 }}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      maxHeight: '70vh',
+                      objectFit: 'contain',
+                      borderRadius: 14,
+                      display: 'block',
+                    }}
                   />
                 </div>
 
