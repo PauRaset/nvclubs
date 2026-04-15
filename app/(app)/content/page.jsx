@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import RequireClub from '@/components/RequireClub';
 
 const API_BASE = 'https://api.nightvibe.life';
@@ -258,24 +258,102 @@ function statusStyles(status) {
 function SmartPhoto({ photo, alt, style }) {
   const candidates = useMemo(() => buildPhotoCandidates(photo), [photo]);
   const [index, setIndex] = useState(0);
+  const [resolvedSrc, setResolvedSrc] = useState('');
+  const [failed, setFailed] = useState(false);
+  const objectUrlRef = useRef('');
 
   useEffect(() => {
     setIndex(0);
+    setResolvedSrc('');
+    setFailed(false);
   }, [candidates]);
+
+  useEffect(() => {
+    return () => {
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current);
+        objectUrlRef.current = '';
+      }
+    };
+  }, []);
 
   const currentSrc = candidates[index] || '';
 
   useEffect(() => {
-    if (currentSrc) {
-      console.log('[ContentPage] trying image candidate', {
-        currentSrc,
-        candidates,
-        photo,
-      });
-    }
-  }, [currentSrc, candidates, photo]);
+    let cancelled = false;
 
-  if (!candidates.length) {
+    async function loadCandidate() {
+      if (!currentSrc) {
+        setResolvedSrc('');
+        return;
+      }
+
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current);
+        objectUrlRef.current = '';
+      }
+
+      setResolvedSrc('');
+      setFailed(false);
+
+      try {
+        console.log('[ContentPage] trying image candidate', {
+          currentSrc,
+          candidates,
+          photo,
+        });
+
+        const res = await fetch(currentSrc, {
+          method: 'GET',
+          headers: {
+            ...getAuthHeaders(),
+          },
+          credentials: 'include',
+          cache: 'no-store',
+        });
+
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+
+        const blob = await res.blob();
+        if (!blob || !blob.size) {
+          throw new Error('empty image blob');
+        }
+
+        const objectUrl = URL.createObjectURL(blob);
+        objectUrlRef.current = objectUrl;
+
+        if (!cancelled) {
+          setResolvedSrc(objectUrl);
+        }
+      } catch (error) {
+        console.warn('[ContentPage] image candidate failed', {
+          currentSrc,
+          nextCandidate: candidates[index + 1] || null,
+          photo,
+          error: error?.message || error,
+        });
+
+        if (cancelled) return;
+
+        if (index < candidates.length - 1) {
+          setIndex((prev) => prev + 1);
+        } else {
+          setFailed(true);
+          setResolvedSrc('');
+        }
+      }
+    }
+
+    loadCandidate();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentSrc, index, candidates, photo]);
+
+  if (!candidates.length || failed) {
     return (
       <div
         style={{
@@ -294,28 +372,26 @@ function SmartPhoto({ photo, alt, style }) {
     );
   }
 
-  return (
-    <img
-      src={currentSrc}
-      alt={alt}
-      style={style}
-      loading="lazy"
-      referrerPolicy="no-referrer"
-      onError={(e) => {
-        console.warn('[ContentPage] image candidate failed', {
-          currentSrc,
-          nextCandidate: candidates[index + 1] || null,
-          photo,
-        });
+  if (!resolvedSrc) {
+    return (
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          display: 'grid',
+          placeItems: 'center',
+          color: '#94a3b8',
+          fontSize: 13,
+          textAlign: 'center',
+          padding: 12,
+        }}
+      >
+        Cargando imagen...
+      </div>
+    );
+  }
 
-        if (index < candidates.length - 1) {
-          setIndex((prev) => prev + 1);
-        } else {
-          e.currentTarget.style.display = 'none';
-        }
-      }}
-    />
-  );
+  return <img src={resolvedSrc} alt={alt} style={style} loading="lazy" />;
 }
 
 export default function ContentPage() {
