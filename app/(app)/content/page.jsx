@@ -56,12 +56,12 @@ function validatedMissionDisplayLabel(photo) {
 
 function getPhotoMissionType(photo) {
   return (
+    photo?.targetMissionType ||
+    photo?.targetMission?.type ||
+    photo?.targetMission?.missionType ||
     photo?.missionType ||
     photo?.mission?.type ||
     photo?.mission?.missionType ||
-    photo?.targetMission?.type ||
-    photo?.targetMission?.missionType ||
-    photo?.targetMissionType ||
     'approved_event_photo'
   );
 }
@@ -689,7 +689,14 @@ export default function ContentPage() {
             null,
           missionTitle: getPhotoMissionTitle(selectedPhoto),
           validatedForMissionType: selectedMissionType || selectedPhoto?.missionType || 'approved_event_photo',
-          validatedForMissionId: selectedPhoto?.missionId || null,
+          validatedForMissionId:
+            selectedPhoto?.targetMissionId ||
+            selectedPhoto?.missionId ||
+            selectedPhoto?.mission?.missionId ||
+            selectedPhoto?.mission?.id ||
+            selectedPhoto?.targetMission?._id ||
+            selectedPhoto?.targetMission?.id ||
+            null,
           validatedForMissionTitle: selectedMissionMeta?.label || 'Foto aprobada del evento',
           validatedForLevelNumber:
             selectedLevelNumber.trim() !== '' && !Number.isNaN(Number(selectedLevelNumber))
@@ -720,18 +727,23 @@ export default function ContentPage() {
         method: 'POST',
         body: JSON.stringify({
           reviewNote: reviewNote || '',
-          missionType: selectedPhoto?.missionType || selectedMissionType || 'approved_event_photo',
-          missionId: selectedPhoto?.missionId || null,
-          missionTitle: selectedPhoto?.missionTitle || missionDisplayLabel(selectedPhoto),
+          missionType: getPhotoMissionType(selectedPhoto) || selectedMissionType || 'approved_event_photo',
+          missionId:
+            selectedPhoto?.targetMissionId ||
+            selectedPhoto?.missionId ||
+            selectedPhoto?.mission?.missionId ||
+            selectedPhoto?.mission?.id ||
+            selectedPhoto?.targetMission?._id ||
+            selectedPhoto?.targetMission?.id ||
+            null,
+          missionTitle: getPhotoMissionTitle(selectedPhoto),
           validatedForMissionType: selectedMissionType || selectedPhoto?.missionType || 'approved_event_photo',
           validatedForMissionId: selectedPhoto?.missionId || null,
           validatedForMissionTitle: selectedMissionMeta?.label || 'Foto aprobada del evento',
           validatedForLevelNumber:
             selectedLevelNumber.trim() !== '' && !Number.isNaN(Number(selectedLevelNumber))
               ? Number(selectedLevelNumber)
-              : selectedPhoto?.levelNumber != null
-                ? Number(selectedPhoto.levelNumber)
-                : null,
+              : getPhotoLevelNumber(selectedPhoto),
           validationResult: 'not_matched',
         }),
       });
