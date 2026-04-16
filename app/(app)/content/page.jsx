@@ -54,6 +54,80 @@ function validatedMissionDisplayLabel(photo) {
   return getMissionMeta(photo?.validatedForMissionType || photo?.missionType || 'approved_event_photo')?.label || 'Foto aprobada del evento';
 }
 
+function getPhotoMissionType(photo) {
+  return (
+    photo?.missionType ||
+    photo?.mission?.type ||
+    photo?.mission?.missionType ||
+    photo?.targetMission?.type ||
+    photo?.targetMission?.missionType ||
+    'approved_event_photo'
+  );
+}
+
+function getPhotoMissionTitle(photo) {
+  if (photo?.missionTitle && String(photo.missionTitle).trim()) {
+    return String(photo.missionTitle).trim();
+  }
+  if (photo?.mission?.title && String(photo.mission.title).trim()) {
+    return String(photo.mission.title).trim();
+  }
+  if (photo?.targetMission?.title && String(photo.targetMission.title).trim()) {
+    return String(photo.targetMission.title).trim();
+  }
+  return getMissionMeta(getPhotoMissionType(photo))?.label || 'Foto aprobada del evento';
+}
+
+function getPhotoMissionDescription(photo) {
+  if (photo?.missionDescription && String(photo.missionDescription).trim()) {
+    return String(photo.missionDescription).trim();
+  }
+  if (photo?.mission?.description && String(photo.mission.description).trim()) {
+    return String(photo.mission.description).trim();
+  }
+  if (photo?.targetMission?.description && String(photo.targetMission.description).trim()) {
+    return String(photo.targetMission.description).trim();
+  }
+  return getMissionMeta(getPhotoMissionType(photo))?.description || 'La foto se validará como contenido general aprobado del evento.';
+}
+
+function getPhotoMissionTarget(photo) {
+  const raw =
+    photo?.missionTarget ??
+    photo?.mission?.target ??
+    photo?.targetMission?.target ??
+    null;
+
+  if (raw == null || raw === '') return null;
+  const value = Number(raw);
+  return Number.isNaN(value) ? null : value;
+}
+
+function getPhotoMissionCurrent(photo) {
+  const raw =
+    photo?.missionCurrent ??
+    photo?.mission?.current ??
+    photo?.targetMission?.current ??
+    null;
+
+  if (raw == null || raw === '') return null;
+  const value = Number(raw);
+  return Number.isNaN(value) ? null : value;
+}
+
+function getPhotoLevelNumber(photo) {
+  const raw =
+    photo?.levelNumber ??
+    photo?.mission?.levelNumber ??
+    photo?.level?.levelNumber ??
+    photo?.targetMission?.levelNumber ??
+    null;
+
+  if (raw == null || raw === '') return null;
+  const value = Number(raw);
+  return Number.isNaN(value) ? null : value;
+}
+
 function getAuthHeaders() {
   if (typeof window === 'undefined') return {};
   const token =
@@ -532,9 +606,13 @@ export default function ContentPage() {
     return getMissionMeta(selectedMissionType);
   }, [selectedMissionType]);
 
-  const selectedTargetMissionMeta = useMemo(() => {
-    return getMissionMeta(selectedPhoto?.missionType || 'approved_event_photo');
+  const selectedTargetMissionType = useMemo(() => {
+    return getPhotoMissionType(selectedPhoto);
   }, [selectedPhoto]);
+  
+  const selectedTargetMissionMeta = useMemo(() => {
+    return getMissionMeta(selectedTargetMissionType);
+  }, [selectedTargetMissionType]);
 
   async function refreshCurrentPhotos() {
     if (!events.length) return;
@@ -589,9 +667,9 @@ export default function ContentPage() {
         method: 'POST',
         body: JSON.stringify({
           reviewNote: reviewNote || '',
-          missionType: selectedPhoto?.missionType || selectedMissionType || 'approved_event_photo',
-          missionId: selectedPhoto?.missionId || null,
-          missionTitle: selectedPhoto?.missionTitle || missionDisplayLabel(selectedPhoto),
+          missionType: getPhotoMissionType(selectedPhoto) || selectedMissionType || 'approved_event_photo',
+          missionId: selectedPhoto?.missionId || selectedPhoto?.mission?.missionId || selectedPhoto?.mission?.id || null,
+          missionTitle: getPhotoMissionTitle(selectedPhoto),
           validatedForMissionType: selectedMissionType || selectedPhoto?.missionType || 'approved_event_photo',
           validatedForMissionId: selectedPhoto?.missionId || null,
           validatedForMissionTitle: selectedMissionMeta?.label || 'Foto aprobada del evento',
@@ -908,14 +986,14 @@ export default function ContentPage() {
                       setReviewNote(photo.reviewNote || '');
                       setSelectedMissionType(
                         photo.validatedForMissionType ||
-                          photo.missionType ||
+                          getPhotoMissionType(photo) ||
                           'approved_event_photo'
                       );
                       setSelectedLevelNumber(
                         photo.validatedForLevelNumber != null
                           ? String(photo.validatedForLevelNumber)
-                          : photo.levelNumber != null
-                            ? String(photo.levelNumber)
+                          : getPhotoLevelNumber(photo) != null
+                            ? String(getPhotoLevelNumber(photo))
                             : ''
                       );
                     }}
@@ -967,11 +1045,17 @@ export default function ContentPage() {
                           Misión objetivo
                         </div>
                         <div style={{ fontSize: 13, fontWeight: 800, color: '#e5e7eb', lineHeight: 1.4 }}>
-                          {missionDisplayLabel(photo)}
+                          {getPhotoMissionTitle(photo)}
                         </div>
-                        {photo.levelNumber != null && photo.levelNumber !== '' && (
+                        {getPhotoLevelNumber(photo) != null && (
                           <div style={{ color: '#7dd3fc', fontSize: 12, fontWeight: 700 }}>
-                            Nivel {photo.levelNumber}
+                            Nivel {getPhotoLevelNumber(photo)}
+                          </div>
+                        )}
+
+                        {(getPhotoMissionCurrent(photo) != null || getPhotoMissionTarget(photo) != null) && (
+                          <div style={{ color: '#cbd5e1', fontSize: 12, lineHeight: 1.45 }}>
+                            Objetivo {getPhotoMissionCurrent(photo) ?? 0}/{getPhotoMissionTarget(photo) ?? '—'}
                           </div>
                         )}
                       </div>
@@ -1143,30 +1227,49 @@ export default function ContentPage() {
                       Misión objetivo detectada en esta foto
                     </div>
                     <div style={{ fontSize: 18, fontWeight: 900, color: '#f8fafc', lineHeight: 1.3 }}>
-                      {selectedPhoto?.missionTitle || selectedTargetMissionMeta?.label || 'Foto aprobada del evento'}
+                      {getPhotoMissionTitle(selectedPhoto)}
                     </div>
                     <div style={{ color: '#cbd5e1', fontSize: 13.5, lineHeight: 1.6 }}>
-                      {selectedTargetMissionMeta?.description || 'La foto se validará como contenido general aprobado del evento.'}
+                      {getPhotoMissionDescription(selectedPhoto)}
                     </div>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                      {selectedPhoto?.levelNumber != null && selectedPhoto?.levelNumber !== '' && (
-                        <div
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            minHeight: 30,
-                            padding: '0 10px',
-                            borderRadius: 999,
-                            background: 'rgba(0,229,255,0.10)',
-                            border: '1px solid rgba(0,229,255,0.20)',
-                            color: '#7dd3fc',
-                            fontSize: 12,
-                            fontWeight: 800,
-                          }}
-                        >
-                          Nivel objetivo {selectedPhoto.levelNumber}
-                        </div>
-                      )}
+                    {getPhotoLevelNumber(selectedPhoto) != null && (
+                      <div
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          minHeight: 30,
+                          padding: '0 10px',
+                          borderRadius: 999,
+                          background: 'rgba(0,229,255,0.10)',
+                          border: '1px solid rgba(0,229,255,0.20)',
+                          color: '#7dd3fc',
+                          fontSize: 12,
+                          fontWeight: 800,
+                        }}
+                      >
+                        Nivel objetivo {getPhotoLevelNumber(selectedPhoto)}
+                      </div>
+                    )}
+
+                    {(getPhotoMissionCurrent(selectedPhoto) != null || getPhotoMissionTarget(selectedPhoto) != null) && (
+                      <div
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          minHeight: 30,
+                          padding: '0 10px',
+                          borderRadius: 999,
+                          background: 'rgba(255,255,255,0.04)',
+                          border: '1px solid rgba(255,255,255,0.08)',
+                          color: '#cbd5e1',
+                          fontSize: 12,
+                          fontWeight: 800,
+                        }}
+                      >
+                        Objetivo {getPhotoMissionCurrent(selectedPhoto) ?? 0}/{getPhotoMissionTarget(selectedPhoto) ?? '—'}
+                      </div>
+                    )}
 
                       {selectedPhoto?.validationResult && (
                         <div
@@ -1263,7 +1366,7 @@ export default function ContentPage() {
                         {selectedMissionMeta?.label || 'Foto aprobada del evento'}
                       </strong>
                       {selectedMissionMeta?.description || 'La foto se validará como contenido general aprobado.'}
-                      {selectedPhoto?.missionType && selectedMissionType !== selectedPhoto.missionType && (
+                      {getPhotoMissionType(selectedPhoto) && selectedMissionType !== getPhotoMissionType(selectedPhoto) && (
                         <div style={{ marginTop: 8, color: '#fcd34d', fontWeight: 700 }}>
                           Atención: estás validando la foto con una misión distinta a la misión objetivo.
                         </div>
