@@ -548,6 +548,7 @@ export default function ContentPage() {
                 `${API_BASE}/api/events/${eventId}/photos/moderation?status=${statusFilter}`
               );
               const list = Array.isArray(data?.photos) ? data.photos : [];
+              console.log('MODERATION RAW PHOTOS', list);
               return list.map((photo) => ({
                 ...photo,
                 photoId: photo.photoId || photo._id || photo.id || '',
@@ -643,6 +644,7 @@ export default function ContentPage() {
               `${API_BASE}/api/events/${eventId}/photos/moderation?status=${statusFilter}`
             );
             const list = Array.isArray(data?.photos) ? data.photos : [];
+            console.log('MODERATION RAW PHOTOS', list);
             return list.map((photo) => ({
               ...photo,
               photoId: photo.photoId || photo._id || photo.id || '',
