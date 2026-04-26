@@ -23,6 +23,7 @@ async function apiGet(path) {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       'Content-Type': 'application/json',
     },
+    credentials: 'include',
     cache: 'no-store',
   });
 
@@ -187,7 +188,7 @@ export default function ReferralsPage() {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err?.message || 'No se pudo cargar la analítica de difusión o resolver el club actual');
+          setError(err?.message === 'Unauthorized' ? 'No autorizado. Inicia sesión de nuevo en el panel del club.' : (err?.message || 'No se pudo cargar la analítica de difusión o resolver el club actual'));
         }
       } finally {
         if (!cancelled) setLoading(false);
