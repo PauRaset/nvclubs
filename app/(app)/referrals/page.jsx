@@ -15,6 +15,7 @@ function getToken() {
   );
 }
 
+
 async function apiGet(path) {
   const token = getToken();
   const res = await fetch(`${API_BASE}${path}`, {
@@ -31,6 +32,56 @@ async function apiGet(path) {
     throw new Error(message);
   }
   return data;
+}
+
+function extractClubId(payload) {
+  if (!payload || typeof payload !== 'object') return '';
+
+  const candidates = [
+    payload?.club?._id,
+    payload?.club?.id,
+    payload?.clubId,
+    payload?._id,
+    payload?.id,
+    payload?.user?.club?._id,
+    payload?.user?.club?.id,
+    payload?.user?.clubId,
+    payload?.user?._id,
+    payload?.user?.id,
+  ];
+
+  for (const value of candidates) {
+    const text = String(value || '').trim();
+    if (text) return text;
+  }
+
+  if (typeof window !== 'undefined') {
+    const fromStorage =
+      window.localStorage.getItem('clubId') ||
+      window.localStorage.getItem('currentClubId') ||
+      window.localStorage.getItem('club_id') ||
+      '';
+    if (fromStorage.trim()) return fromStorage.trim();
+  }
+
+  return '';
+}
+
+async function resolveCurrentClubId() {
+  const attempts = ['/api/clubs/me', '/api/auth/me'];
+  let lastError = null;
+
+  for (const path of attempts) {
+    try {
+      const data = await apiGet(path);
+      const clubId = extractClubId(data);
+      if (clubId) return clubId;
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  throw lastError || new Error('No se pudo identificar el club actual');
 }
 
 function formatInt(value) {
@@ -115,13 +166,7 @@ export default function ReferralsPage() {
       setLoading(true);
       setError('');
       try {
-        const me = await apiGet('/api/clubs/me');
-        const resolvedClubId =
-          me?.club?._id || me?.club?.id || me?._id || me?.id || me?.clubId || '';
-
-        if (!resolvedClubId) {
-          throw new Error('No se pudo identificar el club actual');
-        }
+        const resolvedClubId = await resolveCurrentClubId();
 
         if (cancelled) return;
         setClubId(String(resolvedClubId));
@@ -142,7 +187,7 @@ export default function ReferralsPage() {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err?.message || 'No se pudo cargar la analítica de difusión');
+          setError(err?.message || 'No se pudo cargar la analítica de difusión o resolver el club actual');
         }
       } finally {
         if (!cancelled) setLoading(false);
