@@ -8,6 +8,7 @@ const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.nightvibe
 function getToken() {
   if (typeof window === 'undefined') return '';
   return (
+    window.localStorage.getItem('nv_token') ||
     window.localStorage.getItem('token') ||
     window.localStorage.getItem('authToken') ||
     window.localStorage.getItem('clubToken') ||
