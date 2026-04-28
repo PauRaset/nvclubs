@@ -323,10 +323,13 @@ export default function ReferralsPage() {
                           className="grid grid-cols-[minmax(0,1.6fr)_0.7fr_0.7fr_0.7fr_0.7fr] gap-3 px-4 py-3 text-sm"
                         >
                           <div className="flex min-w-0 items-center gap-3">
-                            <Avatar src={user?.profilePicture || user?.avatarUrl || ''} name={user?.username || user?.name || 'Usuario'} />
+                            <Avatar
+                              src={user?.user?.profilePicture || user?.profilePicture || user?.avatarUrl || ''}
+                              name={user?.user?.username || user?.username || user?.name || 'Usuario'}
+                            />
                             <div className="min-w-0">
                               <div className="truncate font-bold text-white">
-                                {user?.username || user?.name || 'Usuario NightVibe'}
+                                {user?.user?.username || user?.username || user?.name || 'Usuario NightVibe'}
                               </div>
                               <div className="truncate text-xs text-white/45">
                                 {user?.channel || 'Compartidos NightVibe'}
@@ -422,10 +425,13 @@ export default function ReferralsPage() {
                             className="grid grid-cols-[minmax(0,1.4fr)_0.65fr_0.65fr_0.65fr_0.65fr_0.65fr] gap-3 px-4 py-3 text-sm"
                           >
                             <div className="flex min-w-0 items-center gap-3">
-                              <Avatar src={row?.profilePicture || row?.avatarUrl || ''} name={row?.username || row?.name || 'Usuario'} />
+                              <Avatar
+                                src={row?.user?.profilePicture || row?.profilePicture || row?.avatarUrl || ''}
+                                name={row?.user?.username || row?.username || row?.name || 'Usuario'}
+                              />
                               <div className="min-w-0">
                                 <div className="truncate font-bold text-white">
-                                  {row?.username || row?.name || 'Usuario NightVibe'}
+                                  {row?.user?.username || row?.username || row?.name || 'Usuario NightVibe'}
                                 </div>
                                 <div className="truncate text-xs text-white/45">
                                   {row?.channel || 'Difusión NightVibe'}
