@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 
@@ -79,7 +80,7 @@ function Icon({ name }) {
   }
 }
 
-export default function TopNav({ active, clubName }) {
+export default function TopNav({ active, clubName, logoSrc = '/logo.png' }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
@@ -125,15 +126,18 @@ export default function TopNav({ active, clubName }) {
     <>
       <header className="nv-nav">
         <div className="nv-container">
-          {/* Left: brand */}
+          {/* Left: logo */}
           <div className="nv-left">
             <Link href="/dashboard" className="nv-logo" aria-label="Ir al dashboard">
-              <span className="nv-badge">
-                <span className="nv-badge-dot" />
-              </span>
-              <span className="nv-brand-wrap">
-                <span className="nv-brand">{clubName || 'NightVibe'}</span>
-                <span className="nv-brand-sub">Clubs panel</span>
+              <span className="nv-logo-box">
+                <Image
+                  src={logoSrc}
+                  alt={clubName || 'NightVibe'}
+                  width={132}
+                  height={44}
+                  className="nv-logo-img"
+                  priority
+                />
               </span>
             </Link>
           </div>
@@ -182,11 +186,15 @@ export default function TopNav({ active, clubName }) {
       />
       <aside id="nv-drawer" className={`nv-drawer ${open ? 'open' : ''}`} role="dialog" aria-modal="true" aria-label="Menú">
         <div className="drawer-header">
-          <span className="brand">
-            <span className="nv-badge"><span className="nv-badge-dot" /></span>
-            <span className="nv-brand-wrap">
-              <span className="nv-brand">{clubName || 'NightVibe'}</span>
-              <span className="nv-brand-sub">Clubs panel</span>
+          <span className="brand brand-logo-only">
+            <span className="nv-logo-box nv-logo-box-drawer">
+              <Image
+                src={logoSrc}
+                alt={clubName || 'NightVibe'}
+                width={124}
+                height={40}
+                className="nv-logo-img"
+              />
             </span>
           </span>
           <button className="close" aria-label="Cerrar" onClick={() => setOpen(false)}>×</button>
@@ -227,66 +235,52 @@ export default function TopNav({ active, clubName }) {
           position: sticky;
           top: 0;
           z-index: 40;
-          background: color-mix(in oklab, var(--nv-bg) 90%, black 10%);
-          backdrop-filter: saturate(140%) blur(8px);
-          border-bottom: 1px solid var(--nv-border);
+          background: linear-gradient(180deg, rgba(8,12,20,.92), rgba(8,12,20,.82));
+          backdrop-filter: saturate(160%) blur(14px);
+          border-bottom: 1px solid rgba(255,255,255,.08);
+          box-shadow: 0 10px 30px rgba(0,0,0,.22);
         }
         .nv-container {
-          min-height: 64px;
-          padding: max(10px, env(safe-area-inset-top)) 18px 10px;
+          min-height: 72px;
+          padding: max(12px, env(safe-area-inset-top)) 20px 12px;
           max-width: 1380px;
           margin: 0 auto;
           display: grid;
-          grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto;
+          grid-template-columns: minmax(160px, 220px) minmax(0, 1fr) auto;
           align-items: center;
-          gap: 14px;
+          gap: 16px;
         }
 
         .nv-logo {
           display: inline-flex;
           align-items: center;
-          gap: 12px;
+          justify-content: center;
           text-decoration: none;
           min-width: 0;
+          width: 100%;
         }
-
-        .nv-brand-wrap {
-          display: grid;
-          gap: 2px;
-          min-width: 0;
+        .nv-logo-box {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 138px;
+          min-height: 46px;
+          padding: 4px 10px;
+          border-radius: 18px;
+          border: 1px solid rgba(255,255,255,.08);
+          background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.025));
+          box-shadow: 0 12px 28px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.05);
         }
-        .nv-badge {
-          width: 24px; height: 24px;
-          border-radius: 9px;
-          display: inline-flex; align-items: center; justify-content: center;
-          background: linear-gradient(145deg, rgba(0,229,255,.22), rgba(0,229,255,.06));
-          border: 1px solid color-mix(in oklab, var(--nv-accent) 40%, transparent);
-          box-shadow: inset 0 1px 0 rgba(255,255,255,.05), var(--nv-glow);
+        .nv-logo-box-drawer {
+          min-width: 128px;
+          min-height: 42px;
+          padding: 4px 8px;
         }
-        .nv-badge-dot {
-          width: 9px; height: 9px; border-radius: 50%;
-          background: var(--nv-accent);
-          box-shadow: 0 0 12px var(--nv-accent);
-          display: inline-block;
-        }
-        .nv-brand {
-          color: var(--nv-text);
-          font-weight: 900;
-          letter-spacing: .2px;
-          line-height: 1;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          max-width: 220px;
-        }
-
-        .nv-brand-sub {
-          color: var(--nv-muted);
-          font-size: 11.5px;
-          font-weight: 700;
-          letter-spacing: .18em;
-          text-transform: uppercase;
-          line-height: 1;
+        .nv-logo-img {
+          width: auto;
+          height: 30px;
+          object-fit: contain;
+          display: block;
         }
 
         /* Desktop links */
@@ -309,28 +303,29 @@ export default function TopNav({ active, clubName }) {
           display: inline-flex;
           align-items: center;
           gap: 9px;
-          padding: 9px 12px;
-          border-radius: 14px;
+          padding: 10px 13px;
+          border-radius: 16px;
           color: var(--nv-muted);
           text-decoration: none;
-          border: 1px solid transparent;
-          background: transparent;
-          transition: transform .12s ease, background .12s ease, border-color .12s ease, color .12s ease, box-shadow .12s ease;
+          border: 1px solid rgba(255,255,255,.06);
+          background: rgba(255,255,255,.02);
+          transition: transform .12s ease, background .14s ease, border-color .14s ease, color .14s ease, box-shadow .14s ease;
           white-space: nowrap;
           flex: 0 0 auto;
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.02);
         }
         .nv-link:hover {
           color: var(--nv-text);
-          border-color: var(--nv-border);
-          background: color-mix(in oklab, var(--nv-panel) 85%, black 15%);
-          box-shadow: 0 6px 18px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.03);
+          border-color: rgba(255,255,255,.12);
+          background: rgba(255,255,255,.05);
+          box-shadow: 0 8px 20px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.04);
           transform: translateY(-1px);
         }
         .nv-link.is-active {
-          color: #001018;
-          background: linear-gradient(140deg, var(--nv-accent), var(--nv-accent-2));
+          color: #03121a;
+          background: linear-gradient(135deg, #8ff7ff 0%, var(--nv-accent) 100%);
           border-color: transparent;
-          box-shadow: 0 10px 28px rgba(0,229,255,.24), inset 0 1px 0 rgba(255,255,255,.24);
+          box-shadow: 0 12px 30px rgba(0,229,255,.22), inset 0 1px 0 rgba(255,255,255,.28);
           font-weight: 800;
         }
         .nv-ico { width: 21px; height: 21px; display: inline-flex; align-items: center; justify-content: center; opacity: .95; }
@@ -344,14 +339,15 @@ export default function TopNav({ active, clubName }) {
         /* Burger */
         .nv-burger {
           display: inline-flex;
-          width: 44px; height: 44px;
+          width: 46px; height: 46px;
           align-items: center; justify-content: center;
-          border-radius: 14px;
-          border: 1px solid var(--nv-border);
-          background: color-mix(in oklab, var(--nv-panel) 88%, black 12%);
+          border-radius: 16px;
+          border: 1px solid rgba(255,255,255,.08);
+          background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.025));
           cursor: pointer;
           color: var(--nv-text);
           outline: none;
+          box-shadow: 0 10px 24px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.04);
         }
 
         /* Overlay + Drawer */
@@ -385,9 +381,14 @@ export default function TopNav({ active, clubName }) {
           border-bottom: 1px solid var(--nv-border);
         }
         .drawer-header .brand {
-          display: inline-flex; align-items: center; gap: 10px;
-          color: var(--nv-text); font-weight: 900;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
           min-width: 0;
+        }
+        .brand-logo-only {
+          width: 100%;
+          justify-content: flex-start;
         }
         .drawer-header .close {
           font-size: 28px; line-height: 1;
@@ -457,9 +458,16 @@ export default function TopNav({ active, clubName }) {
           }
           .nv-ico { width: 22px; height: 22px; }
           .nv-arrow { width: 18px; height: 18px; }
-          .drawer-header .brand { font-size: 17px; }
-          .nv-brand { max-width: 180px; }
-          .nv-burger { width: 44px; height: 44px; }
+          .nv-logo-box {
+            min-width: 116px;
+            min-height: 40px;
+            padding: 4px 8px;
+            border-radius: 16px;
+          }
+          .nv-logo-img {
+            height: 26px;
+          }
+          .nv-burger { width: 46px; height: 46px; }
         }
 
         .nv-arrow { justify-self: end; opacity: .8; }
@@ -467,16 +475,16 @@ export default function TopNav({ active, clubName }) {
 
         /* Desktop */
         @media (min-width: 900px) and (max-width: 1240px) {
-          .nv-brand {
-            max-width: 150px;
+          .nv-container {
+            grid-template-columns: 140px minmax(0, 1fr) auto;
           }
           .nv-link {
             gap: 0;
-            width: 40px;
-            height: 40px;
+            width: 42px;
+            height: 42px;
             padding: 0;
             justify-content: center;
-            border-radius: 12px;
+            border-radius: 14px;
           }
           .nv-text {
             display: none;
@@ -484,6 +492,14 @@ export default function TopNav({ active, clubName }) {
           .nv-ico {
             width: 20px;
             height: 20px;
+          }
+          .nv-logo-box {
+            min-width: 116px;
+            min-height: 40px;
+            padding: 4px 8px;
+          }
+          .nv-logo-img {
+            height: 26px;
           }
         }
 
