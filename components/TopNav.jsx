@@ -80,7 +80,7 @@ function Icon({ name }) {
   }
 }
 
-export default function TopNav({ active, clubName, logoSrc = './logo.png' }) {
+export default function TopNav({ active, clubName, logoSrc = '/logo.png' }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
