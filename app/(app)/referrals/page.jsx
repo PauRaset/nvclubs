@@ -141,21 +141,23 @@ function Avatar({ src, name }) {
 
 function StatCard({ label, value, hint }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
-      <div className="text-sm font-medium text-white/55">{label}</div>
-      <div className="mt-2 text-3xl font-black tracking-tight text-white">{value}</div>
-      {hint ? <div className="mt-2 text-xs text-white/45">{hint}</div> : null}
+    <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))] p-5 shadow-[0_16px_40px_rgba(0,0,0,0.22)] transition hover:border-cyan-400/20 hover:shadow-[0_18px_46px_rgba(0,229,255,0.08)]">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/40 to-transparent" />
+      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/45">{label}</div>
+      <div className="mt-3 text-3xl font-black tracking-tight text-white md:text-[2rem]">{value}</div>
+      {hint ? <div className="mt-3 text-xs leading-5 text-white/42">{hint}</div> : null}
     </div>
   );
 }
 
 function SectionCard({ title, subtitle, action, children }) {
   return (
-    <section className="rounded-3xl border border-white/10 bg-[#111624] p-5 shadow-[0_10px_30px_rgba(0,0,0,0.25)]">
-      <div className="mb-4 flex items-start justify-between gap-4">
+    <section className="relative overflow-hidden rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(0,229,255,0.08),transparent_28%),linear-gradient(180deg,rgba(17,22,36,0.98),rgba(12,16,26,0.98))] p-5 shadow-[0_18px_50px_rgba(0,0,0,0.28)]">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/35 to-transparent" />
+      <div className="mb-5 flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-lg font-extrabold text-white">{title}</h2>
-          {subtitle ? <p className="mt-1 text-sm text-white/55">{subtitle}</p> : null}
+          <h2 className="text-lg font-extrabold text-white md:text-[1.1rem]">{title}</h2>
+          {subtitle ? <p className="mt-1.5 max-w-2xl text-sm leading-6 text-white/50">{subtitle}</p> : null}
         </div>
         {action}
       </div>
@@ -273,17 +275,17 @@ export default function ReferralsPage() {
   }, [eventDetail]);
 
   return (
-    <main className="min-h-screen bg-[#0B0F18] text-white">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(0,229,255,0.10),transparent_22%),linear-gradient(180deg,#0B0F18,#0A0E16)] text-white">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 md:px-6 lg:px-8">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <div className="text-sm font-semibold uppercase tracking-[0.18em] text-cyan-300/80">
               Difusión
             </div>
-            <h1 className="mt-1 text-3xl font-black tracking-tight text-white">
+            <h1 className="mt-1 text-3xl font-black tracking-tight text-white md:text-4xl">
               Analítica de compartidos
             </h1>
-            <p className="mt-2 max-w-3xl text-sm text-white/55">
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-white/55">
               Aquí puedes ver qué usuarios están trayendo tráfico a tus eventos, qué eventos se comparten más y qué canales generan más movimiento.
             </p>
           </div>
@@ -320,7 +322,7 @@ export default function ReferralsPage() {
                 subtitle="Ranking de usuarios que más tráfico y ventas generan para el club."
               >
                 <div className="overflow-hidden rounded-2xl border border-white/8">
-                  <div className="grid grid-cols-[minmax(0,1.6fr)_0.7fr_0.7fr_0.7fr_0.7fr] gap-3 bg-white/[0.04] px-4 py-3 text-xs font-bold uppercase tracking-[0.14em] text-white/45">
+                  <div className="grid grid-cols-[minmax(0,1.7fr)_0.7fr_0.7fr_0.7fr_0.8fr] gap-3 bg-white/[0.04] px-4 py-3 text-[11px] font-bold uppercase tracking-[0.16em] text-white/45">
                     <div>Usuario</div>
                     <div>Clicks</div>
                     <div>Únicos</div>
@@ -332,7 +334,7 @@ export default function ReferralsPage() {
                       topUsers.map((user, index) => (
                         <div
                           key={`${user?.userId || user?.id || index}`}
-                          className="grid grid-cols-[minmax(0,1.6fr)_0.7fr_0.7fr_0.7fr_0.7fr] gap-3 px-4 py-3 text-sm"
+                          className="grid grid-cols-[minmax(0,1.7fr)_0.7fr_0.7fr_0.7fr_0.8fr] gap-3 px-4 py-3 text-sm transition hover:bg-white/[0.03]"
                         >
                           <div className="flex min-w-0 items-center gap-3">
                             <Avatar
@@ -382,17 +384,37 @@ export default function ReferralsPage() {
                               : 'border-white/8 bg-white/[0.03] hover:bg-white/[0.05]'
                           }`}
                         >
-                          <div className="flex items-start justify-between gap-4">
-                            <div className="min-w-0">
-                              <div className="truncate text-base font-bold text-white">
-                                {event?.eventTitle || event?.title || `Evento ${index + 1}`}
-                              </div>
-                              <div className="mt-1 text-sm text-white/45">
-                                {formatInt(event?.clicks)} clicks · {formatInt(event?.uniqueClicks)} únicos · {formatEUR(event?.revenueEUR)}
-                              </div>
+                          <div className="flex items-start gap-4">
+                            <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
+                              {resolveMediaUrl(event?.coverImage) ? (
+                                <img
+                                  src={resolveMediaUrl(event?.coverImage)}
+                                  alt={event?.eventTitle || event?.title || 'Evento'}
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center text-lg font-black text-cyan-300/80">
+                                  {String(event?.eventTitle || event?.title || 'E').trim().charAt(0).toUpperCase() || 'E'}
+                                </div>
+                              )}
                             </div>
-                            <div className="rounded-full bg-white/[0.06] px-3 py-1 text-xs font-bold text-white/70">
-                              {formatInt(event?.links || event?.shareLinks || 0)} links
+                            <div className="flex min-w-0 flex-1 items-start justify-between gap-4">
+                              <div className="min-w-0">
+                                <div className="truncate text-base font-bold text-white">
+                                  {event?.eventTitle || event?.title || `Evento ${index + 1}`}
+                                </div>
+                                <div className="mt-1 text-sm text-white/45">
+                                  {formatInt(event?.clicks)} clicks · {formatInt(event?.uniqueClicks)} únicos
+                                </div>
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                  <span className="rounded-full bg-white/[0.05] px-2.5 py-1 text-[11px] font-semibold text-white/70">
+                                    {formatInt(event?.links || event?.shareLinks || 0)} links
+                                  </span>
+                                  <span className="rounded-full bg-cyan-400/10 px-2.5 py-1 text-[11px] font-semibold text-cyan-300">
+                                    {formatEUR(event?.revenueEUR)}
+                                  </span>
+                                </div>
+                              </div>
                             </div>
                           </div>
                         </button>
@@ -421,7 +443,7 @@ export default function ReferralsPage() {
               >
                 {selectedEventId ? (
                   <div className="overflow-hidden rounded-2xl border border-white/8">
-                    <div className="grid grid-cols-[minmax(0,1.4fr)_0.65fr_0.65fr_0.65fr_0.65fr_0.65fr] gap-3 bg-white/[0.04] px-4 py-3 text-xs font-bold uppercase tracking-[0.14em] text-white/45">
+                    <div className="grid grid-cols-[minmax(0,1.45fr)_0.65fr_0.65fr_0.65fr_0.65fr_0.8fr] gap-3 bg-white/[0.04] px-4 py-3 text-[11px] font-bold uppercase tracking-[0.16em] text-white/45">
                       <div>Usuario</div>
                       <div>Links</div>
                       <div>Clicks</div>
@@ -434,7 +456,7 @@ export default function ReferralsPage() {
                         eventRows.map((row, index) => (
                           <div
                             key={`${row?.userId || row?.id || index}`}
-                            className="grid grid-cols-[minmax(0,1.4fr)_0.65fr_0.65fr_0.65fr_0.65fr_0.65fr] gap-3 px-4 py-3 text-sm"
+                            className="grid grid-cols-[minmax(0,1.45fr)_0.65fr_0.65fr_0.65fr_0.65fr_0.8fr] gap-3 px-4 py-3 text-sm transition hover:bg-white/[0.03]"
                           >
                             <div className="flex min-w-0 items-center gap-3">
                               <Avatar
@@ -482,7 +504,7 @@ export default function ReferralsPage() {
                     channels.map((item, index) => (
                       <div
                         key={`${item?.channel || index}`}
-                        className="rounded-2xl border border-white/8 bg-white/[0.03] p-4"
+                        className="rounded-2xl border border-white/8 bg-white/[0.03] p-4 transition hover:bg-white/[0.045]"
                       >
                         <div className="flex items-center justify-between gap-4">
                           <div>
