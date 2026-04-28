@@ -100,6 +100,16 @@ function formatEUR(value) {
   }).format(Number.isFinite(n) ? n : 0);
 }
 
+function resolveMediaUrl(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+
+  if (/^https?:\/\//i.test(raw)) return raw;
+  if (raw.startsWith('//')) return `https:${raw}`;
+
+  return `${API_BASE}${raw.startsWith('/') ? raw : `/${raw}`}`;
+}
+
 function initials(name) {
   return String(name || '?')
     .trim()
@@ -110,10 +120,12 @@ function initials(name) {
 }
 
 function Avatar({ src, name }) {
-  if (src) {
+  const resolvedSrc = resolveMediaUrl(src);
+
+  if (resolvedSrc) {
     return (
       <img
-        src={src}
+        src={resolvedSrc}
         alt={name || 'avatar'}
         className="h-10 w-10 rounded-full object-cover ring-1 ring-white/10"
       />
