@@ -133,8 +133,8 @@ export default function TopNav({ active, clubName, logoSrc = '/logo.png' }) {
                 <Image
                   src={logoSrc}
                   alt={clubName || 'NightVibe'}
-                  width={120}
-                  height={38}
+                  width={104}
+                  height={32}
                   className="nv-logo-img"
                   priority
                 />
@@ -192,8 +192,8 @@ export default function TopNav({ active, clubName, logoSrc = '/logo.png' }) {
               <Image
                 src={logoSrc}
                 alt={clubName || 'NightVibe'}
-                width={116}
-                height={36}
+                width={100}
+                height={30}
                 className="nv-logo-img"
               />
               <span className="nv-logo-sub">PANEL DE EVENTOS</span>
@@ -274,7 +274,7 @@ export default function TopNav({ active, clubName, logoSrc = '/logo.png' }) {
         }
         .nv-logo-img {
           width: auto;
-          height: 24px;
+          height: 20px;
           object-fit: contain;
           display: block;
         }
@@ -464,7 +464,7 @@ export default function TopNav({ active, clubName, logoSrc = '/logo.png' }) {
           .nv-ico { width: 22px; height: 22px; }
           .nv-arrow { width: 18px; height: 18px; }
           .nv-logo-img {
-            height: 22px;
+            height: 18px;
           }
           .nv-burger { width: 46px; height: 46px; }
         }
@@ -493,7 +493,7 @@ export default function TopNav({ active, clubName, logoSrc = '/logo.png' }) {
             height: 20px;
           }
           .nv-logo-img {
-            height: 22px;
+            height: 18px;
           }
         }
 
