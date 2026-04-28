@@ -107,8 +107,6 @@ export default function TopNav({ active, clubName }) {
     { href: '/events', label: 'Eventos', key: 'events', desktop: true, mobile: true },
     { href: '/promotions', label: 'Promociones', key: 'promotions', desktop: true, mobile: true },
     { href: '/scanner', label: 'Escáner', key: 'scanner', desktop: true, mobile: true },
-    { href: '/promotions', label: 'Promociones', key: 'promotions', desktop: false, mobile: true },
-    { href: '/missions', label: 'Misiones', key: 'missions', desktop: false, mobile: true },
     { href: '/content', label: 'Contenido', key: 'content', desktop: false, mobile: true },
     { href: '/diffusion', label: 'Difusión', key: 'diffusion', desktop: false, mobile: true },
     { href: '/profile', label: 'Perfil', key: 'profile', desktop: true, mobile: true },
@@ -146,6 +144,8 @@ export default function TopNav({ active, clubName }) {
               <Link
                 key={it.href}
                 href={it.href}
+                title={it.label}
+                aria-label={it.label}
                 className={`nv-link ${isActive(it.href, it.key) ? 'is-active' : ''}`}
               >
                 <span className="nv-ico"><Icon name={it.key} /></span>
@@ -234,10 +234,10 @@ export default function TopNav({ active, clubName }) {
         .nv-container {
           min-height: 64px;
           padding: max(10px, env(safe-area-inset-top)) 18px 10px;
-          max-width: 1240px;
+          max-width: 1380px;
           margin: 0 auto;
           display: grid;
-          grid-template-columns: auto 1fr auto;
+          grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto;
           align-items: center;
           gap: 14px;
         }
@@ -277,7 +277,7 @@ export default function TopNav({ active, clubName }) {
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
-          max-width: 240px;
+          max-width: 220px;
         }
 
         .nv-brand-sub {
@@ -293,16 +293,23 @@ export default function TopNav({ active, clubName }) {
         .nv-links {
           display: none;
           align-items: center;
-          gap: 10px;
+          gap: 8px;
           margin-left: auto;
           justify-content: flex-end;
-          flex-wrap: wrap;
+          flex-wrap: nowrap;
+          min-width: 0;
+          overflow-x: auto;
+          overflow-y: hidden;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+          padding-bottom: 2px;
         }
+        .nv-links::-webkit-scrollbar { display: none; }
         .nv-link {
           display: inline-flex;
           align-items: center;
-          gap: 10px;
-          padding: 9px 14px;
+          gap: 9px;
+          padding: 9px 12px;
           border-radius: 14px;
           color: var(--nv-muted);
           text-decoration: none;
@@ -310,6 +317,7 @@ export default function TopNav({ active, clubName }) {
           background: transparent;
           transition: transform .12s ease, background .12s ease, border-color .12s ease, color .12s ease, box-shadow .12s ease;
           white-space: nowrap;
+          flex: 0 0 auto;
         }
         .nv-link:hover {
           color: var(--nv-text);
@@ -329,7 +337,7 @@ export default function TopNav({ active, clubName }) {
         .nv-text {
           letter-spacing: .2px;
           font-weight: 800;
-          font-size: 14.5px;
+          font-size: 14px;
           line-height: 1;
         }
 
@@ -458,21 +466,30 @@ export default function TopNav({ active, clubName }) {
         .drawer-link:active { transform: translateX(2px) scale(.995); opacity: .98; }
 
         /* Desktop */
-        @media (min-width: 900px) and (max-width: 1160px) {
-          .nv-text {
-            font-size: 13.5px;
+        @media (min-width: 900px) and (max-width: 1240px) {
+          .nv-brand {
+            max-width: 150px;
           }
           .nv-link {
-            padding: 8px 12px;
+            gap: 0;
+            width: 40px;
+            height: 40px;
+            padding: 0;
+            justify-content: center;
+            border-radius: 12px;
           }
-          .nv-brand {
-            max-width: 180px;
+          .nv-text {
+            display: none;
+          }
+          .nv-ico {
+            width: 20px;
+            height: 20px;
           }
         }
 
         @media (min-width: 900px) {
           .nv-container {
-            grid-template-columns: auto 1fr auto;
+            grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto;
           }
           .nv-links {
             display: inline-flex;
@@ -480,10 +497,11 @@ export default function TopNav({ active, clubName }) {
             justify-self: end;
             margin-left: auto;
             justify-content: flex-end;
+            max-width: 100%;
           }
           .nv-burger { display: none; }
           :global(.nv-overlay), :global(.nv-drawer) { display: none; }
-          .nv-left { grid-column: 1; }
+          .nv-left { grid-column: 1; min-width: 0; }
         }
       `}</style>
     </>
