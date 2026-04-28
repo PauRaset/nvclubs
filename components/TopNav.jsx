@@ -133,8 +133,8 @@ export default function TopNav({ active, clubName, logoSrc = '/logo.png' }) {
                 <Image
                   src={logoSrc}
                   alt={clubName || 'NightVibe'}
-                  width={104}
-                  height={32}
+                  width={88}
+                  height={26}
                   className="nv-logo-img"
                   priority
                 />
@@ -192,8 +192,8 @@ export default function TopNav({ active, clubName, logoSrc = '/logo.png' }) {
               <Image
                 src={logoSrc}
                 alt={clubName || 'NightVibe'}
-                width={100}
-                height={30}
+                width={84}
+                height={24}
                 className="nv-logo-img"
               />
               <span className="nv-logo-sub">PANEL DE EVENTOS</span>
@@ -266,7 +266,7 @@ export default function TopNav({ active, clubName, logoSrc = '/logo.png' }) {
           flex-direction: column;
           align-items: flex-start;
           justify-content: center;
-          gap: 2px;
+          gap: 1px;
           min-width: 0;
         }
         .nv-logo-stack-drawer {
@@ -274,16 +274,16 @@ export default function TopNav({ active, clubName, logoSrc = '/logo.png' }) {
         }
         .nv-logo-img {
           width: auto;
-          height: 20px;
+          height: 16px;
           object-fit: contain;
           display: block;
         }
         .nv-logo-sub {
-          color: rgba(231,239,255,.62);
-          font-size: 10px;
+          color: rgba(231,239,255,.52);
+          font-size: 8px;
           line-height: 1;
           font-weight: 800;
-          letter-spacing: .22em;
+          letter-spacing: .18em;
           text-transform: uppercase;
           white-space: nowrap;
         }
@@ -464,7 +464,7 @@ export default function TopNav({ active, clubName, logoSrc = '/logo.png' }) {
           .nv-ico { width: 22px; height: 22px; }
           .nv-arrow { width: 18px; height: 18px; }
           .nv-logo-img {
-            height: 18px;
+            height: 14px;
           }
           .nv-burger { width: 46px; height: 46px; }
         }
@@ -493,7 +493,7 @@ export default function TopNav({ active, clubName, logoSrc = '/logo.png' }) {
             height: 20px;
           }
           .nv-logo-img {
-            height: 18px;
+            height: 14px;
           }
         }
 
