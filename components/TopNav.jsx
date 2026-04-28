@@ -108,7 +108,7 @@ export default function TopNav({ active, clubName }) {
     { href: '/promotions', label: 'Promociones', key: 'promotions', desktop: true, mobile: true },
     { href: '/scanner', label: 'Escáner', key: 'scanner', desktop: true, mobile: true },
     { href: '/content', label: 'Contenido', key: 'content', desktop: false, mobile: true },
-    { href: '/diffusion', label: 'Difusión', key: 'diffusion', desktop: false, mobile: true },
+    { href: '/referrals', label: 'Difusión', key: 'diffusion', desktop: false, mobile: true },
     { href: '/profile', label: 'Perfil', key: 'profile', desktop: true, mobile: true },
     { href: '/settings', label: 'Ajustes', key: 'settings', desktop: false, mobile: true },
   ];
