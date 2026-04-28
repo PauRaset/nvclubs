@@ -129,15 +129,16 @@ export default function TopNav({ active, clubName, logoSrc = '/logo.png' }) {
           {/* Left: logo */}
           <div className="nv-left">
             <Link href="/dashboard" className="nv-logo" aria-label="Ir al dashboard">
-              <span className="nv-logo-box">
+              <span className="nv-logo-stack">
                 <Image
                   src={logoSrc}
                   alt={clubName || 'NightVibe'}
-                  width={132}
-                  height={44}
+                  width={120}
+                  height={38}
                   className="nv-logo-img"
                   priority
                 />
+                <span className="nv-logo-sub">PANEL DE EVENTOS</span>
               </span>
             </Link>
           </div>
@@ -187,14 +188,15 @@ export default function TopNav({ active, clubName, logoSrc = '/logo.png' }) {
       <aside id="nv-drawer" className={`nv-drawer ${open ? 'open' : ''}`} role="dialog" aria-modal="true" aria-label="Menú">
         <div className="drawer-header">
           <span className="brand brand-logo-only">
-            <span className="nv-logo-box nv-logo-box-drawer">
+            <span className="nv-logo-stack nv-logo-stack-drawer">
               <Image
                 src={logoSrc}
                 alt={clubName || 'NightVibe'}
-                width={124}
-                height={40}
+                width={116}
+                height={36}
                 className="nv-logo-img"
               />
+              <span className="nv-logo-sub">PANEL DE EVENTOS</span>
             </span>
           </span>
           <button className="close" aria-label="Cerrar" onClick={() => setOpen(false)}>×</button>
@@ -254,33 +256,36 @@ export default function TopNav({ active, clubName, logoSrc = '/logo.png' }) {
         .nv-logo {
           display: inline-flex;
           align-items: center;
-          justify-content: center;
+          justify-content: flex-start;
           text-decoration: none;
           min-width: 0;
           width: 100%;
         }
-        .nv-logo-box {
+        .nv-logo-stack {
           display: inline-flex;
-          align-items: center;
+          flex-direction: column;
+          align-items: flex-start;
           justify-content: center;
-          min-width: 138px;
-          min-height: 46px;
-          padding: 4px 10px;
-          border-radius: 18px;
-          border: 1px solid rgba(255,255,255,.08);
-          background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.025));
-          box-shadow: 0 12px 28px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.05);
+          gap: 2px;
+          min-width: 0;
         }
-        .nv-logo-box-drawer {
-          min-width: 128px;
-          min-height: 42px;
-          padding: 4px 8px;
+        .nv-logo-stack-drawer {
+          gap: 1px;
         }
         .nv-logo-img {
           width: auto;
-          height: 30px;
+          height: 24px;
           object-fit: contain;
           display: block;
+        }
+        .nv-logo-sub {
+          color: rgba(231,239,255,.62);
+          font-size: 10px;
+          line-height: 1;
+          font-weight: 800;
+          letter-spacing: .22em;
+          text-transform: uppercase;
+          white-space: nowrap;
         }
 
         /* Desktop links */
@@ -458,14 +463,8 @@ export default function TopNav({ active, clubName, logoSrc = '/logo.png' }) {
           }
           .nv-ico { width: 22px; height: 22px; }
           .nv-arrow { width: 18px; height: 18px; }
-          .nv-logo-box {
-            min-width: 116px;
-            min-height: 40px;
-            padding: 4px 8px;
-            border-radius: 16px;
-          }
           .nv-logo-img {
-            height: 26px;
+            height: 22px;
           }
           .nv-burger { width: 46px; height: 46px; }
         }
@@ -493,13 +492,8 @@ export default function TopNav({ active, clubName, logoSrc = '/logo.png' }) {
             width: 20px;
             height: 20px;
           }
-          .nv-logo-box {
-            min-width: 116px;
-            min-height: 40px;
-            padding: 4px 8px;
-          }
           .nv-logo-img {
-            height: 26px;
+            height: 22px;
           }
         }
 
