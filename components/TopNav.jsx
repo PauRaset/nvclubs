@@ -237,20 +237,20 @@ export default function TopNav({ active, clubName, logoSrc = '/logo.png' }) {
           position: sticky;
           top: 0;
           z-index: 40;
-          background: linear-gradient(180deg, rgba(8,12,20,.92), rgba(8,12,20,.82));
-          backdrop-filter: saturate(160%) blur(14px);
-          border-bottom: 1px solid rgba(255,255,255,.08);
-          box-shadow: 0 10px 30px rgba(0,0,0,.22);
+          background: linear-gradient(180deg, rgba(7,11,18,.88), rgba(7,11,18,.78));
+          backdrop-filter: saturate(145%) blur(12px);
+          border-bottom: 1px solid rgba(255,255,255,.06);
+          box-shadow: 0 8px 24px rgba(0,0,0,.16);
         }
         .nv-container {
-          min-height: 72px;
-          padding: max(12px, env(safe-area-inset-top)) 20px 12px;
+          min-height: 68px;
+          padding: max(10px, env(safe-area-inset-top)) 20px 10px;
           max-width: 1380px;
           margin: 0 auto;
           display: grid;
-          grid-template-columns: minmax(160px, 220px) minmax(0, 1fr) auto;
+          grid-template-columns: minmax(150px, 210px) minmax(0, 1fr) auto;
           align-items: center;
-          gap: 16px;
+          gap: 18px;
         }
 
         .nv-logo {
@@ -266,7 +266,7 @@ export default function TopNav({ active, clubName, logoSrc = '/logo.png' }) {
           flex-direction: column;
           align-items: flex-start;
           justify-content: center;
-          gap: 1px;
+          gap: 3px;
           min-width: 0;
         }
         .nv-logo-stack-drawer {
@@ -274,16 +274,16 @@ export default function TopNav({ active, clubName, logoSrc = '/logo.png' }) {
         }
         .nv-logo-img {
           width: auto;
-          height: 16px;
+          height: 28px;
           object-fit: contain;
           display: block;
         }
         .nv-logo-sub {
-          color: rgba(231,239,255,.52);
-          font-size: 8px;
+          color: rgba(231,239,255,.44);
+          font-size: 9px;
           line-height: 1;
-          font-weight: 800;
-          letter-spacing: .18em;
+          font-weight: 700;
+          letter-spacing: .24em;
           text-transform: uppercase;
           white-space: nowrap;
         }
@@ -292,7 +292,7 @@ export default function TopNav({ active, clubName, logoSrc = '/logo.png' }) {
         .nv-links {
           display: none;
           align-items: center;
-          gap: 8px;
+          gap: 10px;
           margin-left: auto;
           justify-content: flex-end;
           flex-wrap: nowrap;
@@ -307,52 +307,51 @@ export default function TopNav({ active, clubName, logoSrc = '/logo.png' }) {
         .nv-link {
           display: inline-flex;
           align-items: center;
-          gap: 9px;
-          padding: 10px 13px;
-          border-radius: 16px;
-          color: var(--nv-muted);
+          gap: 8px;
+          padding: 8px 10px;
+          border-radius: 12px;
+          color: rgba(231,239,255,.78);
           text-decoration: none;
-          border: 1px solid rgba(255,255,255,.06);
-          background: rgba(255,255,255,.02);
-          transition: transform .12s ease, background .14s ease, border-color .14s ease, color .14s ease, box-shadow .14s ease;
+          border: 1px solid transparent;
+          background: transparent;
+          transition: color .14s ease, background .14s ease, border-color .14s ease, transform .12s ease;
           white-space: nowrap;
           flex: 0 0 auto;
-          box-shadow: inset 0 1px 0 rgba(255,255,255,.02);
+          box-shadow: none;
         }
         .nv-link:hover {
-          color: var(--nv-text);
-          border-color: rgba(255,255,255,.12);
-          background: rgba(255,255,255,.05);
-          box-shadow: 0 8px 20px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.04);
+          color: #ffffff;
+          border-color: rgba(255,255,255,.06);
+          background: rgba(255,255,255,.04);
           transform: translateY(-1px);
         }
         .nv-link.is-active {
-          color: #03121a;
-          background: linear-gradient(135deg, #8ff7ff 0%, var(--nv-accent) 100%);
-          border-color: transparent;
-          box-shadow: 0 12px 30px rgba(0,229,255,.22), inset 0 1px 0 rgba(255,255,255,.28);
+          color: #ffffff;
+          background: rgba(255,255,255,.08);
+          border-color: rgba(255,255,255,.08);
+          box-shadow: none;
           font-weight: 800;
         }
-        .nv-ico { width: 21px; height: 21px; display: inline-flex; align-items: center; justify-content: center; opacity: .95; }
+        .nv-ico { width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; opacity: .9; }
         .nv-text {
-          letter-spacing: .2px;
-          font-weight: 800;
-          font-size: 14px;
+          letter-spacing: .1px;
+          font-weight: 700;
+          font-size: 13px;
           line-height: 1;
         }
 
         /* Burger */
         .nv-burger {
           display: inline-flex;
-          width: 46px; height: 46px;
+          width: 42px; height: 42px;
           align-items: center; justify-content: center;
-          border-radius: 16px;
+          border-radius: 14px;
           border: 1px solid rgba(255,255,255,.08);
-          background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.025));
+          background: rgba(255,255,255,.03);
           cursor: pointer;
           color: var(--nv-text);
           outline: none;
-          box-shadow: 0 10px 24px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.04);
+          box-shadow: none;
         }
 
         /* Overlay + Drawer */
@@ -464,7 +463,7 @@ export default function TopNav({ active, clubName, logoSrc = '/logo.png' }) {
           .nv-ico { width: 22px; height: 22px; }
           .nv-arrow { width: 18px; height: 18px; }
           .nv-logo-img {
-            height: 14px;
+            height: 22px;
           }
           .nv-burger { width: 46px; height: 46px; }
         }
@@ -493,13 +492,13 @@ export default function TopNav({ active, clubName, logoSrc = '/logo.png' }) {
             height: 20px;
           }
           .nv-logo-img {
-            height: 14px;
+            height: 20px;
           }
         }
 
         @media (min-width: 900px) {
           .nv-container {
-            grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto;
+            grid-template-columns: minmax(150px, 210px) minmax(0, 1fr) auto;
           }
           .nv-links {
             display: inline-flex;
