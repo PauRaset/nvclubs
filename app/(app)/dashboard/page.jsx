@@ -10,6 +10,44 @@ const API =
   process.env.NEXT_PUBLIC_BACKEND_URL ||
   'https://api.nightvibe.life';
 
+function formatEUR(value) {
+  const n = Number(value || 0);
+  return new Intl.NumberFormat('es-ES', {
+    style: 'currency',
+    currency: 'EUR',
+    maximumFractionDigits: 0,
+  }).format(Number.isFinite(n) ? n : 0);
+}
+
+function formatDate(value) {
+  if (!value) return 'Sin fecha';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return 'Sin fecha';
+  return new Intl.DateTimeFormat('es-ES', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(d);
+}
+
+function resolveEventDate(event) {
+  return event?.startAt || event?.date || event?.startsAt || null;
+}
+
+function isFutureEvent(event) {
+  const raw = resolveEventDate(event);
+  if (!raw) return false;
+  const d = new Date(raw);
+  return !Number.isNaN(d.getTime()) && d.getTime() >= Date.now() - 60 * 60 * 1000;
+}
+
+function sortByDateAsc(a, b) {
+  const da = new Date(resolveEventDate(a) || 0).getTime();
+  const db = new Date(resolveEventDate(b) || 0).getTime();
+  return da - db;
+}
+
 function DashboardInner() {
   const sp = useSearchParams();
   const clubIdFromQuery = useMemo(() => sp.get('club') || '', [sp]);
@@ -19,6 +57,73 @@ function DashboardInner() {
   const [clubs, setClubs] = useState([]);
   const [status, setStatus] = useState(null);
   const [busy, setBusy] = useState(false);
+
+  const [ordersSummary, setOrdersSummary] = useState(null);
+  const [stripeSummary, setStripeSummary] = useState(null);
+  const [events, setEvents] = useState([]);
+  const [referralsSummary, setReferralsSummary] = useState(null);
+  const [metricsLoading, setMetricsLoading] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadMetrics() {
+      if (!effectiveClubId) return;
+
+      setMetricsLoading(true);
+      try {
+        const token = getToken();
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+        const [ordersRes, stripeSummaryRes, eventsRes, referralsRes] = await Promise.all([
+          fetch(`${API}/api/clubs/${effectiveClubId}/orders`, {
+            headers,
+            credentials: 'include',
+            cache: 'no-store',
+          }),
+          fetch(`${API}/api/clubs/${effectiveClubId}/stripe/summary?days=30`, {
+            headers,
+            credentials: 'include',
+            cache: 'no-store',
+          }),
+          fetch(`${API}/api/events/mine`, {
+            headers,
+            credentials: 'include',
+            cache: 'no-store',
+          }),
+          fetch(`${API}/api/referrals/club/${effectiveClubId}/summary`, {
+            headers,
+            credentials: 'include',
+            cache: 'no-store',
+          }),
+        ]);
+
+        const [ordersData, stripeSummaryData, eventsData, referralsData] = await Promise.all([
+          ordersRes.ok ? ordersRes.json() : null,
+          stripeSummaryRes.ok ? stripeSummaryRes.json() : null,
+          eventsRes.ok ? eventsRes.json() : [],
+          referralsRes.ok ? referralsRes.json() : null,
+        ]);
+
+        if (cancelled) return;
+
+        setOrdersSummary(ordersData || null);
+        setStripeSummary(stripeSummaryData || null);
+        setEvents(Array.isArray(eventsData) ? eventsData : []);
+        setReferralsSummary(referralsData || null);
+      } catch (e) {
+        if (!cancelled) {
+          console.error('[dashboard] metrics load error:', e);
+        }
+      } finally {
+        if (!cancelled) setMetricsLoading(false);
+      }
+    }
+
+    loadMetrics();
+    return () => {
+      cancelled = true;
+    };
+  }, [effectiveClubId]);
 
   function getToken() {
     try {
@@ -153,36 +258,56 @@ function DashboardInner() {
     activeClub?.username ||
     'Tu club';
 
+  const upcomingEventsData = useMemo(() => {
+    return [...events].filter(isFutureEvent).sort(sortByDateAsc).slice(0, 4);
+  }, [events]);
+
+  const totalAttendees = useMemo(() => {
+    return events.reduce((acc, event) => acc + (Array.isArray(event?.attendees) ? event.attendees.length : 0), 0);
+  }, [events]);
+
+  const totalEvents = events.length;
+  const totalUpcomingEvents = upcomingEventsData.length;
+  const totalTickets = Number(ordersSummary?.totalTickets || 0);
+  const totalOrders = Number(ordersSummary?.count || 0);
+  const totalRevenueCents = Number(ordersSummary?.totalCents || 0);
+  const totalRevenueEUR = totalRevenueCents / 100;
+  const stripeNet = Number(stripeSummary?.net || 0);
+  const referralClicks = Number(referralsSummary?.totalClicks || 0);
+  const referralUniqueClicks = Number(referralsSummary?.totalUniqueClicks || 0);
+  const topReferralEvent = referralsSummary?.topEvents?.[0] || null;
+  const topReferralUser = referralsSummary?.topUsers?.[0] || null;
+
   const kpis = [
     {
       label: 'Eventos activos',
-      value: loading ? '...' : '0',
-      helper: 'Próximamente conectaremos este dato',
+      value: metricsLoading ? '...' : String(totalUpcomingEvents),
+      helper: `${totalEvents} eventos totales del club`,
     },
     {
       label: 'Entradas vendidas',
-      value: loading ? '...' : '0',
-      helper: 'Ventas totales de tus eventos',
+      value: metricsLoading ? '...' : String(totalTickets),
+      helper: `${totalOrders} pedidos registrados`,
     },
     {
       label: 'Ingresos',
-      value: loading ? '...' : '€0',
-      helper: 'Resumen económico del club',
+      value: metricsLoading ? '...' : formatEUR(totalRevenueEUR),
+      helper: 'Volumen bruto de pedidos',
     },
     {
-      label: 'Check-ins',
-      value: loading ? '...' : '0',
-      helper: 'Entradas escaneadas en puerta',
+      label: 'Asistencias',
+      value: metricsLoading ? '...' : String(totalAttendees),
+      helper: 'Usuarios marcados como asistentes',
     },
     {
       label: 'Usuarios alcanzados',
-      value: loading ? '...' : '0',
-      helper: 'Visualizaciones y tráfico',
+      value: metricsLoading ? '...' : String(referralUniqueClicks),
+      helper: 'Clicks únicos en difusión',
     },
     {
       label: 'Clicks compartidos',
-      value: loading ? '...' : '0',
-      helper: 'Clicks en links compartidos',
+      value: metricsLoading ? '...' : String(referralClicks),
+      helper: 'Total de clicks en links compartidos',
     },
   ];
 
@@ -209,34 +334,40 @@ function DashboardInner() {
     },
   ];
 
-  const upcomingEvents = [
-    {
-      title: 'Sin eventos cargados todavía',
-      meta: 'Aquí verás tus próximos eventos cuando conectemos esta sección.',
-      status: 'Próximamente',
-    },
-    {
-      title: 'Estadísticas por evento',
-      meta: 'Ventas, asistentes, fotos y rendimiento individual.',
-      status: 'En preparación',
-    },
-    {
-      title: 'Duplicar y promocionar',
-      meta: 'Accesos rápidos para lanzar eventos más rápido.',
-      status: 'Siguiente fase',
-    },
-  ];
+  const upcomingEvents = upcomingEventsData.length
+    ? upcomingEventsData.map((event) => ({
+        title: event?.title || event?.name || 'Evento',
+        meta: `${formatDate(resolveEventDate(event))} · ${(event?.city || 'Ubicación por confirmar')}${Array.isArray(event?.categories) && event.categories.length ? ` · ${event.categories.slice(0, 2).join(', ')}` : ''}`,
+        status: `${Array.isArray(event?.attendees) ? event.attendees.length : 0} asistentes`,
+      }))
+    : [
+        {
+          title: 'Sin próximos eventos',
+          meta: 'Crea un nuevo evento para empezar a ver actividad aquí.',
+          status: 'Vacío',
+        },
+      ];
 
   const recentActivity = [
-    'Nuevas compras y check-ins aparecerán aquí.',
-    'También podrás ver fotos subidas por usuarios.',
-    'La actividad reciente del club quedará resumida en tiempo real.',
+    totalOrders > 0
+      ? `${totalOrders} pedidos registrados en el club.`
+      : 'Todavía no hay pedidos registrados.',
+    totalTickets > 0
+      ? `${totalTickets} entradas vendidas en total.`
+      : 'Aún no se han vendido entradas.',
+    referralClicks > 0
+      ? `${referralClicks} clicks generados desde links compartidos.`
+      : 'Aún no hay tráfico registrado desde difusión.',
   ];
 
   const referralInsights = [
-    'Clicks en links compartidos por usuario.',
-    'Usuarios únicos atraídos a cada evento.',
-    'Top embajadores y conversión a asistencia o compra.',
+    topReferralEvent
+      ? `Evento top por difusión: ${topReferralEvent.eventTitle || topReferralEvent.title || 'Evento'} · ${topReferralEvent.clicks || 0} clicks`
+      : 'Todavía no hay un evento destacado por difusión.',
+    topReferralUser
+      ? `Usuario top: ${(topReferralUser.user?.username || topReferralUser.username || 'Usuario')} · ${topReferralUser.clicks || 0} clicks`
+      : 'Todavía no hay usuarios destacados en compartidos.',
+    `Clicks únicos acumulados: ${referralUniqueClicks}`,
   ];
 
   const container = {
@@ -482,6 +613,7 @@ function DashboardInner() {
               <div style={{ display: 'grid', gap: 8, color: '#cbd5e1', fontSize: 14 }}>
                 <div>• Payouts enabled: {status?.payouts_enabled ? 'Sí' : 'No'}</div>
                 <div>• Datos enviados: {status?.details_submitted ? 'Sí' : 'No'}</div>
+                <div>• Neto 30 días: {metricsLoading ? '...' : formatEUR(stripeNet)}</div>
               </div>
             </div>
           </div>
@@ -582,6 +714,8 @@ function DashboardInner() {
                 <div>• Conectada: {status?.connected ? 'Sí' : 'No'}</div>
                 <div>• Payouts: {status?.payouts_enabled ? 'Activos' : 'Pendientes'}</div>
                 <div>• Datos enviados: {status?.details_submitted ? 'Sí' : 'No'}</div>
+                <div>• Bruto 30 días: {metricsLoading ? '...' : formatEUR(Number(stripeSummary?.gross || 0))}</div>
+                <div>• Neto 30 días: {metricsLoading ? '...' : formatEUR(stripeNet)}</div>
               </div>
 
               <button onClick={openStripeDashboard} style={primaryBtn} disabled={!effectiveClubId || busy}>
@@ -654,7 +788,7 @@ function DashboardInner() {
           <article style={sectionCard}>
             <h2 style={sectionTitle}>Difusión y compartidos</h2>
             <p style={sectionSubtitle}>
-              Preparado para medir tráfico, usuarios atraídos y rendimiento de links compartidos.
+              Resumen real de tráfico compartido, usuarios alcanzados y rendimiento de difusión del club.
             </p>
 
             <div style={{ height: 18 }} />
@@ -666,6 +800,11 @@ function DashboardInner() {
                 </li>
               ))}
             </ul>
+
+            <div style={{ height: 16 }} />
+            <a href="/referrals" style={secondaryBtn}>
+              Ver analítica completa de difusión
+            </a>
           </article>
 
           <article style={sectionCard}>
@@ -683,10 +822,10 @@ function DashboardInner() {
               </div>
 
               <div style={listItem}>
-                <div style={{ fontWeight: 800, marginBottom: 6 }}>Siguiente paso recomendado</div>
+                <div style={{ fontWeight: 800, marginBottom: 6 }}>Resumen conectado</div>
                 <div style={{ color: '#94a3b8', fontSize: 14, lineHeight: 1.6 }}>
-                  Conectar eventos reales del club en esta pantalla y después continuar con la mejora
-                  del listado de eventos y promociones.
+                  Este dashboard ya está leyendo ventas, Stripe, eventos del club y difusión.
+                  El siguiente paso natural sería pulir la actividad reciente y añadir más detalle visual por evento.
                 </div>
               </div>
             </div>
