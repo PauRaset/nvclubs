@@ -309,6 +309,7 @@ export default function TopNav({ active, clubName, logoSrc = '/logo.png' }) {
           align-items: center;
           gap: 8px;
           padding: 8px 10px;
+          min-height: 36px;
           border-radius: 12px;
           color: rgba(231,239,255,.78);
           text-decoration: none;
@@ -332,12 +333,24 @@ export default function TopNav({ active, clubName, logoSrc = '/logo.png' }) {
           box-shadow: none;
           font-weight: 800;
         }
-        .nv-ico { width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; opacity: .9; }
+        .nv-ico {
+          width: 18px;
+          height: 18px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          opacity: .9;
+          flex: 0 0 18px;
+          transform: translateY(-0.5px);
+        }
         .nv-text {
           letter-spacing: .1px;
           font-weight: 700;
           font-size: 13px;
           line-height: 1;
+          display: inline-flex;
+          align-items: center;
+          min-height: 18px;
         }
 
         /* Burger */
