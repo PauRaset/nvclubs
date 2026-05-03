@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { fetchEvents } from '@/lib/eventsApi';
 
 export const dynamic = 'force-dynamic';
 
@@ -66,7 +67,12 @@ function DashboardInner() {
 
   function getToken() {
     try {
-      return localStorage.getItem('nv_token') || '';
+      return (
+        localStorage.getItem('token') ||
+        localStorage.getItem('nv_token') ||
+        localStorage.getItem('authToken') ||
+        ''
+      );
     } catch {
       return '';
     }
@@ -124,7 +130,7 @@ function DashboardInner() {
         const token = getToken();
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-        const [ordersRes, stripeSummaryRes, eventsRes, referralsRes] = await Promise.all([
+        const [ordersRes, stripeSummaryRes, referralsRes, eventsData] = await Promise.all([
           fetch(`${API}/api/clubs/${effectiveClubId}/orders`, {
             headers,
             credentials: 'include',
@@ -135,22 +141,17 @@ function DashboardInner() {
             credentials: 'include',
             cache: 'no-store',
           }),
-          fetch(`${API}/api/events/mine`, {
-            headers,
-            credentials: 'include',
-            cache: 'no-store',
-          }),
           fetch(`${API}/api/referrals/club/${effectiveClubId}/summary`, {
             headers,
             credentials: 'include',
             cache: 'no-store',
           }),
+          fetchEvents().catch(() => []),
         ]);
 
-        const [ordersData, stripeSummaryData, eventsData, referralsData] = await Promise.all([
+        const [ordersData, stripeSummaryData, referralsData] = await Promise.all([
           ordersRes.ok ? ordersRes.json() : null,
           stripeSummaryRes.ok ? stripeSummaryRes.json() : null,
-          eventsRes.ok ? eventsRes.json() : [],
           referralsRes.ok ? referralsRes.json() : null,
         ]);
 
