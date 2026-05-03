@@ -63,6 +63,56 @@ function DashboardInner() {
   const [events, setEvents] = useState([]);
   const [referralsSummary, setReferralsSummary] = useState(null);
   const [metricsLoading, setMetricsLoading] = useState(false);
+
+  function getToken() {
+    try {
+      return localStorage.getItem('nv_token') || '';
+    } catch {
+      return '';
+    }
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      setError('');
+      setLoading(true);
+
+      try {
+        const token = getToken();
+        const res = await fetch(`${API}/api/clubs/mine`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          credentials: 'include',
+          cache: 'no-store',
+        });
+
+        if (!res.ok) {
+          const t = await res.text().catch(() => '');
+          throw new Error(`${res.status} ${res.statusText} ${t || ''}`.trim());
+        }
+
+        const data = await res.json();
+        if (!cancelled) setClubs(Array.isArray(data) ? data : []);
+      } catch (e) {
+        if (!cancelled) setError('No se pudo cargar tu club.');
+        console.error('[dashboard] /clubs/mine error:', e);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const effectiveClubId = clubIdFromQuery || clubs[0]?._id || '';
+  const activeClub = useMemo(() => {
+    return clubs.find((club) => club?._id === effectiveClubId) || clubs[0] || null;
+  }, [clubs, effectiveClubId]);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -125,54 +175,6 @@ function DashboardInner() {
     };
   }, [effectiveClubId]);
 
-  function getToken() {
-    try {
-      return localStorage.getItem('nv_token') || '';
-    } catch {
-      return '';
-    }
-  }
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      setError('');
-      setLoading(true);
-
-      try {
-        const token = getToken();
-        const res = await fetch(`${API}/api/clubs/mine`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-          credentials: 'include',
-          cache: 'no-store',
-        });
-
-        if (!res.ok) {
-          const t = await res.text().catch(() => '');
-          throw new Error(`${res.status} ${res.statusText} ${t || ''}`.trim());
-        }
-
-        const data = await res.json();
-        if (!cancelled) setClubs(Array.isArray(data) ? data : []);
-      } catch (e) {
-        if (!cancelled) setError('No se pudo cargar tu club.');
-        console.error('[dashboard] /clubs/mine error:', e);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const effectiveClubId = clubIdFromQuery || clubs[0]?._id || '';
-  const activeClub = useMemo(() => {
-    return clubs.find((club) => club?._id === effectiveClubId) || clubs[0] || null;
-  }, [clubs, effectiveClubId]);
 
   useEffect(() => {
     let cancelled = false;
