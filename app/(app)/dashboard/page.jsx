@@ -43,10 +43,34 @@ function isFutureEvent(event) {
   return !Number.isNaN(d.getTime()) && d.getTime() >= Date.now() - 60 * 60 * 1000;
 }
 
+
 function sortByDateAsc(a, b) {
   const da = new Date(resolveEventDate(a) || 0).getTime();
   const db = new Date(resolveEventDate(b) || 0).getTime();
   return da - db;
+}
+
+function pickEventClubId(event) {
+  return String(
+    event?.clubId || event?.club || event?.owner || event?.createdBy || event?.userId || ''
+  );
+}
+
+function buildInferredClubFromEvents(items) {
+  if (!Array.isArray(items) || !items.length) return null;
+  const first = items[0] || null;
+  if (!first) return null;
+
+  const inferredId = pickEventClubId(first);
+  if (!inferredId) return null;
+
+  return {
+    _id: inferredId,
+    entityName: first?.clubName || first?.entityName || first?.organizerName || '',
+    clubName: first?.clubName || first?.entityName || first?.organizerName || '',
+    name: first?.clubName || first?.entityName || first?.organizerName || '',
+    username: first?.clubName || first?.entityName || first?.organizerName || 'Tu club',
+  };
 }
 
 function DashboardInner() {
@@ -64,6 +88,7 @@ function DashboardInner() {
   const [events, setEvents] = useState([]);
   const [referralsSummary, setReferralsSummary] = useState(null);
   const [metricsLoading, setMetricsLoading] = useState(false);
+  const [inferredClub, setInferredClub] = useState(null);
 
   function getToken() {
     try {
@@ -114,10 +139,16 @@ function DashboardInner() {
     };
   }, []);
 
-  const effectiveClubId = clubIdFromQuery || clubs[0]?._id || '';
+  const fallbackClub = inferredClub || null;
+  const effectiveClubId = clubIdFromQuery || clubs[0]?._id || fallbackClub?._id || '';
   const activeClub = useMemo(() => {
-    return clubs.find((club) => club?._id === effectiveClubId) || clubs[0] || null;
-  }, [clubs, effectiveClubId]);
+    return (
+      clubs.find((club) => club?._id === effectiveClubId) ||
+      clubs[0] ||
+      fallbackClub ||
+      null
+    );
+  }, [clubs, effectiveClubId, fallbackClub]);
 
   useEffect(() => {
     let cancelled = false;
@@ -157,10 +188,14 @@ function DashboardInner() {
 
         if (cancelled) return;
 
+        const safeEvents = Array.isArray(eventsData) ? eventsData : [];
+        const inferred = buildInferredClubFromEvents(safeEvents);
+
         setOrdersSummary(ordersData || null);
         setStripeSummary(stripeSummaryData || null);
-        setEvents(Array.isArray(eventsData) ? eventsData : []);
+        setEvents(safeEvents);
         setReferralsSummary(referralsData || null);
+        setInferredClub(inferred || null);
       } catch (e) {
         if (!cancelled) {
           console.error('[dashboard] metrics load error:', e);
@@ -626,6 +661,11 @@ function DashboardInner() {
         {error && <div style={errorBox}>{error}</div>}
         {!loading && !effectiveClubId && (
           <div style={warningBox}>No se encontró ningún club asociado a tu cuenta.</div>
+        )}
+        {!loading && !clubs.length && inferredClub && (
+          <div style={infoBox}>
+            No se encontró el club en <code>/api/clubs/mine</code>, pero el dashboard ha inferido el club desde tus eventos para no dejar la pantalla vacía.
+          </div>
         )}
 
         <section style={kpiGrid}>
