@@ -154,30 +154,44 @@ function DashboardInner() {
     let cancelled = false;
 
     async function loadMetrics() {
-      if (!effectiveClubId) return;
-
       setMetricsLoading(true);
       try {
         const token = getToken();
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-        const [ordersRes, stripeSummaryRes, referralsRes, eventsData] = await Promise.all([
-          fetch(`${API}/api/clubs/${effectiveClubId}/orders`, {
+        const eventsData = await fetchEvents().catch(() => []);
+        if (cancelled) return;
+
+        const safeEvents = Array.isArray(eventsData) ? eventsData : [];
+        const inferred = buildInferredClubFromEvents(safeEvents);
+        const resolvedClubId = effectiveClubId || inferred?._id || '';
+
+        setEvents(safeEvents);
+        setInferredClub(inferred || null);
+
+        if (!resolvedClubId) {
+          setOrdersSummary(null);
+          setStripeSummary(null);
+          setReferralsSummary(null);
+          return;
+        }
+
+        const [ordersRes, stripeSummaryRes, referralsRes] = await Promise.all([
+          fetch(`${API}/api/clubs/${resolvedClubId}/orders`, {
             headers,
             credentials: 'include',
             cache: 'no-store',
           }),
-          fetch(`${API}/api/clubs/${effectiveClubId}/stripe/summary?days=30`, {
+          fetch(`${API}/api/clubs/${resolvedClubId}/stripe/summary?days=30`, {
             headers,
             credentials: 'include',
             cache: 'no-store',
           }),
-          fetch(`${API}/api/referrals/club/${effectiveClubId}/summary`, {
+          fetch(`${API}/api/referrals/club/${resolvedClubId}/summary`, {
             headers,
             credentials: 'include',
             cache: 'no-store',
           }),
-          fetchEvents().catch(() => []),
         ]);
 
         const [ordersData, stripeSummaryData, referralsData] = await Promise.all([
@@ -188,14 +202,9 @@ function DashboardInner() {
 
         if (cancelled) return;
 
-        const safeEvents = Array.isArray(eventsData) ? eventsData : [];
-        const inferred = buildInferredClubFromEvents(safeEvents);
-
         setOrdersSummary(ordersData || null);
         setStripeSummary(stripeSummaryData || null);
-        setEvents(safeEvents);
         setReferralsSummary(referralsData || null);
-        setInferredClub(inferred || null);
       } catch (e) {
         if (!cancelled) {
           console.error('[dashboard] metrics load error:', e);
@@ -632,7 +641,7 @@ function DashboardInner() {
               <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 8 }}>Estado de la cuenta</div>
               <div style={{ fontSize: 22, fontWeight: 900, letterSpacing: '-0.02em' }}>{clubName}</div>
               <div style={{ marginTop: 8, color: '#cbd5e1', fontSize: 14 }}>
-                {effectiveClubId
+                {(effectiveClubId || inferredClub?._id)
                   ? `Club detectado y listo para conectar más métricas.`
                   : 'No se ha detectado ningún club asociado a esta cuenta.'}
               </div>
@@ -659,7 +668,7 @@ function DashboardInner() {
 
         {loading && <div style={warningBox}>Cargando tu club…</div>}
         {error && <div style={errorBox}>{error}</div>}
-        {!loading && !effectiveClubId && (
+        {!loading && !(effectiveClubId || inferredClub?._id) && (
           <div style={warningBox}>No se encontró ningún club asociado a tu cuenta.</div>
         )}
         {!loading && !clubs.length && inferredClub && (
