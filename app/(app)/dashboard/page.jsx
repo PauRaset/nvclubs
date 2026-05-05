@@ -73,6 +73,14 @@ function buildInferredClubFromEvents(items) {
   };
 }
 
+function normalizeEventsPayload(payload) {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.events)) return payload.events;
+  if (Array.isArray(payload?.items)) return payload.items;
+  if (Array.isArray(payload?.data)) return payload.data;
+  return [];
+}
+
 function DashboardInner() {
   const sp = useSearchParams();
   const clubIdFromQuery = useMemo(() => sp.get('club') || '', [sp]);
@@ -159,10 +167,24 @@ function DashboardInner() {
         const token = getToken();
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-        const eventsData = await fetchEvents().catch(() => []);
+        let eventsData = await fetchEvents().catch(() => []);
+        let safeEvents = normalizeEventsPayload(eventsData);
+
+        if (!safeEvents.length) {
+          const fallbackEventsRes = await fetch(`${API}/api/events/mine`, {
+            headers,
+            credentials: 'include',
+            cache: 'no-store',
+          }).catch(() => null);
+
+          if (fallbackEventsRes?.ok) {
+            const fallbackEventsData = await fallbackEventsRes.json().catch(() => []);
+            safeEvents = normalizeEventsPayload(fallbackEventsData);
+          }
+        }
+
         if (cancelled) return;
 
-        const safeEvents = Array.isArray(eventsData) ? eventsData : [];
         const inferred = buildInferredClubFromEvents(safeEvents);
         const resolvedClubId = effectiveClubId || inferred?._id || '';
 
@@ -170,6 +192,7 @@ function DashboardInner() {
         setInferredClub(inferred || null);
 
         if (!resolvedClubId) {
+          console.warn('[dashboard] No club could be resolved from clubs/mine or events/mine');
           setOrdersSummary(null);
           setStripeSummary(null);
           setReferralsSummary(null);
@@ -669,7 +692,10 @@ function DashboardInner() {
         {loading && <div style={warningBox}>Cargando tu club…</div>}
         {error && <div style={errorBox}>{error}</div>}
         {!loading && !(effectiveClubId || inferredClub?._id) && (
-          <div style={warningBox}>No se encontró ningún club asociado a tu cuenta.</div>
+          <div style={warningBox}>
+            No se encontró ningún club asociado a tu cuenta. Si en otras pantallas sí ves datos,
+            revisa en red la respuesta de <code>/api/events/mine</code> y <code>/api/clubs/mine</code>.
+          </div>
         )}
         {!loading && !clubs.length && inferredClub && (
           <div style={infoBox}>
