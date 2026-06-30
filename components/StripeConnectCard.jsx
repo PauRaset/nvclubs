@@ -36,30 +36,33 @@ export default function StripeConnectCard({ clubId }) {
   const connected = !!status?.connected;
 
   return (
-    <div style={card}>
-      <h3 style={title}>Stripe Connect</h3>
-      {loading && <p>Cargando…</p>}
-      {error && <p style={err}>{error}</p>}
+    <div className="nv-card-soft" style={{ display: 'grid', gap: 10 }}>
+      {loading && <p className="nv-small nv-muted">Cargando…</p>}
+      {error && <p className="nv-notice nv-notice-error nv-small">{error}</p>}
 
       {status && (
         <>
-          <p style={muted}>
-            {connected ? 'Cuenta conectada ✅' : 'Cuenta no conectada ❌'}
-          </p>
+          <span className={`nv-badge ${connected ? 'nv-badge-success' : 'nv-badge-warn'}`}>
+            {connected ? 'Cuenta conectada' : 'Cuenta no conectada'}
+          </span>
+
           {!connected && (
             <>
               {status.requirements?.currently_due?.length ? (
-                <ul style={{ marginTop: 8 }}>
+                <ul className="nv-small nv-muted" style={{ margin: '4px 0', paddingLeft: 18 }}>
                   {status.requirements.currently_due.map((r) => (
-                    <li key={r} style={{ fontSize: 13 }}>{r}</li>
+                    <li key={r}>{r}</li>
                   ))}
                 </ul>
               ) : null}
-              <button onClick={handleOnboard} style={btnPrimary}>Conectar con Stripe</button>
+              <button onClick={handleOnboard} className="nv-btn nv-btn-primary" disabled={loading}>
+                Conectar con Stripe
+              </button>
             </>
           )}
+
           {connected && (
-            <p style={{ fontSize: 13 }}>
+            <p className="nv-small nv-muted">
               Payouts: {status.payouts_enabled ? 'habilitados ✅' : 'pendientes ⏳'}
             </p>
           )}
@@ -68,9 +71,3 @@ export default function StripeConnectCard({ clubId }) {
     </div>
   );
 }
-
-const card = { background:'#0b0f19', border:'1px solid #1d263a', borderRadius:16, padding:16 };
-const title = { margin:0, marginBottom:8 };
-const muted = { color:'#9ca3af', fontSize:14 };
-const err = { color:'#ef4444', fontSize:13 };
-const btnPrimary = { marginTop:12, padding:'8px 12px', borderRadius:10, background:'#0ea5e9', color:'#001018', fontWeight:600, border:'none', cursor:'pointer' };

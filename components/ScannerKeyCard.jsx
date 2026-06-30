@@ -9,13 +9,14 @@ export default function ScannerKeyCard({ clubId, initialKey = '' }) {
   const [msg, setMsg] = useState('');
 
   async function regen() {
+    if (!confirm('Regenerar la clave invalidará la anterior. ¿Continuar?')) return;
     try {
       setLoading(true);
       const { scannerApiKey } = await regenerateScannerKey(clubId);
       setKey(scannerApiKey);
       setRevealed(true);
       setMsg('Nueva clave generada');
-      setTimeout(()=>setMsg(''), 2000);
+      setTimeout(() => setMsg(''), 2500);
     } catch (e) {
       setMsg(e.message || 'Error generando clave');
     } finally {
@@ -24,33 +25,45 @@ export default function ScannerKeyCard({ clubId, initialKey = '' }) {
   }
 
   return (
-    <div style={card}>
-      <h3 style={title}>API key del escáner</h3>
-      <p style={muted}>Úsala en la cabecera <code>x-scanner-key</code> en /scanner.</p>
+    <div className="nv-card-soft" style={{ display: 'grid', gap: 10 }}>
+      <p className="nv-small nv-muted" style={{ margin: 0 }}>
+        Se envía en la cabecera <code>x-scanner-key</code> al usar el escáner.
+      </p>
 
       {revealed ? (
-        <pre style={pre}>{key || '(vacía)'}</pre>
+        <pre
+          style={{
+            background: 'var(--nv-bg-soft)',
+            border: '1px solid var(--nv-border-strong)',
+            padding: 12,
+            borderRadius: 'var(--nv-r-sm)',
+            overflow: 'auto',
+            fontSize: 13,
+            margin: 0,
+          }}
+        >
+          {key || '(vacía)'}
+        </pre>
       ) : (
-        <button onClick={()=>setRevealed(true)} style={btn}>Revelar</button>
+        <button onClick={() => setRevealed(true)} className="nv-btn nv-btn-ghost" style={{ width: 'fit-content' }}>
+          Revelar clave
+        </button>
       )}
 
-      <div style={{ marginTop:10, display:'flex', gap:8 }}>
-        <button onClick={regen} disabled={loading} style={btnPrimary}>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <button onClick={regen} disabled={loading} className="nv-btn nv-btn-primary">
           {loading ? 'Generando…' : 'Regenerar'}
         </button>
-        <button onClick={() => navigator.clipboard.writeText(key || '')} style={btn}>
+        <button
+          onClick={() => navigator.clipboard?.writeText(key || '')}
+          className="nv-btn nv-btn-ghost"
+          disabled={!key}
+        >
           Copiar
         </button>
       </div>
 
-      {msg && <p style={{ fontSize:13, marginTop:6 }}>{msg}</p>}
+      {msg && <p className="nv-small" style={{ margin: 0, color: 'var(--nv-accent-2)' }}>{msg}</p>}
     </div>
   );
 }
-
-const card = { background:'#0b0f19', border:'1px solid #1d263a', borderRadius:16, padding:16 };
-const title = { margin:0, marginBottom:8 };
-const muted = { color:'#9ca3af', fontSize:14 };
-const pre = { background:'#0b1220', border:'1px solid #1f2937', padding:12, borderRadius:10, overflow:'auto' };
-const btn = { padding:'8px 12px', borderRadius:10, background:'#111827', color:'#e5e7eb', border:'1px solid #303848', cursor:'pointer' };
-const btnPrimary = { ...btn, background:'#0ea5e9', color:'#001018', fontWeight:600, border:'none' };

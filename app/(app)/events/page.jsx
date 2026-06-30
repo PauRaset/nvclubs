@@ -163,10 +163,7 @@ export default function EventsListPage() {
   };
 
   const heroStyle = {
-    display: 'grid',
-    gridTemplateColumns: 'minmax(0, 1.2fr) auto',
     gap: 18,
-    alignItems: 'center',
     padding: 26,
     borderRadius: 24,
     background: 'linear-gradient(135deg, rgba(0,229,255,0.12), rgba(15,22,41,0.96))',
@@ -275,7 +272,7 @@ export default function EventsListPage() {
     <RequireClub>
       <main style={pageStyle}>
         <div style={shellStyle}>
-          <section style={heroStyle}>
+          <section className="nv-hero-split" style={heroStyle}>
             <div>
               <div
                 style={{
@@ -437,13 +434,10 @@ export default function EventsListPage() {
                 return (
                   <article
                     key={id}
+                    className="nv-event-card"
                     style={{
                       ...panelStyle,
                       padding: 18,
-                      display: 'grid',
-                      gridTemplateColumns: '180px minmax(0, 1fr) auto',
-                      gap: 18,
-                      alignItems: 'center',
                     }}
                   >
                     <div
@@ -545,14 +539,7 @@ export default function EventsListPage() {
                       </div>
                     </div>
 
-                    <div
-                      style={{
-                        display: 'grid',
-                        gap: 10,
-                        justifyItems: 'stretch',
-                        minWidth: 150,
-                      }}
-                    >
+                    <div className="nv-event-actions">
                       <a
                         href={`/events/${id}`}
                         style={{

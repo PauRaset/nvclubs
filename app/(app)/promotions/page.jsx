@@ -4,7 +4,10 @@ import { useEffect, useMemo, useState } from 'react';
 import RequireClub from '@/components/RequireClub';
 import { getUser } from '@/lib/apiClient';
 
-const API_BASE = 'https://api.nightvibe.life';
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE ||
+  process.env.NEXT_PUBLIC_BACKEND_URL ||
+  'https://api.nightvibe.life';
 
 const roadmap = [
   {

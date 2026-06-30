@@ -1,8 +1,66 @@
 @import "tailwindcss";
 
+/* ============================================================
+   NightVibe Clubs — Design System
+   Identidad: nocturna, oscura, acento cian neón. Premium.
+   ============================================================ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Fondos / superficies */
+  --nv-bg: #070b14;
+  --nv-bg-soft: #0b1120;
+  --nv-surface: #0f1629;
+  --nv-surface-2: #131c33;
+  --nv-elevated: #16203a;
+
+  /* Bordes */
+  --nv-border: rgba(255, 255, 255, 0.08);
+  --nv-border-strong: rgba(255, 255, 255, 0.14);
+
+  /* Texto */
+  --nv-text: #e7eefc;
+  --nv-text-soft: #cbd5e1;
+  --nv-muted: #94a3b8;
+  --nv-subtle: #64748b;
+
+  /* Acento (cian neón) + secundario (índigo) */
+  --nv-accent: #00e5ff;
+  --nv-accent-2: #22d3ee;
+  --nv-accent-ink: #04141b;
+  --nv-accent-soft: rgba(0, 229, 255, 0.12);
+  --nv-accent-border: rgba(0, 229, 255, 0.22);
+  --nv-indigo: #6366f1;
+
+  /* Estados */
+  --nv-success: #22c55e;
+  --nv-success-soft: rgba(34, 197, 94, 0.12);
+  --nv-warn: #f59e0b;
+  --nv-warn-soft: rgba(245, 158, 11, 0.12);
+  --nv-danger: #f43f5e;
+  --nv-danger-soft: rgba(244, 63, 94, 0.12);
+
+  /* Radios */
+  --nv-r-sm: 12px;
+  --nv-r: 16px;
+  --nv-r-lg: 22px;
+  --nv-r-pill: 999px;
+
+  /* Sombras */
+  --nv-shadow-sm: 0 6px 18px rgba(0, 0, 0, 0.22);
+  --nv-shadow: 0 14px 40px rgba(0, 0, 0, 0.28);
+  --nv-shadow-glow: 0 14px 34px rgba(0, 229, 255, 0.22);
+
+  /* Gradientes reutilizables */
+  --nv-grad-accent: linear-gradient(90deg, #00e5ff, #22d3ee);
+  --nv-grad-hero: linear-gradient(135deg, rgba(0, 229, 255, 0.14), rgba(15, 22, 41, 0.96));
+  --nv-grad-bg:
+    radial-gradient(60% 60% at 8% 0%, rgba(0, 229, 255, 0.10), transparent 60%),
+    radial-gradient(55% 55% at 100% 100%, rgba(99, 102, 241, 0.10), transparent 60%),
+    var(--nv-bg);
+
+  /* Tailwind theme bridge (compat) */
+  --background: var(--nv-bg);
+  --foreground: var(--nv-text);
 }
 
 @theme inline {
@@ -12,15 +70,319 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  min-height: 100vh;
+  background: var(--nv-bg);
+  color: var(--nv-text);
+  font-family: var(--font-geist-sans), system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
+
+a {
+  color: inherit;
+}
+
+::selection {
+  background: rgba(0, 229, 255, 0.28);
+  color: #fff;
+}
+
+/* Scrollbar discreto */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+}
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+}
+
+/* ============================================================
+   Layout helpers
+   ============================================================ */
+.nv-page {
+  min-height: 100vh;
+  background: var(--nv-grad-bg);
+  color: var(--nv-text);
+}
+.nv-shell {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 28px 20px 56px;
+  display: grid;
+  gap: 22px;
+}
+@media (max-width: 640px) {
+  .nv-shell { padding: 18px 14px 44px; gap: 16px; }
+}
+
+.nv-stack { display: grid; gap: 16px; }
+.nv-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+
+/* Grids responsivos auto-fit */
+.nv-grid-auto {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+.nv-grid-cards {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+/* ============================================================
+   Tipografía
+   ============================================================ */
+.nv-h1 {
+  margin: 0;
+  font-size: clamp(28px, 4vw, 42px);
+  line-height: 1.04;
+  letter-spacing: -0.03em;
+  font-weight: 900;
+}
+.nv-h2 {
+  margin: 0;
+  font-size: clamp(20px, 2.4vw, 26px);
+  letter-spacing: -0.02em;
+  font-weight: 800;
+}
+.nv-h3 { margin: 0; font-size: 18px; font-weight: 800; letter-spacing: -0.01em; }
+.nv-lead { margin: 0; color: var(--nv-text-soft); font-size: 15px; line-height: 1.65; }
+.nv-muted { color: var(--nv-muted); }
+.nv-small { font-size: 13px; }
+
+/* ============================================================
+   Cards / paneles
+   ============================================================ */
+.nv-card {
+  background: var(--nv-surface);
+  border: 1px solid var(--nv-border);
+  border-radius: var(--nv-r-lg);
+  padding: 22px;
+  box-shadow: var(--nv-shadow);
+}
+.nv-card-soft {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--nv-border);
+  border-radius: var(--nv-r);
+  padding: 16px;
+}
+@media (max-width: 640px) {
+  .nv-card { padding: 16px; border-radius: var(--nv-r); }
+}
+
+.nv-hero {
+  background: var(--nv-grad-hero);
+  border: 1px solid var(--nv-accent-border);
+  border-radius: var(--nv-r-lg);
+  padding: 28px;
+  box-shadow: var(--nv-shadow);
+}
+@media (max-width: 640px) { .nv-hero { padding: 20px; } }
+
+/* KPI */
+.nv-kpi {
+  background: var(--nv-surface);
+  border: 1px solid var(--nv-border);
+  border-radius: var(--nv-r);
+  padding: 18px;
+  box-shadow: var(--nv-shadow-sm);
+}
+.nv-kpi-label { color: var(--nv-muted); font-size: 13px; margin-bottom: 10px; }
+.nv-kpi-value { font-size: clamp(26px, 3vw, 34px); font-weight: 900; letter-spacing: -0.03em; }
+.nv-kpi-help { margin-top: 10px; color: var(--nv-text-soft); font-size: 13px; line-height: 1.5; }
+
+/* ============================================================
+   Botones
+   ============================================================ */
+.nv-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 0 18px;
+  border-radius: var(--nv-r-sm);
+  font-weight: 800;
+  font-size: 14px;
+  text-decoration: none;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: transform .12s ease, box-shadow .14s ease, background .14s ease, border-color .14s ease, opacity .14s ease;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+}
+.nv-btn:active { transform: translateY(1px); }
+.nv-btn:disabled { opacity: .55; cursor: not-allowed; }
+
+.nv-btn-primary {
+  background: var(--nv-grad-accent);
+  color: var(--nv-accent-ink);
+  box-shadow: var(--nv-shadow-glow);
+}
+.nv-btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 18px 40px rgba(0, 229, 255, 0.3); }
+
+.nv-btn-ghost {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--nv-text);
+  border-color: var(--nv-border-strong);
+}
+.nv-btn-ghost:hover:not(:disabled) { background: rgba(255, 255, 255, 0.08); }
+
+.nv-btn-danger {
+  background: var(--nv-danger-soft);
+  color: #ff8ea1;
+  border-color: rgba(244, 63, 94, 0.28);
+}
+.nv-btn-danger:hover:not(:disabled) { background: rgba(244, 63, 94, 0.18); }
+
+.nv-btn-block { width: 100%; }
+
+/* ============================================================
+   Inputs / formularios
+   ============================================================ */
+.nv-label {
+  display: block;
+  color: var(--nv-muted);
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.nv-input,
+.nv-select,
+.nv-textarea {
+  width: 100%;
+  min-height: 46px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--nv-text);
+  border: 1px solid var(--nv-border-strong);
+  border-radius: var(--nv-r-sm);
+  padding: 12px 14px;
+  outline: none;
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color .14s ease, box-shadow .14s ease, background .14s ease;
+}
+.nv-textarea { min-height: 120px; resize: vertical; line-height: 1.5; }
+.nv-input::placeholder,
+.nv-textarea::placeholder { color: var(--nv-subtle); }
+.nv-input:focus,
+.nv-select:focus,
+.nv-textarea:focus {
+  border-color: var(--nv-accent-border);
+  box-shadow: 0 0 0 3px rgba(0, 229, 255, 0.16);
+  background: rgba(255, 255, 255, 0.05);
+}
+.nv-field { display: grid; gap: 0; }
+
+/* ============================================================
+   Badges / chips / pills
+   ============================================================ */
+.nv-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: var(--nv-r-pill);
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 800;
+  border: 1px solid var(--nv-accent-border);
+  background: var(--nv-accent-soft);
+  color: #7dd3fc;
+  width: fit-content;
+}
+.nv-badge-success { background: var(--nv-success-soft); border-color: rgba(34, 197, 94, 0.24); color: #86efac; }
+.nv-badge-warn { background: var(--nv-warn-soft); border-color: rgba(245, 158, 11, 0.24); color: #fcd34d; }
+.nv-badge-danger { background: var(--nv-danger-soft); border-color: rgba(244, 63, 94, 0.24); color: #fda4af; }
+.nv-badge-neutral { background: rgba(148, 163, 184, 0.1); border-color: rgba(148, 163, 184, 0.2); color: #cbd5e1; }
+
+/* ============================================================
+   Notices (info / warning / error / success)
+   ============================================================ */
+.nv-notice { border-radius: var(--nv-r); padding: 14px 16px; font-size: 14px; line-height: 1.5; }
+.nv-notice-info { background: var(--nv-accent-soft); border: 1px solid var(--nv-accent-border); color: var(--nv-text-soft); }
+.nv-notice-warn { background: var(--nv-warn-soft); border: 1px solid rgba(245, 158, 11, 0.24); color: #fcd34d; }
+.nv-notice-error { background: var(--nv-danger-soft); border: 1px solid rgba(244, 63, 94, 0.28); color: #fda4af; }
+.nv-notice-success { background: var(--nv-success-soft); border: 1px solid rgba(34, 197, 94, 0.24); color: #86efac; }
+
+/* ============================================================
+   Listas tipo item
+   ============================================================ */
+.nv-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+.nv-item {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border-radius: var(--nv-r);
+  border: 1px solid var(--nv-border);
+  background: rgba(255, 255, 255, 0.02);
+  transition: border-color .14s ease, background .14s ease, transform .12s ease;
+}
+a.nv-item:hover, button.nv-item:hover { border-color: var(--nv-accent-border); background: rgba(255, 255, 255, 0.04); }
+
+/* ============================================================
+   Skeleton / loading
+   ============================================================ */
+.nv-skeleton {
+  background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.09) 37%, rgba(255,255,255,0.04) 63%);
+  background-size: 400% 100%;
+  animation: nv-shimmer 1.4s ease infinite;
+  border-radius: var(--nv-r-sm);
+}
+@keyframes nv-shimmer {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+.nv-spin { animation: nv-spin 0.9s linear infinite; }
+@keyframes nv-spin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}
+
+/* Tarjeta de evento (listado) — responsive */
+.nv-event-card {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+}
+.nv-event-actions { display: grid; gap: 10px; min-width: 150px; }
+@media (max-width: 760px) {
+  .nv-event-card { grid-template-columns: 120px minmax(0, 1fr); }
+  .nv-event-actions { grid-column: 1 / -1; grid-auto-flow: column; min-width: 0; }
+}
+@media (max-width: 460px) {
+  .nv-event-card { grid-template-columns: 1fr; }
+  .nv-event-actions { grid-auto-flow: column; }
+}
+
+/* Hero de 2 zonas (texto + acción) */
+.nv-hero-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+}
+@media (max-width: 640px) {
+  .nv-hero-split { grid-template-columns: 1fr; }
+}
+
+/* Utilidades sueltas */
+.nv-divider { height: 1px; background: var(--nv-border); border: 0; margin: 4px 0; }
+.nv-link-accent { color: var(--nv-accent-2); font-weight: 700; text-decoration: none; }
+.nv-link-accent:hover { text-decoration: underline; }
+.nv-truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

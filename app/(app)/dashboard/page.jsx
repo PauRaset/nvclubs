@@ -463,7 +463,7 @@ function DashboardInner() {
     padding: 28,
     boxShadow: '0 20px 50px rgba(0,0,0,0.28)',
     display: 'grid',
-    gridTemplateColumns: 'minmax(0, 1.4fr) minmax(280px, 0.8fr)',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
     gap: 20,
   };
 
@@ -554,7 +554,7 @@ function DashboardInner() {
 
   const sectionGrid = {
     display: 'grid',
-    gridTemplateColumns: 'minmax(0, 1.2fr) minmax(320px, 0.8fr)',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
     gap: 24,
     alignItems: 'start',
   };

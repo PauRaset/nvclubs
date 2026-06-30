@@ -9,12 +9,8 @@ const parseNV1 = (txt) => {
 
   let clean = String(txt).trim();
 
-  // Debug: siempre log del QR leído
-  try {
-    console.log('[ScannerCheckin] raw QR text:', clean);
-  } catch {
-    // navegadores sin consola
-  }
+  // Nota: no registramos el contenido crudo del QR (contiene el token de la
+  // entrada) para evitar fugas de datos sensibles en la consola del navegador.
 
   // --- Normalizar prefijo "NV1" (por si acaso) ---
   if (clean.startsWith('NV1')) {
@@ -78,7 +74,7 @@ const parseNV1 = (txt) => {
 
   // Necesitamos al menos el token para poder verificar el QR
   if (!token) {
-    console.warn('[ScannerCheckin] no se pudo extraer token desde:', clean);
+    console.warn('[ScannerCheckin] no se pudo extraer un token válido del QR.');
     return null;
   }
 

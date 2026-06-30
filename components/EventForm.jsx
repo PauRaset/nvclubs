@@ -759,6 +759,7 @@ const sx = {
     display:'flex',
     alignItems:'center',
     justifyContent:'space-between',
+    flexWrap:'wrap',
     background:'linear-gradient(135deg, rgba(0,229,255,0.10), rgba(13,21,38,0.96))',
     border:'1px solid rgba(0,229,255,0.16)',
     borderRadius:18,
@@ -779,7 +780,7 @@ const sx = {
   },
   previewPanel: {
     display:'grid',
-    gridTemplateColumns:'300px minmax(0, 1fr)',
+    gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
     gap:16,
     background:'#0d1526',
     border:'1px solid #1f2b43',
