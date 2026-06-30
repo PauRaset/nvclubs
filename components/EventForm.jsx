@@ -9,6 +9,7 @@ import {
   deleteEventPhoto,
 } from '@/lib/eventsApi';
 import { getUser } from '@/lib/apiClient';
+import { toast } from '@/components/Toast';
 
 /* --- Recorte simple: centra y reescala a 800x450 --- */
 async function cropTo800x450(file) {
@@ -322,6 +323,7 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
     }
 
     setMsg('✅ Guardado');
+    toast.success(mode === 'create' ? 'Evento creado correctamente.' : 'Cambios guardados correctamente.');
     setSaving(false);
     if (onSaved) onSaved(saved);
   }
@@ -338,12 +340,13 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
       const r = await deleteEventPhoto(id, { url: photo?.url, idx });
       if (r.ok) {
         setPhotos(prev => prev.filter((_, i) => i !== idx));
+        toast.success('Foto eliminada.');
       } else {
-        alert(r.data?.message || `No se pudo borrar (HTTP ${r.status})`);
+        toast.error(r.data?.message || `No se pudo borrar (HTTP ${r.status})`);
       }
     } catch (e) {
       console.error(e);
-      alert('No se pudo borrar la foto.');
+      toast.error('No se pudo borrar la foto.');
     } finally {
       setDeletingIdx(null);
     }

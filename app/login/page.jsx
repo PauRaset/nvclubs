@@ -144,8 +144,8 @@ export default function LoginPage() {
                 <label className="nv-label">Contraseña</label>
                 <input className="nv-input" type="password" value={lpass} onChange={e => setLPass(e.target.value)} placeholder="••••••••" autoComplete="current-password" required />
               </div>
-              {lerr && <p className="nv-notice nv-notice-error">{lerr}</p>}
-              {lmsg && <p className="nv-notice nv-notice-success">{lmsg}</p>}
+              {lerr && <p role="alert" aria-live="assertive" className="nv-notice nv-notice-error">{lerr}</p>}
+              {lmsg && <p role="status" aria-live="polite" className="nv-notice nv-notice-success">{lmsg}</p>}
               <button disabled={lloading} className="nv-btn nv-btn-primary nv-btn-block">
                 {lloading ? 'Entrando…' : 'Entrar'}
               </button>
@@ -172,8 +172,8 @@ export default function LoginPage() {
                 <label className="nv-label">Email</label>
                 <input className="nv-input" type="email" value={remail} onChange={e => setREmail(e.target.value)} placeholder="tu@email.com" autoComplete="email" required />
               </div>
-              {rerr && <p className="nv-notice nv-notice-error">{rerr}</p>}
-              {rmsg && <p className="nv-notice nv-notice-success">{rmsg}</p>}
+              {rerr && <p role="alert" aria-live="assertive" className="nv-notice nv-notice-error">{rerr}</p>}
+              {rmsg && <p role="status" aria-live="polite" className="nv-notice nv-notice-success">{rmsg}</p>}
               <button disabled={rloading} className="nv-btn nv-btn-primary nv-btn-block">
                 {rloading ? 'Enviando…' : 'Crear cuenta'}
               </button>

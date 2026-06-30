@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import RequireClub from '@/components/RequireClub';
+import { confirmDialog } from '@/components/Toast';
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE ||
@@ -753,7 +754,13 @@ export default function ContentPage() {
 
   async function deletePhoto() {
     if (!selectedPhoto?.eventId || !selectedPhoto?.photoId || actionBusy) return;
-    if (!confirm('¿Eliminar esta foto definitivamente?')) return;
+    const ok = await confirmDialog({
+      title: '¿Eliminar esta foto?',
+      message: 'Se eliminará definitivamente del contenido del evento.',
+      confirmText: 'Eliminar',
+      danger: true,
+    });
+    if (!ok) return;
     setActionBusy(true);
     setNotice('Eliminando foto...');
     try {
@@ -876,6 +883,8 @@ export default function ContentPage() {
 
           {notice && (
             <section
+              role="status"
+              aria-live="polite"
               style={{
                 ...panelStyle,
                 border: '1px solid rgba(0,229,255,0.14)',
@@ -991,14 +1000,22 @@ export default function ContentPage() {
                 ))}
               </div>
             ) : photos.length === 0 ? (
-              <div>
-                <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 10 }}>No hay fotos en esta vista</div>
-                <div style={{ color: '#94a3b8', fontSize: 14, lineHeight: 1.6 }}>
+              <div className="nv-empty">
+                <div className="nv-empty-icon" aria-hidden="true">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+                    <rect x="3" y="5" width="18" height="14" rx="3" stroke="currentColor" strokeWidth="2" />
+                    <circle cx="9" cy="11" r="2" stroke="currentColor" strokeWidth="2" />
+                    <path d="m4 18 5-4 4 3 3-2 4 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+                <div className="nv-empty-title">No hay fotos en esta vista</div>
+                <div className="nv-empty-text">
                   Prueba con otro evento o cambia el filtro de estado para revisar más contenido.
                 </div>
               </div>
             ) : (
               <div
+                className="nv-stagger"
                 style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
@@ -1009,6 +1026,7 @@ export default function ContentPage() {
                   <button
                     key={`${photo.eventId}-${photo.photoId}`}
                     type="button"
+                    className="nv-card-interactive"
                     /*onClick={() => {
                       setSelectedPhoto(photo);
                       setReviewNote(photo.reviewNote || '');

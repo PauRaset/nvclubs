@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { getUser, setSession } from '@/lib/apiClient';
 import { getMe, updateMe, uploadAvatar } from '@/lib/userApi';
 import TopNav from '@/components/TopNav';
+import { toast } from '@/components/Toast';
 
 function normalizeInstagram(input) {
   if (!input) return { handle: '', url: '' };
@@ -191,6 +192,7 @@ export default function ProfilePage() {
 
     setSaving(false);
     setNotice('✅ Perfil actualizado');
+    toast.success('Perfil actualizado correctamente.');
   }
 
   async function onLogout() {

@@ -4,6 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import RequireClub from '@/components/RequireClub';
 import EventForm from '@/components/EventForm';
 import { fetchEvent } from '@/lib/eventsApi';
+import { toast, confirmDialog } from '@/components/Toast';
 
 export default function EditEventPage() {
   const { id } = useParams();
@@ -127,8 +128,11 @@ export default function EditEventPage() {
     try {
       await navigator.clipboard.writeText(qrPayload);
       setCopied(true);
+      toast.success('Payload del QR copiado.');
       setTimeout(() => setCopied(false), 1800);
-    } catch (_) {}
+    } catch (_) {
+      toast.error('No se pudo copiar el payload.');
+    }
   }
 
   async function apiJson(url, opts = {}) {
@@ -211,7 +215,13 @@ export default function EditEventPage() {
 
   async function deletePhoto(photoId) {
     if (!id || !photoId) return;
-    if (!confirm('¿Eliminar esta foto definitivamente?')) return;
+    const ok = await confirmDialog({
+      title: '¿Eliminar esta foto?',
+      message: 'Se eliminará definitivamente del evento.',
+      confirmText: 'Eliminar',
+      danger: true,
+    });
+    if (!ok) return;
     setPhotosMsg('Eliminando...');
     try {
       await apiJson(`${API_BASE}/api/events/${id}/photos/${photoId}`, { method: 'DELETE' });

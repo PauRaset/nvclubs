@@ -5,6 +5,7 @@ import RequireClub from '@/components/RequireClub';
 import StripeConnectCard from '@/components/StripeConnectCard';
 import ScannerKeyCard from '@/components/ScannerKeyCard';
 import { getToken, getUser, clearSession } from '@/lib/apiClient';
+import { confirmDialog } from '@/components/Toast';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,8 +52,13 @@ function SettingsInner() {
     club?.entityName || club?.clubName || club?.name || club?.username || 'Tu club';
   const clubEmail = club?.email || user?.email || '—';
 
-  function logout() {
-    if (!confirm('¿Cerrar sesión en este dispositivo?')) return;
+  async function logout() {
+    const ok = await confirmDialog({
+      title: 'Cerrar sesión',
+      message: 'Se cerrará la sesión en este dispositivo.',
+      confirmText: 'Cerrar sesión',
+    });
+    if (!ok) return;
     clearSession();
     window.location.href = '/login';
   }
@@ -81,7 +87,7 @@ function SettingsInner() {
           </section>
         )}
 
-        {!loading && error && <div className="nv-notice nv-notice-error">{error}</div>}
+        {!loading && error && <div role="alert" aria-live="assertive" className="nv-notice nv-notice-error">{error}</div>}
 
         {!loading && (
           <>

@@ -1,5 +1,6 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import ToastHost from "@/components/Toast";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -19,7 +20,22 @@ export const metadata = {
   description:
     "Panel de gestión para clubs de NightVibe: eventos, entradas, cobros con Stripe, check-in QR, promociones y estadísticas.",
   applicationName: "NightVibe Clubs",
-  icons: { icon: "/favicon.ico" },
+  icons: { icon: "/favicon.ico", apple: "/logo.png" },
+  openGraph: {
+    title: "NightVibe · Panel de Clubs",
+    description:
+      "Gestiona eventos, entradas, cobros, check-in QR, promociones y estadísticas de tu club en NightVibe.",
+    siteName: "NightVibe Clubs",
+    type: "website",
+    locale: "es_ES",
+    images: [{ url: "/logo.png" }],
+  },
+  twitter: {
+    card: "summary",
+    title: "NightVibe · Panel de Clubs",
+    description: "El panel de gestión para clubs de NightVibe.",
+    images: ["/logo.png"],
+  },
 };
 
 export const viewport = {
@@ -34,6 +50,7 @@ export default function RootLayout({ children }) {
     <html lang="es">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         {children}
+        <ToastHost />
       </body>
     </html>
   );

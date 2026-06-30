@@ -18,11 +18,11 @@
   --nv-border: rgba(255, 255, 255, 0.08);
   --nv-border-strong: rgba(255, 255, 255, 0.14);
 
-  /* Texto */
-  --nv-text: #e7eefc;
-  --nv-text-soft: #cbd5e1;
-  --nv-muted: #94a3b8;
-  --nv-subtle: #64748b;
+  /* Texto (contraste AA sobre superficies oscuras) */
+  --nv-text: #eef3ff;
+  --nv-text-soft: #d2dcec;
+  --nv-muted: #a6b3c8;   /* ~5.4:1 sobre --nv-surface */
+  --nv-subtle: #7c8aa0;  /* solo para texto grande / decorativo */
 
   /* Acento (cian neón) — voz principal, reservada para lo importante */
   --nv-accent: #00e5ff;
@@ -405,12 +405,154 @@ a.nv-item:hover, button.nv-item:hover { border-color: var(--nv-accent-border); b
 .nv-spin { animation: nv-spin 0.9s linear infinite; }
 @keyframes nv-spin { to { transform: rotate(360deg); } }
 
-/* Accesibilidad: foco visible coherente */
+/* Accesibilidad: foco visible elegante (anillo de acento, no el azul del navegador) */
 :where(a, button, input, select, textarea, [tabindex]):focus-visible {
-  outline: 2px solid var(--nv-accent);
-  outline-offset: 2px;
-  border-radius: 8px;
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--nv-bg),
+    0 0 0 4px var(--nv-accent),
+    0 0 18px rgba(0, 229, 255, 0.45);
+  border-radius: 10px;
 }
+
+/* ============================================================
+   Fase B — microinteracciones, marca y estados
+   ============================================================ */
+
+/* Cards: transición + elevación al pasar / pulsar (solo interactivas) */
+.nv-card, .nv-kpi {
+  transition: transform .16s ease, box-shadow .18s ease, border-color .16s ease;
+}
+.nv-kpi:hover {
+  transform: translateY(-2px);
+  border-color: var(--nv-accent-border);
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.28);
+}
+.nv-card-interactive { cursor: pointer; }
+.nv-card-interactive:hover {
+  transform: translateY(-2px);
+  border-color: var(--nv-accent-border);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.32);
+}
+.nv-card-interactive:active { transform: translateY(0); }
+
+/* Animación de entrada con stagger suave */
+@keyframes nv-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.nv-animate-in { animation: nv-rise .5s cubic-bezier(.22,.61,.36,1) both; }
+.nv-stagger > * { animation: nv-rise .5s cubic-bezier(.22,.61,.36,1) both; }
+.nv-stagger > *:nth-child(1) { animation-delay: .02s; }
+.nv-stagger > *:nth-child(2) { animation-delay: .07s; }
+.nv-stagger > *:nth-child(3) { animation-delay: .12s; }
+.nv-stagger > *:nth-child(4) { animation-delay: .17s; }
+.nv-stagger > *:nth-child(5) { animation-delay: .22s; }
+.nv-stagger > *:nth-child(6) { animation-delay: .27s; }
+.nv-stagger > *:nth-child(7) { animation-delay: .32s; }
+.nv-stagger > *:nth-child(8) { animation-delay: .37s; }
+
+/* Detalle de marca: borde luminoso superior en heroes */
+.nv-hero { position: relative; overflow: hidden; }
+.nv-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0, 229, 255, 0.55), transparent);
+  pointer-events: none;
+}
+
+/* Tratamiento coherente de portadas: overlay/gradiente legible */
+.nv-cover { position: relative; overflow: hidden; background: var(--nv-bg-soft); }
+.nv-cover > img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.nv-cover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(7, 11, 20, 0) 35%, rgba(7, 11, 20, 0.55) 100%);
+  pointer-events: none;
+}
+
+/* Estado vacío / error diseñado */
+.nv-empty {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  gap: 8px;
+  padding: 40px 24px;
+}
+.nv-empty-icon {
+  width: 56px; height: 56px;
+  display: grid; place-items: center;
+  border-radius: 18px;
+  margin-bottom: 6px;
+  background: var(--nv-accent-soft);
+  border: 1px solid var(--nv-accent-border);
+  color: var(--nv-accent-2);
+}
+.nv-empty-icon.is-error { background: var(--nv-danger-soft); border-color: rgba(244,63,94,0.28); color: #fda4af; }
+.nv-empty-title { font-size: var(--nv-fs-xl); font-weight: 800; letter-spacing: -0.01em; }
+.nv-empty-text { color: var(--nv-muted); max-width: 460px; line-height: 1.6; font-size: var(--nv-fs-base); }
+
+/* ============================================================
+   Toasts + confirm dialog
+   ============================================================ */
+.nv-toast-host {
+  position: fixed;
+  z-index: 1000;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  display: grid;
+  gap: 10px;
+  width: min(360px, calc(100vw - 32px));
+  pointer-events: none;
+}
+.nv-toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--nv-r);
+  background: var(--nv-surface-2);
+  border: 1px solid var(--nv-border-strong);
+  box-shadow: var(--nv-shadow);
+  color: var(--nv-text);
+  animation: nv-toast-in .28s cubic-bezier(.22,.61,.36,1) both;
+}
+.nv-toast.leaving { animation: nv-toast-out .22s ease forwards; }
+.nv-toast-dot { width: 10px; height: 10px; border-radius: 999px; margin-top: 5px; flex: 0 0 auto; }
+.nv-toast-body { flex: 1; min-width: 0; font-size: var(--nv-fs-sm); line-height: 1.45; }
+.nv-toast-close { background: none; border: 0; color: var(--nv-muted); cursor: pointer; font-size: 18px; line-height: 1; padding: 0 2px; }
+.nv-toast.success { border-color: rgba(34,197,94,0.4); }
+.nv-toast.success .nv-toast-dot { background: var(--nv-success); }
+.nv-toast.error { border-color: rgba(244,63,94,0.4); }
+.nv-toast.error .nv-toast-dot { background: var(--nv-danger); }
+.nv-toast.info .nv-toast-dot { background: var(--nv-accent); }
+@keyframes nv-toast-in { from { opacity: 0; transform: translateY(12px) scale(.98); } to { opacity: 1; transform: none; } }
+@keyframes nv-toast-out { to { opacity: 0; transform: translateX(16px); } }
+
+.nv-confirm-overlay {
+  position: fixed; inset: 0; z-index: 1001;
+  background: rgba(3, 6, 12, 0.66);
+  backdrop-filter: blur(3px);
+  display: grid; place-items: center; padding: 16px;
+  animation: nv-fade .18s ease both;
+}
+.nv-confirm {
+  width: min(420px, 100%);
+  background: var(--nv-surface);
+  border: 1px solid var(--nv-border-strong);
+  border-radius: var(--nv-r-lg);
+  box-shadow: var(--nv-shadow);
+  padding: 22px;
+  display: grid;
+  gap: 14px;
+  animation: nv-rise .24s ease both;
+}
+.nv-confirm-actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+@keyframes nv-fade { from { opacity: 0; } to { opacity: 1; } }
 
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }

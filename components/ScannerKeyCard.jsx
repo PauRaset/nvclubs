@@ -1,27 +1,38 @@
 'use client';
 import { useState } from 'react';
 import { regenerateScannerKey } from '@/lib/clubsApi';
+import { toast, confirmDialog } from '@/components/Toast';
 
 export default function ScannerKeyCard({ clubId, initialKey = '' }) {
   const [revealed, setRevealed] = useState(false);
   const [key, setKey] = useState(initialKey);
   const [loading, setLoading] = useState(false);
-  const [msg, setMsg] = useState('');
 
   async function regen() {
-    if (!confirm('Regenerar la clave invalidará la anterior. ¿Continuar?')) return;
+    const ok = await confirmDialog({
+      title: 'Regenerar clave del escáner',
+      message: 'La clave anterior dejará de funcionar inmediatamente en todos los dispositivos. ¿Continuar?',
+      confirmText: 'Regenerar',
+      danger: true,
+    });
+    if (!ok) return;
     try {
       setLoading(true);
       const { scannerApiKey } = await regenerateScannerKey(clubId);
       setKey(scannerApiKey);
       setRevealed(true);
-      setMsg('Nueva clave generada');
-      setTimeout(() => setMsg(''), 2500);
+      toast.success('Nueva clave del escáner generada.');
     } catch (e) {
-      setMsg(e.message || 'Error generando clave');
+      toast.error(e.message || 'No se pudo generar la clave.');
     } finally {
       setLoading(false);
     }
+  }
+
+  function copyKey() {
+    if (!key) return;
+    navigator.clipboard?.writeText(key);
+    toast.success('Clave copiada al portapapeles.');
   }
 
   return (
@@ -54,16 +65,10 @@ export default function ScannerKeyCard({ clubId, initialKey = '' }) {
         <button onClick={regen} disabled={loading} className="nv-btn nv-btn-primary">
           {loading ? 'Generando…' : 'Regenerar'}
         </button>
-        <button
-          onClick={() => navigator.clipboard?.writeText(key || '')}
-          className="nv-btn nv-btn-ghost"
-          disabled={!key}
-        >
+        <button onClick={copyKey} className="nv-btn nv-btn-ghost" disabled={!key}>
           Copiar
         </button>
       </div>
-
-      {msg && <p className="nv-small" style={{ margin: 0, color: 'var(--nv-accent-2)' }}>{msg}</p>}
     </div>
   );
 }

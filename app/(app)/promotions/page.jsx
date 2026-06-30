@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import RequireClub from '@/components/RequireClub';
 import { getUser } from '@/lib/apiClient';
+import { confirmDialog } from '@/components/Toast';
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE ||
@@ -248,7 +249,12 @@ export default function PromotionsPage() {
       return;
     }
 
-    const confirmed = window.confirm(`¿Seguro que quieres eliminar el nivel ${levelNumber}? Esta acción no se puede deshacer.`);
+    const confirmed = await confirmDialog({
+      title: `Eliminar nivel ${levelNumber}`,
+      message: 'Esta acción no se puede deshacer.',
+      confirmText: 'Eliminar',
+      danger: true,
+    });
     if (!confirmed) return;
 
     try {

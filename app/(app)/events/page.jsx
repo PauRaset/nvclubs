@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import RequireClub from '@/components/RequireClub';
 import { fetchEvents, deleteEvent } from '@/lib/eventsApi';
+import { toast, confirmDialog } from '@/components/Toast';
 
 export default function EventsListPage() {
   const [events, setEvents] = useState([]);
@@ -32,16 +33,24 @@ export default function EventsListPage() {
   }, []);
 
   async function onDelete(id) {
-    if (!confirm('¿Eliminar este evento?')) return;
+    const ok = await confirmDialog({
+      title: '¿Eliminar este evento?',
+      message: 'Esta acción no se puede deshacer. El evento dejará de estar disponible.',
+      confirmText: 'Eliminar',
+      cancelText: 'Cancelar',
+      danger: true,
+    });
+    if (!ok) return;
     setDeletingId(id);
     const r = await deleteEvent(id);
     if (!r.ok) {
       setDeletingId('');
-      alert(r.data?.message || `Error (HTTP ${r.status})`);
+      toast.error(r.data?.message || `No se pudo eliminar (HTTP ${r.status})`);
       return;
     }
     await load();
     setDeletingId('');
+    toast.success('Evento eliminado correctamente.');
   }
 
   function getEventTimestamp(ev) {
@@ -304,7 +313,7 @@ export default function EventsListPage() {
             </div>
           </section>
 
-          <section style={statGridStyle}>
+          <section className="nv-stagger" style={statGridStyle}>
             <article style={statCardStyle}>
               <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 10 }}>Total</div>
               <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.03em' }}>{counts.all}</div>
@@ -426,21 +435,25 @@ export default function EventsListPage() {
           {!loading && msg && <div style={panelStyle}>{msg}</div>}
 
           {!loading && !msg && filteredEvents.length === 0 && (
-            <section style={{ ...panelStyle, padding: 28 }}>
-              <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 10 }}>No hay eventos en esta vista</div>
-              <div style={{ ...mutedStyle, maxWidth: 620 }}>
-                No se han encontrado eventos con los filtros actuales. Prueba con otra búsqueda o crea un nuevo evento.
-              </div>
-              <div style={{ marginTop: 18 }}>
-                <a href="/events/new" style={primaryBtn}>
-                  Crear evento
-                </a>
+            <section style={panelStyle}>
+              <div className="nv-empty">
+                <div className="nv-empty-icon" aria-hidden="true">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+                    <rect x="3" y="5" width="18" height="16" rx="3" stroke="currentColor" strokeWidth="2" />
+                    <path d="M3 9h18M8 3v4M16 3v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  </svg>
+                </div>
+                <div className="nv-empty-title">No hay eventos en esta vista</div>
+                <div className="nv-empty-text">
+                  No se han encontrado eventos con los filtros actuales. Prueba con otra búsqueda o crea tu primer evento.
+                </div>
+                <a href="/events/new" style={{ ...primaryBtn, marginTop: 10 }}>+ Crear evento</a>
               </div>
             </section>
           )}
 
           {!loading && !msg && filteredEvents.length > 0 && (
-            <section style={listStyle}>
+            <section className="nv-stagger" style={listStyle}>
               {filteredEvents.map((ev) => {
                 const id = ev._id || ev.id;
                 const status = getEventStatus(ev);
@@ -458,6 +471,7 @@ export default function EventsListPage() {
                     }}
                   >
                     <div
+                      className={cover ? 'nv-cover' : ''}
                       style={{
                         width: '100%',
                         aspectRatio: '16 / 10',
@@ -475,7 +489,7 @@ export default function EventsListPage() {
                       {cover ? (
                         <img
                           src={cover}
-                          alt={ev.title || 'Evento'}
+                          alt={`Portada de ${ev.title || 'evento'}`}
                           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         />
                       ) : (

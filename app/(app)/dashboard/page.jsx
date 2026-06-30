@@ -689,8 +689,8 @@ function DashboardInner() {
           </div>
         </section>
 
-        {loading && <div style={warningBox}>Cargando tu club…</div>}
-        {error && <div style={errorBox}>{error}</div>}
+        {loading && <div style={warningBox} role="status" aria-live="polite">Cargando tu club…</div>}
+        {error && <div style={errorBox} role="alert" aria-live="assertive">{error}</div>}
         {!loading && !(effectiveClubId || inferredClub?._id) && (
           <div style={warningBox}>
             No se encontró ningún club asociado a tu cuenta. Si en otras pantallas sí ves datos,
@@ -703,7 +703,7 @@ function DashboardInner() {
           </div>
         )}
 
-        <section style={kpiGrid}>
+        <section className="nv-stagger" style={kpiGrid}>
           {kpis.map((item) => (
             <article key={item.label} style={kpiCard}>
               <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 12 }}>{item.label}</div>
