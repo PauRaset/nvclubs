@@ -275,7 +275,7 @@ export default function ReferralsPage() {
   }, [eventDetail]);
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(0,229,255,0.10),transparent_22%),linear-gradient(180deg,#0B0F18,#0A0E16)] text-white">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(0,229,255,0.10),transparent_22%),linear-gradient(180deg,var(--nv-bg),var(--nv-bg))] text-white">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 md:px-6 lg:px-8">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
@@ -298,8 +298,16 @@ export default function ReferralsPage() {
         </div>
 
         {loading ? (
-          <div className="rounded-3xl border border-white/10 bg-[#111624] p-8 text-center text-white/60">
-            Cargando analítica de difusión…
+          <div className="grid gap-4">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="nv-skeleton-card">
+                  <div className="nv-skeleton nv-skeleton-line" style={{ width: '50%' }} />
+                  <div className="nv-skeleton nv-skeleton-line lg" style={{ width: '70%', marginTop: 14 }} />
+                </div>
+              ))}
+            </div>
+            <div className="nv-skeleton" style={{ height: 280, borderRadius: 24 }} />
           </div>
         ) : error ? (
           <div className="rounded-3xl border border-rose-400/20 bg-rose-500/10 p-8 text-center text-rose-100">

@@ -13,7 +13,10 @@ export default function EditEventPage() {
   const [copied, setCopied] = useState(false);
 
   // --- Photos moderation (club) ---
-  const API_BASE = 'https://api.nightvibe.life';
+  const API_BASE =
+    process.env.NEXT_PUBLIC_API_BASE ||
+    process.env.NEXT_PUBLIC_BACKEND_URL ||
+    'https://api.nightvibe.life';
   const [showPhotos, setShowPhotos] = useState(false);
   const [photoTab, setPhotoTab] = useState('pending'); // pending | approved | rejected
   const [photos, setPhotos] = useState([]);
@@ -238,7 +241,7 @@ export default function EditEventPage() {
   const pageStyle = {
     padding: '28px 24px 44px',
     color: '#e5e7eb',
-    background: 'radial-gradient(circle at top, rgba(0,229,255,0.08), transparent 0 24%), #0b0f19',
+    background: 'radial-gradient(circle at top, rgba(0,229,255,0.08), transparent 0 24%), var(--nv-bg)',
     minHeight: '100vh',
   };
 
@@ -252,7 +255,7 @@ export default function EditEventPage() {
 
   const heroStyle = {
     display: 'grid',
-    gridTemplateColumns: 'minmax(0, 1.2fr) auto',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
     gap: 18,
     alignItems: 'center',
     padding: 26,
@@ -263,7 +266,7 @@ export default function EditEventPage() {
   };
 
   const panelStyle = {
-    background: '#0f1629',
+    background: 'var(--nv-surface)',
     border: '1px solid rgba(255,255,255,0.06)',
     borderRadius: 22,
     padding: 20,
@@ -357,7 +360,21 @@ export default function EditEventPage() {
           </section>
 
           {msg && !initial ? (
-            <section style={panelStyle}>{msg}</section>
+            <section style={{ ...panelStyle, display: 'grid', gap: 12 }}>
+              <div className="nv-skeleton nv-skeleton-line lg" style={{ width: '45%' }} />
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                  gap: 14,
+                }}
+              >
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="nv-skeleton" style={{ height: 90, borderRadius: 16 }} />
+                ))}
+              </div>
+              <div className="nv-skeleton" style={{ height: 240, borderRadius: 16 }} />
+            </section>
           ) : (
             <>
               <section
@@ -388,7 +405,7 @@ export default function EditEventPage() {
               <section
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'minmax(0, 1.1fr) minmax(320px, 0.9fr)',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
                   gap: 20,
                   alignItems: 'start',
                 }}
@@ -625,15 +642,16 @@ export default function EditEventPage() {
                     onClick={(e) => e.stopPropagation()}
                     style={{
                       width: 'min(980px, 100%)',
-                      background: '#0b0f19',
+                      maxHeight: '88vh',
+                      background: 'var(--nv-bg)',
                       border: '1px solid rgba(255,255,255,0.12)',
                       borderRadius: 18,
-                      overflow: 'hidden',
+                      overflow: 'auto',
                       display: 'grid',
-                      gridTemplateColumns: '1.4fr 1fr',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
                     }}
                   >
-                    <div style={{ background: '#020617' }}>
+                    <div style={{ background: 'var(--nv-ink)' }}>
                       <img
                         src={selectedPhoto.url}
                         alt="selected"

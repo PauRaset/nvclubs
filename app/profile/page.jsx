@@ -443,11 +443,11 @@ export default function ProfilePage() {
 
       <style jsx>{`
         :global(html), :global(body) {
-          background: #0b1220;
+          background: var(--nv-bg);
         }
         .${styles.page} {
           min-height: 100dvh;
-          background: radial-gradient(circle at top, rgba(0,229,255,0.08), transparent 0 24%), #0b1220;
+          background: radial-gradient(circle at top, rgba(0,229,255,0.08), transparent 0 24%), var(--nv-bg);
           color: #e6f0ff;
         }
         .${styles.container} {
@@ -506,7 +506,7 @@ export default function ProfilePage() {
         }
         .${styles.card} {
           border: 1px solid rgba(255,255,255,0.06);
-          background: #0f172a;
+          background: var(--nv-surface);
           border-radius: 18px;
           padding: 18px;
           box-shadow: 0 14px 40px rgba(0,0,0,0.2);
@@ -542,7 +542,7 @@ export default function ProfilePage() {
           border-radius: 50%;
           overflow: hidden;
           border: 1px solid #243044;
-          background: #0b1424;
+          background: var(--nv-bg-soft);
           flex: 0 0 auto;
         }
         .${styles.avatarMeta} {
@@ -579,13 +579,13 @@ export default function ProfilePage() {
           min-height: 48px;
           border-radius: 12px;
           border: 1px solid #2c3a52;
-          background: #0b1424;
+          background: var(--nv-bg-soft);
           color: #e6f0ff;
           outline: none;
         }
         .${styles.inputReadOnly} {
           border-color: #334155;
-          background: #0b1220;
+          background: var(--nv-bg);
           opacity: 0.85;
         }
         .${styles.label} {

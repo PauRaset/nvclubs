@@ -3,7 +3,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import RequireClub from '@/components/RequireClub';
 
-const API_BASE = 'https://api.nightvibe.life';
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE ||
+  process.env.NEXT_PUBLIC_BACKEND_URL ||
+  'https://api.nightvibe.life';
 
 const CONTENT_MISSION_OPTIONS = [
   {
@@ -382,12 +385,6 @@ function SmartPhoto({ photo, alt, style }) {
       setFailed(false);
 
       try {
-        console.log('[ContentPage] trying image candidate', {
-          currentSrc,
-          candidates,
-          photo,
-        });
-
         const res = await fetch(currentSrc, {
           method: 'GET',
           headers: {
@@ -413,13 +410,6 @@ function SmartPhoto({ photo, alt, style }) {
           setResolvedSrc(objectUrl);
         }
       } catch (error) {
-        console.warn('[ContentPage] image candidate failed', {
-          currentSrc,
-          nextCandidate: candidates[index + 1] || null,
-          photo,
-          error: error?.message || error,
-        });
-
         if (cancelled) return;
 
         if (index < candidates.length - 1) {
@@ -786,7 +776,7 @@ export default function ContentPage() {
   const pageStyle = {
     padding: '28px 24px 44px',
     color: '#e5e7eb',
-    background: 'radial-gradient(circle at top, rgba(0,229,255,0.08), transparent 0 24%), #0b0f19',
+    background: 'radial-gradient(circle at top, rgba(0,229,255,0.08), transparent 0 24%), var(--nv-bg)',
     minHeight: '100vh',
   };
 
@@ -799,10 +789,7 @@ export default function ContentPage() {
   };
 
   const heroStyle = {
-    display: 'grid',
-    gridTemplateColumns: 'minmax(0, 1.2fr) auto',
     gap: 18,
-    alignItems: 'center',
     padding: 26,
     borderRadius: 24,
     background: 'linear-gradient(135deg, rgba(0,229,255,0.12), rgba(15,22,41,0.96))',
@@ -811,7 +798,7 @@ export default function ContentPage() {
   };
 
   const panelStyle = {
-    background: '#0f1629',
+    background: 'var(--nv-surface)',
     border: '1px solid rgba(255,255,255,0.06)',
     borderRadius: 22,
     padding: 20,
@@ -854,7 +841,7 @@ export default function ContentPage() {
     <RequireClub>
       <main style={pageStyle}>
         <div style={shellStyle}>
-          <section style={heroStyle}>
+          <section className="nv-hero-split" style={heroStyle}>
             <div>
               <div
                 style={{
@@ -929,7 +916,7 @@ export default function ContentPage() {
             style={{
               ...panelStyle,
               display: 'grid',
-              gridTemplateColumns: 'minmax(0, 1fr) auto auto',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))',
               gap: 14,
               alignItems: 'end',
             }}
@@ -986,7 +973,23 @@ export default function ContentPage() {
 
           <section style={panelStyle}>
             {loading || photosLoading ? (
-              <div style={{ color: '#cbd5e1' }}>Cargando fotos...</div>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+                  gap: 14,
+                }}
+              >
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <div key={i} className="nv-skeleton-card" style={{ padding: 0, overflow: 'hidden' }}>
+                    <div className="nv-skeleton" style={{ height: 210, borderRadius: 0 }} />
+                    <div style={{ padding: 12 }}>
+                      <div className="nv-skeleton nv-skeleton-line lg" style={{ width: '70%' }} />
+                      <div className="nv-skeleton nv-skeleton-line" style={{ width: '40%' }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : photos.length === 0 ? (
               <div>
                 <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 10 }}>No hay fotos en esta vista</div>
@@ -1162,16 +1165,16 @@ export default function ContentPage() {
                 style={{
                   width: 'min(860px, 100%)',
                   maxHeight: '84vh',
-                  background: '#0b0f19',
+                  background: 'var(--nv-bg)',
                   border: '1px solid rgba(255,255,255,0.12)',
                   borderRadius: 20,
-                  overflow: 'hidden',
+                  overflow: 'auto',
                   display: 'grid',
-                  gridTemplateColumns: 'minmax(0, 0.95fr) 340px',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
                 }}
               >
                 <div style={{
-                  background: '#020617',
+                  background: 'var(--nv-ink)',
                   minHeight: 320,
                   maxHeight: '84vh',
                   display: 'flex',

@@ -415,7 +415,7 @@ export default function PromotionsPage() {
     padding: '28px 24px 44px',
     color: '#e5e7eb',
     background:
-      'radial-gradient(circle at top, rgba(0,229,255,0.08), transparent 0 24%), #0b0f19',
+      'radial-gradient(circle at top, rgba(0,229,255,0.08), transparent 0 24%), var(--nv-bg)',
     minHeight: '100vh',
   };
 
@@ -429,7 +429,7 @@ export default function PromotionsPage() {
 
   const heroStyle = {
     display: 'grid',
-    gridTemplateColumns: 'minmax(0, 1.2fr) auto',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
     gap: 18,
     alignItems: 'center',
     padding: 26,
@@ -470,7 +470,7 @@ export default function PromotionsPage() {
   };
 
   const panelStyle = {
-    background: '#0f1629',
+    background: 'var(--nv-surface)',
     border: '1px solid rgba(255,255,255,0.06)',
     borderRadius: 22,
     padding: 20,
@@ -583,7 +583,12 @@ export default function PromotionsPage() {
 
           <section style={listStyle}>
             {loading ? (
-              <section style={panelStyle}>Cargando niveles del club...</section>
+              <section style={{ ...panelStyle, display: 'grid', gap: 12 }}>
+                <div className="nv-skeleton nv-skeleton-line lg" style={{ width: '30%' }} />
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="nv-skeleton" style={{ height: 64, borderRadius: 14 }} />
+                ))}
+              </section>
             ) : levels.length === 0 ? (
               <section style={panelStyle}>
                 <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 8 }}>No hay niveles disponibles</div>
@@ -822,7 +827,7 @@ export default function PromotionsPage() {
           <section
             style={{
               display: 'grid',
-              gridTemplateColumns: 'minmax(0, 1fr) minmax(320px, 0.9fr)',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
               gap: 20,
             }}
           >

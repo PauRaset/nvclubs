@@ -11,7 +11,7 @@ export default function NewEventPage() {
     padding: '28px 24px 44px',
     color: '#e5e7eb',
     background:
-      'radial-gradient(circle at top, rgba(0,229,255,0.08), transparent 0 24%), #0b0f19',
+      'radial-gradient(circle at top, rgba(0,229,255,0.08), transparent 0 24%), var(--nv-bg)',
     minHeight: '100vh',
   };
 
@@ -25,7 +25,7 @@ export default function NewEventPage() {
 
   const heroStyle = {
     display: 'grid',
-    gridTemplateColumns: 'minmax(0, 1.2fr) auto',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
     gap: 18,
     alignItems: 'center',
     padding: 26,
@@ -66,7 +66,7 @@ export default function NewEventPage() {
   };
 
   const panelStyle = {
-    background: '#0f1629',
+    background: 'var(--nv-surface)',
     border: '1px solid rgba(255,255,255,0.06)',
     borderRadius: 22,
     padding: 22,

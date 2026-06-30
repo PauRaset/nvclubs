@@ -150,7 +150,7 @@ export default function EventsListPage() {
     padding: '28px 24px 40px',
     color: '#e5e7eb',
     background:
-      'radial-gradient(circle at top, rgba(0,229,255,0.08), transparent 0 24%), #0b0f19',
+      'radial-gradient(circle at top, rgba(0,229,255,0.08), transparent 0 24%), var(--nv-bg)',
     minHeight: '100vh',
   };
 
@@ -202,7 +202,7 @@ export default function EventsListPage() {
   };
 
   const panelStyle = {
-    background: '#0f1629',
+    background: 'var(--nv-surface)',
     border: '1px solid rgba(255,255,255,0.06)',
     borderRadius: 22,
     padding: 20,
@@ -405,7 +405,24 @@ export default function EventsListPage() {
             </div>
           </section>
 
-          {loading && <div style={panelStyle}>{msg}</div>}
+          {loading && (
+            <section style={listStyle}>
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="nv-event-card" style={{ ...panelStyle, padding: 18 }}>
+                  <div className="nv-skeleton" style={{ width: '100%', aspectRatio: '16 / 10', borderRadius: 18 }} />
+                  <div style={{ minWidth: 0 }}>
+                    <div className="nv-skeleton nv-skeleton-line lg" style={{ width: '55%' }} />
+                    <div className="nv-skeleton nv-skeleton-line" style={{ width: '35%' }} />
+                    <div className="nv-skeleton nv-skeleton-line" style={{ width: '25%' }} />
+                  </div>
+                  <div className="nv-event-actions">
+                    <div className="nv-skeleton" style={{ height: 44, borderRadius: 12 }} />
+                    <div className="nv-skeleton" style={{ height: 44, borderRadius: 12 }} />
+                  </div>
+                </div>
+              ))}
+            </section>
+          )}
           {!loading && msg && <div style={panelStyle}>{msg}</div>}
 
           {!loading && !msg && filteredEvents.length === 0 && (
@@ -449,7 +466,7 @@ export default function EventsListPage() {
                         border: '1px solid rgba(255,255,255,0.06)',
                         background:
                           cover
-                            ? '#0b0f19'
+                            ? 'var(--nv-bg)'
                             : 'linear-gradient(135deg, rgba(0,229,255,0.14), rgba(255,255,255,0.03))',
                         display: 'grid',
                         placeItems: 'center',

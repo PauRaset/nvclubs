@@ -298,7 +298,7 @@ export default function PromotionDetailPage() {
   const pageStyle = {
     padding: '28px 24px 44px',
     color: '#e5e7eb',
-    background: 'radial-gradient(circle at top, rgba(0,229,255,0.08), transparent 0 24%), #0b0f19',
+    background: 'radial-gradient(circle at top, rgba(0,229,255,0.08), transparent 0 24%), var(--nv-bg)',
     minHeight: '100vh',
   };
 
@@ -312,7 +312,7 @@ export default function PromotionDetailPage() {
 
   const heroStyle = {
     display: 'grid',
-    gridTemplateColumns: 'minmax(0, 1.2fr) auto',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
     gap: 18,
     alignItems: 'center',
     padding: 26,
@@ -337,7 +337,7 @@ export default function PromotionDetailPage() {
   };
 
   const panelStyle = {
-    background: '#0f1629',
+    background: 'var(--nv-surface)',
     border: '1px solid rgba(255,255,255,0.06)',
     borderRadius: 22,
     padding: 20,
@@ -460,7 +460,11 @@ export default function PromotionDetailPage() {
       <RequireClub>
         <main style={pageStyle}>
           <div style={shellStyle}>
-            <section style={panelStyle}>Cargando nivel...</section>
+            <section style={{ ...panelStyle, display: 'grid', gap: 12 }}>
+              <div className="nv-skeleton nv-skeleton-line lg" style={{ width: '40%' }} />
+              <div className="nv-skeleton" style={{ height: 56, borderRadius: 14 }} />
+              <div className="nv-skeleton" style={{ height: 120, borderRadius: 14 }} />
+            </section>
           </div>
         </main>
       </RequireClub>
@@ -590,7 +594,7 @@ export default function PromotionDetailPage() {
           <section
             style={{
               display: 'grid',
-              gridTemplateColumns: 'minmax(0, 1fr) minmax(320px, 0.9fr)',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
               gap: 20,
               alignItems: 'start',
             }}
@@ -715,7 +719,7 @@ export default function PromotionDetailPage() {
               style={{
                 ...panelStyle,
                 display: 'grid',
-                gridTemplateColumns: 'minmax(0, 1fr) minmax(320px, 0.9fr)',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
                 gap: 20,
                 alignItems: 'start',
               }}

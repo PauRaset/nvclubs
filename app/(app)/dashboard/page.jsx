@@ -443,7 +443,7 @@ function DashboardInner() {
   const container = {
     minHeight: '100vh',
     background:
-      'radial-gradient(circle at top, rgba(0,229,255,0.12), transparent 0 28%), #0b0f19',
+      'radial-gradient(circle at top, rgba(0,229,255,0.12), transparent 0 28%), var(--nv-bg)',
     color: '#e5e7eb',
     padding: '32px 24px 48px',
   };
@@ -518,7 +518,7 @@ function DashboardInner() {
     fontWeight: 800,
     border: '1px solid #00c2ff',
     background: '#00e5ff',
-    color: '#0b0f19',
+    color: 'var(--nv-bg)',
     cursor: 'pointer',
     textDecoration: 'none',
     whiteSpace: 'nowrap',
@@ -560,7 +560,7 @@ function DashboardInner() {
   };
 
   const sectionCard = {
-    background: '#0f1629',
+    background: 'var(--nv-surface)',
     border: '1px solid rgba(255,255,255,0.06)',
     borderRadius: 22,
     padding: 22,
@@ -707,7 +707,11 @@ function DashboardInner() {
           {kpis.map((item) => (
             <article key={item.label} style={kpiCard}>
               <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 12 }}>{item.label}</div>
-              <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.03em' }}>{item.value}</div>
+              {item.value === '...' ? (
+                <div className="nv-skeleton nv-skeleton-line lg" style={{ width: '60%', height: 28, marginTop: 0 }} />
+              ) : (
+                <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.03em' }}>{item.value}</div>
+              )}
               <div style={{ marginTop: 10, color: '#cbd5e1', fontSize: 13, lineHeight: 1.5 }}>{item.helper}</div>
             </article>
           ))}

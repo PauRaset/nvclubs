@@ -6,12 +6,13 @@
    ============================================================ */
 
 :root {
-  /* Fondos / superficies */
-  --nv-bg: #070b14;
-  --nv-bg-soft: #0b1120;
-  --nv-surface: #0f1629;
-  --nv-surface-2: #131c33;
+  /* Fondos / superficies — fuente única de verdad (alineada a la familia mayoritaria) */
+  --nv-bg: #0b0f19;        /* fondo de página */
+  --nv-bg-soft: #0b1220;   /* fondo de inputs / zonas hundidas */
+  --nv-surface: #0f1629;   /* cards / paneles */
+  --nv-surface-2: #131c33; /* superficies anidadas */
   --nv-elevated: #16203a;
+  --nv-ink: #020617;       /* negro profundo (visor de imágenes, etc.) */
 
   /* Bordes */
   --nv-border: rgba(255, 255, 255, 0.08);
@@ -23,13 +24,32 @@
   --nv-muted: #94a3b8;
   --nv-subtle: #64748b;
 
-  /* Acento (cian neón) + secundario (índigo) */
+  /* Acento (cian neón) — voz principal, reservada para lo importante */
   --nv-accent: #00e5ff;
   --nv-accent-2: #22d3ee;
+  --nv-accent-hover: #3ef0ff;
+  --nv-accent-active: #00c2db;
   --nv-accent-ink: #04141b;
   --nv-accent-soft: rgba(0, 229, 255, 0.12);
   --nv-accent-border: rgba(0, 229, 255, 0.22);
-  --nv-indigo: #6366f1;
+
+  /* Secundario (índigo) — segunda voz para acciones/estados no primarios */
+  --nv-indigo: #818cf8;
+  --nv-indigo-strong: #6366f1;
+  --nv-indigo-ink: #0b1020;
+  --nv-indigo-soft: rgba(129, 140, 248, 0.14);
+  --nv-indigo-border: rgba(129, 140, 248, 0.28);
+
+  /* Escala tipográfica */
+  --nv-fs-xs: 12px;
+  --nv-fs-sm: 13px;
+  --nv-fs-base: 15px;
+  --nv-fs-md: 16px;
+  --nv-fs-lg: 18px;
+  --nv-fs-xl: 20px;
+  --nv-fs-2xl: 24px;
+  --nv-fs-3xl: 30px;
+  --nv-fs-display: clamp(30px, 4vw, 44px);
 
   /* Estados */
   --nv-success: #22c55e;
@@ -148,21 +168,38 @@ a {
    ============================================================ */
 .nv-h1 {
   margin: 0;
-  font-size: clamp(28px, 4vw, 42px);
+  font-size: var(--nv-fs-display);
   line-height: 1.04;
   letter-spacing: -0.03em;
-  font-weight: 900;
+  font-weight: 800;
 }
 .nv-h2 {
   margin: 0;
   font-size: clamp(20px, 2.4vw, 26px);
+  line-height: 1.15;
   letter-spacing: -0.02em;
   font-weight: 800;
 }
-.nv-h3 { margin: 0; font-size: 18px; font-weight: 800; letter-spacing: -0.01em; }
-.nv-lead { margin: 0; color: var(--nv-text-soft); font-size: 15px; line-height: 1.65; }
+.nv-h3 { margin: 0; font-size: var(--nv-fs-lg); line-height: 1.3; font-weight: 800; letter-spacing: -0.01em; }
+.nv-h4 { margin: 0; font-size: var(--nv-fs-md); line-height: 1.35; font-weight: 700; }
+.nv-eyebrow {
+  display: inline-block;
+  font-size: var(--nv-fs-xs);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--nv-accent-2);
+}
+.nv-lead { margin: 0; color: var(--nv-text-soft); font-size: var(--nv-fs-base); line-height: 1.65; }
 .nv-muted { color: var(--nv-muted); }
-.nv-small { font-size: 13px; }
+.nv-small { font-size: var(--nv-fs-sm); line-height: 1.5; }
+.nv-mono { font-family: var(--font-geist-mono), ui-monospace, monospace; }
+.nv-accent-text {
+  background: var(--nv-grad-accent);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
 
 /* ============================================================
    Cards / paneles
@@ -233,7 +270,22 @@ a {
   color: var(--nv-accent-ink);
   box-shadow: var(--nv-shadow-glow);
 }
-.nv-btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 18px 40px rgba(0, 229, 255, 0.3); }
+.nv-btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: linear-gradient(90deg, var(--nv-accent-hover), var(--nv-accent));
+  box-shadow: 0 18px 40px rgba(0, 229, 255, 0.32);
+}
+.nv-btn-primary:active:not(:disabled) { background: var(--nv-accent-active); }
+
+.nv-btn-secondary {
+  background: var(--nv-indigo-soft);
+  color: #c7ccff;
+  border-color: var(--nv-indigo-border);
+}
+.nv-btn-secondary:hover:not(:disabled) {
+  background: rgba(129, 140, 248, 0.22);
+  transform: translateY(-1px);
+}
 
 .nv-btn-ghost {
   background: rgba(255, 255, 255, 0.04);
@@ -308,6 +360,7 @@ a {
 .nv-badge-warn { background: var(--nv-warn-soft); border-color: rgba(245, 158, 11, 0.24); color: #fcd34d; }
 .nv-badge-danger { background: var(--nv-danger-soft); border-color: rgba(244, 63, 94, 0.24); color: #fda4af; }
 .nv-badge-neutral { background: rgba(148, 163, 184, 0.1); border-color: rgba(148, 163, 184, 0.2); color: #cbd5e1; }
+.nv-badge-indigo { background: var(--nv-indigo-soft); border-color: var(--nv-indigo-border); color: #c7ccff; }
 
 /* ============================================================
    Notices (info / warning / error / success)
@@ -346,8 +399,18 @@ a.nv-item:hover, button.nv-item:hover { border-color: var(--nv-accent-border); b
   0% { background-position: 100% 50%; }
   100% { background-position: 0 50%; }
 }
+.nv-skeleton-line { height: 12px; border-radius: 7px; margin-top: 10px; }
+.nv-skeleton-line.lg { height: 18px; }
+.nv-skeleton-card { background: var(--nv-surface); border: 1px solid var(--nv-border); border-radius: var(--nv-r); padding: 18px; }
 .nv-spin { animation: nv-spin 0.9s linear infinite; }
 @keyframes nv-spin { to { transform: rotate(360deg); } }
+
+/* Accesibilidad: foco visible coherente */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--nv-accent);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
 
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
