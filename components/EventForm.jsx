@@ -322,7 +322,7 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
       }
     }
 
-    setMsg('✅ Guardado');
+    setMsg('Guardado');
     toast.success(mode === 'create' ? 'Evento creado correctamente.' : 'Cambios guardados correctamente.');
     setSaving(false);
     if (onSaved) onSaved(saved);
@@ -359,231 +359,227 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
 
   // ====== UI ======
   return (
-    <form onSubmit={handleSubmit} style={sx.form}>
-      {/* Encabezado */}
-      <div style={sx.headerShell}>
-        <div style={sx.headerMain}>
-          <div>
-            <div style={sx.eyebrow}>{mode === 'create' ? 'Nuevo evento' : 'Editar evento'}</div>
-            <h1 style={sx.h1}>{mode === 'create' ? 'Crear evento' : 'Editar evento'}</h1>
-            <p style={sx.muted}>
+    <form onSubmit={handleSubmit} className="nv-stack">
+      {/* Encabezado + vista rápida */}
+      <div className="nv-card-soft" style={{ display: 'grid', gap: 16 }}>
+        <div className="nv-row" style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div style={{ minWidth: 0 }}>
+            <span className="nv-eyebrow">{mode === 'create' ? 'Nuevo evento' : 'Editar evento'}</span>
+            <h2 className="nv-h3" style={{ marginTop: 8 }}>{mode === 'create' ? 'Crear evento' : 'Editar evento'}</h2>
+            <p className="nv-small nv-muted" style={{ marginTop: 6, maxWidth: 620 }}>
               Completa los detalles del evento con una estructura más clara. La imagen se recorta automáticamente a 800×450.
             </p>
           </div>
-          <button
-            disabled={saving}
-            type="submit"
-            style={sx.primary}
-          >
-            {saving ? 'Guardando...' : (mode === 'create' ? 'Crear evento' : 'Guardar cambios')}
+          <button disabled={saving} type="submit" className="nv-btn nv-btn-primary">
+            {saving ? 'Guardando…' : (mode === 'create' ? 'Crear evento' : 'Guardar cambios')}
           </button>
         </div>
 
-        <div style={sx.previewPanel}>
-          <div style={sx.previewMediaWrap}>
+        <div className="nv-card" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 16 }}>
+          <div className="nv-thumb" style={{ aspectRatio: '16 / 9' }}>
             {previewImage ? (
-              <img src={previewImage} alt="preview" style={sx.previewMedia} />
+              <img src={previewImage} alt="Previsualización de portada" />
             ) : (
-              <div style={sx.previewPlaceholder}>Tu portada aparecerá aquí</div>
+              <span className="nv-thumb-empty" style={{ textAlign: 'center', padding: '0 18px' }}>
+                Tu portada aparecerá aquí
+              </span>
             )}
           </div>
 
-          <div style={sx.previewBody}>
-            <div style={sx.previewBadge}>{mode === 'create' ? 'Borrador en preparación' : 'Vista rápida del evento'}</div>
-            <div style={sx.previewTitle}>{title.trim() || 'Evento sin título'}</div>
-            <div style={sx.previewMetaGrid}>
-              <div style={sx.previewMetric}>
-                <span style={sx.previewMetricLabel}>Inicio</span>
-                <span style={sx.previewMetricValue}>{formatSummaryDate(startAt)}</span>
+          <div style={{ display: 'grid', gap: 14, alignContent: 'start', minWidth: 0 }}>
+            <span className="nv-badge-neutral nv-badge">
+              {mode === 'create' ? 'Borrador en preparación' : 'Vista rápida del evento'}
+            </span>
+            <div className="nv-h2" style={{ wordBreak: 'break-word', minWidth: 0 }}>
+              {title.trim() || 'Evento sin título'}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
+              <div className="nv-card-soft" style={{ display: 'grid', gap: 4, padding: 12 }}>
+                <span className="nv-kpi-label" style={{ margin: 0 }}>Inicio</span>
+                <span style={{ fontWeight: 700, fontSize: 14, wordBreak: 'break-word' }}>{formatSummaryDate(startAt)}</span>
               </div>
-              <div style={sx.previewMetric}>
-                <span style={sx.previewMetricLabel}>Fin</span>
-                <span style={sx.previewMetricValue}>{formatSummaryDate(endAt)}</span>
+              <div className="nv-card-soft" style={{ display: 'grid', gap: 4, padding: 12 }}>
+                <span className="nv-kpi-label" style={{ margin: 0 }}>Fin</span>
+                <span style={{ fontWeight: 700, fontSize: 14, wordBreak: 'break-word' }}>{formatSummaryDate(endAt)}</span>
               </div>
-              <div style={sx.previewMetric}>
-                <span style={sx.previewMetricLabel}>Ubicación</span>
-                <span style={sx.previewMetricValue}>{previewLocation}</span>
+              <div className="nv-card-soft" style={{ display: 'grid', gap: 4, padding: 12 }}>
+                <span className="nv-kpi-label" style={{ margin: 0 }}>Ubicación</span>
+                <span style={{ fontWeight: 700, fontSize: 14, wordBreak: 'break-word' }}>{previewLocation}</span>
               </div>
-              <div style={sx.previewMetric}>
-                <span style={sx.previewMetricLabel}>Precio</span>
-                <span style={sx.previewMetricValue}>{formatMoneyPreview(price)}</span>
+              <div className="nv-card-soft" style={{ display: 'grid', gap: 4, padding: 12 }}>
+                <span className="nv-kpi-label" style={{ margin: 0 }}>Precio</span>
+                <span style={{ fontWeight: 700, fontSize: 14, wordBreak: 'break-word' }}>{formatMoneyPreview(price)}</span>
               </div>
             </div>
-            <div style={sx.previewTagsWrap}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {previewCategories.length > 0 ? (
                 previewCategories.slice(0, 6).map((cat) => (
-                  <span key={`preview-${cat}`} style={sx.previewTag}>{cat}</span>
+                  <span key={`preview-${cat}`} className="nv-badge">{cat}</span>
                 ))
               ) : (
-                <span style={sx.previewEmpty}>Añade categorías para verlas aquí</span>
+                <span className="nv-small nv-muted">Añade categorías para verlas aquí</span>
               )}
             </div>
           </div>
         </div>
       </div>
 
-      {formError && <div role="alert" style={sx.errorBox}>{formError}</div>}
-      {msg && !formError && <div style={sx.okBox}>{msg}</div>}
+      {formError && <div role="alert" className="nv-notice nv-notice-error">{formError}</div>}
+      {msg && !formError && <div className="nv-notice nv-notice-success">{msg}</div>}
 
       {/* Card: Datos básicos */}
-      <section style={sx.card}>
-        <div style={sx.sectionHead}>
-          <div>
-            <h2 style={sx.h2}>Datos básicos</h2>
-            <p style={sx.sectionText}>La identidad principal del evento: nombre, tono y descripción.</p>
-          </div>
+      <section className="nv-card-soft">
+        <div style={{ marginBottom: 14 }}>
+          <h3 className="nv-h4">Datos básicos</h3>
+          <p className="nv-small nv-muted" style={{ marginTop: 6, maxWidth: 720 }}>La identidad principal del evento: nombre, tono y descripción.</p>
         </div>
-        <div style={sx.grid2}>
-          <label style={sx.label}>
-            Título <span style={sx.req}>*</span>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14 }}>
+          <label style={{ display: 'grid', gap: 6 }}>
+            <span className="nv-label" style={{ marginBottom: 0 }}>Título <span style={{ color: 'var(--nv-accent)' }}>*</span></span>
             <input
               value={title}
               onChange={e=>setTitle(e.target.value)}
               required
               maxLength={120}
               placeholder="Nombre del evento"
-              style={sx.input}
+              className="nv-input"
             />
           </label>
 
-          <label style={sx.label}>
-            Código de vestimenta
+          <label style={{ display: 'grid', gap: 6 }}>
+            <span className="nv-label" style={{ marginBottom: 0 }}>Código de vestimenta</span>
             <input
               value={dressCode}
               onChange={e=>setDressCode(e.target.value)}
               placeholder="casual, elegante..."
               maxLength={80}
-              style={sx.input}
+              className="nv-input"
             />
           </label>
         </div>
 
-        <label style={sx.label}>
-          Descripción
+        <label style={{ display: 'grid', gap: 6, marginTop: 14 }}>
+          <span className="nv-label" style={{ marginBottom: 0 }}>Descripción</span>
           <textarea
             value={description}
             onChange={e=>setDescription(e.target.value)}
             rows={5}
             placeholder="Cuéntale a la gente qué hará especial tu evento…"
-            style={sx.textarea}
+            className="nv-textarea"
           />
         </label>
       </section>
 
       {/* Card: Fechas */}
-      <section style={sx.card}>
-        <div style={sx.sectionHead}>
-          <div>
-            <h2 style={sx.h2}>Fechas</h2>
-            <p style={sx.sectionText}>Selecciona la hora local exacta del inicio y final del evento.</p>
-          </div>
+      <section className="nv-card-soft">
+        <div style={{ marginBottom: 14 }}>
+          <h3 className="nv-h4">Fechas</h3>
+          <p className="nv-small nv-muted" style={{ marginTop: 6, maxWidth: 720 }}>Selecciona la hora local exacta del inicio y final del evento.</p>
         </div>
-        <div style={sx.grid2}>
-          <label style={sx.label}>
-            Inicio <span style={sx.req}>*</span>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14 }}>
+          <label style={{ display: 'grid', gap: 6 }}>
+            <span className="nv-label" style={{ marginBottom: 0 }}>Inicio <span style={{ color: 'var(--nv-accent)' }}>*</span></span>
             <input
               type="datetime-local"
               value={startAt}
               onChange={e=>setStartAt(e.target.value)}
               required
-              style={sx.input}
+              className="nv-input"
             />
-            <span style={sx.helperText}>Hora seleccionada: {formatLocalPreview(startAt)}</span>
+            <span className="nv-small nv-muted">Hora seleccionada: {formatLocalPreview(startAt)}</span>
           </label>
-          <label style={sx.label}>
-            Fin <span style={sx.req}>*</span>
+          <label style={{ display: 'grid', gap: 6 }}>
+            <span className="nv-label" style={{ marginBottom: 0 }}>Fin <span style={{ color: 'var(--nv-accent)' }}>*</span></span>
             <input
               type="datetime-local"
               value={endAt}
               onChange={e=>setEndAt(e.target.value)}
               required
-              style={sx.input}
+              className="nv-input"
             />
-            <span style={sx.helperText}>Hora seleccionada: {formatLocalPreview(endAt)}</span>
+            <span className="nv-small nv-muted">Hora seleccionada: {formatLocalPreview(endAt)}</span>
           </label>
         </div>
 
-        <div style={sx.infoNotice}>
+        <div className="nv-notice nv-notice-info" style={{ marginTop: 12 }}>
           La base de datos puede guardar la fecha en UTC. Eso es normal. Lo importante es que en la app se respete la hora local que seleccionas aquí.
         </div>
       </section>
 
       {/* Card: Ubicación */}
-      <section style={sx.card}>
-        <div style={sx.sectionHead}>
-          <div>
-            <h2 style={sx.h2}>Ubicación</h2>
-            <p style={sx.sectionText}>Añade la dirección base para que el evento se entienda mejor y se pueda filtrar.</p>
-          </div>
+      <section className="nv-card-soft">
+        <div style={{ marginBottom: 14 }}>
+          <h3 className="nv-h4">Ubicación</h3>
+          <p className="nv-small nv-muted" style={{ marginTop: 6, maxWidth: 720 }}>Añade la dirección base para que el evento se entienda mejor y se pueda filtrar.</p>
         </div>
-        <label style={sx.label}>
-          Calle
+        <label style={{ display: 'grid', gap: 6 }}>
+          <span className="nv-label" style={{ marginBottom: 0 }}>Calle</span>
           <input
             value={street}
             onChange={e=>setStreet(e.target.value)}
             placeholder="Calle, número, piso..."
-            style={sx.input}
+            className="nv-input"
           />
         </label>
-        <div style={sx.grid2}>
-          <label style={sx.label}>
-            Ciudad
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14, marginTop: 14 }}>
+          <label style={{ display: 'grid', gap: 6 }}>
+            <span className="nv-label" style={{ marginBottom: 0 }}>Ciudad</span>
             <input
               value={city}
               onChange={e=>setCity(e.target.value)}
-              style={sx.input}
+              className="nv-input"
             />
           </label>
-          <label style={sx.label}>
-            Código postal
+          <label style={{ display: 'grid', gap: 6 }}>
+            <span className="nv-label" style={{ marginBottom: 0 }}>Código postal</span>
             <input
               value={postalCode}
               onChange={e=>setPostalCode(e.target.value)}
-              style={sx.input}
+              className="nv-input"
             />
           </label>
         </div>
       </section>
 
       {/* Card: Música */}
-      <section style={sx.card}>
-        <div style={sx.sectionHead}>
-          <div>
-            <h2 style={sx.h2}>Categorías musicales</h2>
-            <p style={sx.sectionText}>Define el estilo del evento para mejorar la presentación y los filtros posteriores.</p>
-          </div>
+      <section className="nv-card-soft">
+        <div style={{ marginBottom: 14 }}>
+          <h3 className="nv-h4">Categorías musicales</h3>
+          <p className="nv-small nv-muted" style={{ marginTop: 6, maxWidth: 720 }}>Define el estilo del evento para mejorar la presentación y los filtros posteriores.</p>
         </div>
         {/* Chips de seleccionados */}
         {categories.length > 0 && (
-          <div style={sx.chipsWrap}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
             {categories.map(cat => (
               <button
                 key={`chip-${cat}`}
                 type="button"
                 onClick={() => toggleCategory(cat)}
                 title="Quitar"
-                style={sx.chip}
+                className="nv-badge"
+                style={{ cursor: 'pointer' }}
               >
-                {cat} <span style={sx.chipX}>×</span>
+                {cat} <span aria-hidden="true" style={{ opacity: 0.8 }}>×</span>
               </button>
             ))}
           </div>
         )}
 
-        <div style={sx.genreActions}>
-          <div style={{display:'flex', gap:8, flex:1}}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, margin: '8px 0 12px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 8, flex: 1 }}>
             <input
               placeholder="Buscar género…"
               value={genreQuery}
               onChange={e=>setGenreQuery(e.target.value)}
-              style={{...sx.input, maxWidth:360}}
+              className="nv-input"
+              style={{ maxWidth: 360 }}
             />
-            <button type="button" style={sx.ghost} onClick={() => setGenreQuery('')}>Limpiar búsqueda</button>
+            <button type="button" className="nv-btn nv-btn-ghost" onClick={() => setGenreQuery('')}>Limpiar búsqueda</button>
           </div>
-          <div style={{display:'flex', gap:8}}>
+          <div style={{ display: 'flex', gap: 8 }}>
             <button
               type="button"
-              style={sx.ghost}
+              className="nv-btn nv-btn-ghost"
               onClick={() => setCategories(uniq([...ALL_GENRES]))}
               title="Seleccionar todos los géneros"
             >
@@ -591,7 +587,7 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
             </button>
             <button
               type="button"
-              style={sx.ghostDanger}
+              className="nv-btn nv-btn-danger"
               onClick={() => setCategories([])}
               title="Limpiar selección"
             >
@@ -600,11 +596,25 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
           </div>
         </div>
 
-        <div style={sx.genreGrid}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 8 }}>
           {visibleGenres.map(cat => {
             const checked = categories.includes(cat);
             return (
-              <label key={cat} style={sx.genreItem(checked)}>
+              <label
+                key={cat}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '8px 10px',
+                  borderRadius: 'var(--nv-r-sm)',
+                  border: '1px solid ' + (checked ? 'var(--nv-accent-border)' : 'var(--nv-border)'),
+                  background: checked ? 'var(--nv-accent-soft)' : 'rgba(255,255,255,0.02)',
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                  fontSize: 14,
+                }}
+              >
                 <input
                   type="checkbox"
                   checked={checked}
@@ -617,28 +627,26 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
           })}
         </div>
 
-        <label style={{...sx.label, marginTop:12}}>
-          Otras categorías (separadas por comas)
+        <label style={{ display: 'grid', gap: 6, marginTop: 14 }}>
+          <span className="nv-label" style={{ marginBottom: 0 }}>Otras categorías (separadas por comas)</span>
           <input
             value={otherCats}
             onChange={e=>setOtherCats(e.target.value)}
             placeholder="p.ej. techno melódico, indie dance"
-            style={sx.input}
+            className="nv-input"
           />
         </label>
       </section>
 
       {/* Card: Detalles */}
-      <section style={sx.card}>
-        <div style={sx.sectionHead}>
-          <div>
-            <h2 style={sx.h2}>Detalles</h2>
-            <p style={sx.sectionText}>Información adicional para completar la ficha del evento.</p>
-          </div>
+      <section className="nv-card-soft">
+        <div style={{ marginBottom: 14 }}>
+          <h3 className="nv-h4">Detalles</h3>
+          <p className="nv-small nv-muted" style={{ marginTop: 6, maxWidth: 720 }}>Información adicional para completar la ficha del evento.</p>
         </div>
-        <div style={sx.grid3}>
-          <label style={sx.label}>
-            Precio (€)
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+          <label style={{ display: 'grid', gap: 6 }}>
+            <span className="nv-label" style={{ marginBottom: 0 }}>Precio (€)</span>
             <input
               type="number"
               min="0"
@@ -646,11 +654,11 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
               value={price}
               onChange={e=>setPrice(e.target.value)}
               placeholder="p.ej. 15"
-              style={sx.input}
+              className="nv-input"
             />
           </label>
-          <label style={sx.label}>
-            Edad mínima
+          <label style={{ display: 'grid', gap: 6 }}>
+            <span className="nv-label" style={{ marginBottom: 0 }}>Edad mínima</span>
             <input
               type="number"
               min="0"
@@ -658,7 +666,7 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
               value={age}
               onChange={e=>setAge(e.target.value)}
               placeholder="18"
-              style={sx.input}
+              className="nv-input"
             />
           </label>
           <div />
@@ -666,26 +674,24 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
       </section>
 
       {/* Card: Imagen */}
-      <section style={sx.card}>
-        <div style={sx.sectionHead}>
-          <div>
-            <h2 style={sx.h2}>Imagen principal</h2>
-            <p style={sx.sectionText}>La portada es una de las partes más importantes del evento.</p>
-          </div>
+      <section className="nv-card-soft">
+        <div style={{ marginBottom: 14 }}>
+          <h3 className="nv-h4">Imagen principal</h3>
+          <p className="nv-small nv-muted" style={{ marginTop: 6, maxWidth: 720 }}>La portada es una de las partes más importantes del evento.</p>
         </div>
-        <p style={sx.mutedSmall}>Se recorta automáticamente a 800×450 (formato .webp).</p>
-        <label style={sx.fileLabel}>
+        <p className="nv-small nv-muted">Se recorta automáticamente a 800×450 (formato .webp).</p>
+        <label className="nv-btn nv-btn-ghost" style={{ width: 'fit-content', marginTop: 10 }}>
           <span>Seleccionar imagen…</span>
           <input type="file" accept="image/*" onChange={onPick} style={{ display:'none' }}/>
         </label>
 
         {preview && (
           <div style={{marginTop:12}}>
-            <div style={sx.mutedSmall}>Previsualización</div>
+            <div className="nv-small nv-muted">Previsualización</div>
             <img
               src={preview}
               alt="preview"
-              style={{ width:480, height:270, objectFit:'cover', borderRadius:10, border:'1px solid #243044' }}
+              style={{ width:480, maxWidth:'100%', height:270, objectFit:'cover', borderRadius:'var(--nv-r-sm)', border:'1px solid var(--nv-border)', marginTop:6 }}
             />
           </div>
         )}
@@ -693,29 +699,48 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
 
       {/* Card: Galería (sólo edición) */}
       {mode !== 'create' && (
-        <section style={sx.card}>
-          <div style={sx.sectionHead}>
-            <div>
-              <h2 style={sx.h2}>Fotos subidas por asistentes</h2>
-              <p style={sx.sectionText}>Aquí podrás revisar y gestionar el contenido que los asistentes han subido.</p>
-            </div>
+        <section className="nv-card-soft">
+          <div style={{ marginBottom: 14 }}>
+            <h3 className="nv-h4">Fotos subidas por asistentes</h3>
+            <p className="nv-small nv-muted" style={{ marginTop: 6, maxWidth: 720 }}>Aquí podrás revisar y gestionar el contenido que los asistentes han subido.</p>
           </div>
           {loadingPhotos ? (
-            <div style={sx.muted}>Cargando galería…</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="nv-skeleton" style={{ height: 140, borderRadius: 'var(--nv-r-sm)' }} />
+              ))}
+            </div>
           ) : photos.length === 0 ? (
-            <div style={sx.muted}>Aún no hay fotos en la galería.</div>
+            <div className="nv-empty">
+              <div className="nv-empty-title" style={{ fontSize: 'var(--nv-fs-md)' }}>Aún no hay fotos en la galería</div>
+              <div className="nv-empty-text">Cuando los asistentes suban contenido aparecerá aquí.</div>
+            </div>
           ) : (
-            <div style={sx.galleryGrid}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
               {photos.map((ph, idx) => (
-                <div key={`${ph.url}-${idx}`} style={sx.photoCell}>
-                  <img src={ph.url} alt={`photo-${idx}`} style={sx.photoImg}/>
+                <div
+                  key={`${ph.url}-${idx}`}
+                  style={{
+                    position: 'relative',
+                    border: '1px solid var(--nv-border)',
+                    borderRadius: 'var(--nv-r-sm)',
+                    overflow: 'hidden',
+                    height: 140,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: 'var(--nv-bg-soft)',
+                  }}
+                >
+                  <img src={ph.url} alt={`photo-${idx}`} style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
                   {isOwner && (
                     <button
                       type="button"
                       onClick={() => handleDeletePhoto(idx)}
                       disabled={deletingIdx === idx}
                       title="Eliminar foto"
-                      style={sx.deleteBtn(deletingIdx === idx)}
+                      className="nv-btn nv-btn-danger"
+                      style={{ position: 'absolute', top: 6, right: 6, minHeight: 34, padding: '0 10px', fontSize: 12 }}
                     >
                       {deletingIdx === idx ? 'Borrando…' : 'Eliminar'}
                     </button>
@@ -725,374 +750,18 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
             </div>
           )}
           {!isOwner && photos.length > 0 && (
-            <div style={sx.mutedSmall}>* Solo el creador del evento puede eliminar fotos.</div>
+            <div className="nv-small nv-muted" style={{ marginTop: 10 }}>* Solo el creador del evento puede eliminar fotos.</div>
           )}
         </section>
       )}
 
       {/* Footer actions */}
-      <div style={sx.footer}>
-        <button
-          disabled={saving}
-          type="submit"
-          style={sx.primary}
-        >
-          {saving ? 'Guardando...' : (mode === 'create' ? 'Crear evento' : 'Guardar cambios')}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'flex-end', marginTop: 6, padding: '14px 0 6px' }}>
+        {msg && !formError && <span className="nv-small" style={{ color: 'var(--nv-success)' }}>{msg}</span>}
+        <button disabled={saving} type="submit" className="nv-btn nv-btn-primary">
+          {saving ? 'Guardando…' : (mode === 'create' ? 'Crear evento' : 'Guardar cambios')}
         </button>
-        {msg && !formError && <span style={sx.okInline}>{msg}</span>}
       </div>
     </form>
   );
 }
-
-/* ================== estilos inline (oscuro minimal) ================== */
-const sx = {
-  form: {
-    display:'grid',
-    gap:18,
-    maxWidth:1040,
-    margin:'0 auto',
-    color:'#e5e7eb',
-  },
-  headerShell: {
-    display:'grid',
-    gap:16,
-  },
-  headerMain: {
-    display:'flex',
-    alignItems:'center',
-    justifyContent:'space-between',
-    flexWrap:'wrap',
-    background:'linear-gradient(135deg, rgba(0,229,255,0.10), rgba(13,21,38,0.96))',
-    border:'1px solid rgba(0,229,255,0.16)',
-    borderRadius:18,
-    padding:18,
-    gap:16,
-  },
-  eyebrow: {
-    display:'inline-flex',
-    alignItems:'center',
-    padding:'7px 11px',
-    borderRadius:999,
-    border:'1px solid rgba(0,229,255,0.18)',
-    background:'rgba(0,229,255,0.08)',
-    color:'#7dd3fc',
-    fontSize:12,
-    fontWeight:800,
-    marginBottom:12,
-  },
-  previewPanel: {
-    display:'grid',
-    gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
-    gap:16,
-    background:'#0d1526',
-    border:'1px solid #1f2b43',
-    borderRadius:18,
-    padding:16,
-  },
-  previewMediaWrap: {
-    width:'100%',
-    aspectRatio:'16 / 9',
-    borderRadius:14,
-    overflow:'hidden',
-    border:'1px solid rgba(255,255,255,0.06)',
-    background:'linear-gradient(135deg, rgba(0,229,255,0.14), rgba(255,255,255,0.03))',
-    display:'grid',
-    placeItems:'center',
-  },
-  previewMedia: {
-    width:'100%',
-    height:'100%',
-    objectFit:'cover',
-  },
-  previewPlaceholder: {
-    color:'#7dd3fc',
-    fontWeight:800,
-    fontSize:14,
-    textAlign:'center',
-    padding:'0 18px',
-  },
-  previewBody: {
-    display:'grid',
-    gap:14,
-    alignContent:'start',
-    minWidth:0,
-  },
-  previewBadge: {
-    display:'inline-flex',
-    alignItems:'center',
-    width:'fit-content',
-    minHeight:30,
-    padding:'0 10px',
-    borderRadius:999,
-    background:'rgba(255,255,255,0.04)',
-    border:'1px solid rgba(255,255,255,0.06)',
-    color:'#cbd5e1',
-    fontSize:12,
-    fontWeight:800,
-  },
-  previewTitle: {
-    fontSize:28,
-    lineHeight:1.02,
-    fontWeight:900,
-    letterSpacing:'-0.03em',
-    minWidth:0,
-    wordBreak:'break-word',
-  },
-  previewMetaGrid: {
-    display:'grid',
-    gridTemplateColumns:'repeat(auto-fit, minmax(180px, 1fr))',
-    gap:10,
-  },
-  previewMetric: {
-    display:'grid',
-    gap:4,
-    padding:12,
-    borderRadius:14,
-    background:'rgba(255,255,255,0.03)',
-    border:'1px solid rgba(255,255,255,0.06)',
-  },
-  previewMetricLabel: {
-    color:'#94a3b8',
-    fontSize:12,
-    fontWeight:700,
-  },
-  previewMetricValue: {
-    color:'#e5e7eb',
-    fontSize:14,
-    lineHeight:1.5,
-    fontWeight:700,
-    wordBreak:'break-word',
-  },
-  previewTagsWrap: {
-    display:'flex',
-    flexWrap:'wrap',
-    gap:8,
-  },
-  previewTag: {
-    border:'1px solid rgba(0,229,255,0.18)',
-    background:'rgba(0,229,255,0.08)',
-    color:'#baf6ff',
-    padding:'7px 10px',
-    borderRadius:999,
-    fontSize:12,
-    fontWeight:800,
-  },
-  previewEmpty: {
-    color:'#94a3b8',
-    fontSize:13,
-  },
-  h1: { fontSize:28, margin:0, fontWeight:900, letterSpacing:'-0.03em', lineHeight:1.02 },
-  h2: { fontSize:19, margin:0, fontWeight:900, letterSpacing:'-0.02em' },
-  muted: { opacity:.88, marginTop:6, color:'#cbd5e1', lineHeight:1.65, maxWidth:760 },
-  mutedSmall: { opacity:.7, fontSize:12 },
-  helperText: { opacity:.78, fontSize:12, color:'#94a3b8' },
-  infoNotice: {
-    marginTop: 12,
-    background: 'rgba(0,229,255,0.06)',
-    border: '1px solid rgba(0,229,255,0.16)',
-    color: '#cbd5e1',
-    padding: 12,
-    borderRadius: 10,
-    fontSize: 13,
-    lineHeight: 1.55,
-  },
-  sectionHead: {
-    display:'flex',
-    alignItems:'flex-start',
-    justifyContent:'space-between',
-    gap:12,
-    marginBottom:14,
-  },
-  sectionText: {
-    color:'#94a3b8',
-    fontSize:14,
-    lineHeight:1.6,
-    margin:'6px 0 0',
-    maxWidth:720,
-  },
-  card: {
-    background:'#0b1220',
-    border:'1px solid #1f2b43',
-    borderRadius:18,
-    padding:18,
-    boxShadow:'0 14px 34px rgba(0,0,0,0.18)',
-  },
-  grid2: {
-    display:'grid',
-    gridTemplateColumns:'repeat(auto-fit, minmax(260px, 1fr))',
-    gap:14,
-  },
-  grid3: {
-    display:'grid',
-    gridTemplateColumns:'repeat(auto-fit, minmax(220px, 1fr))',
-    gap:14,
-  },
-  label: { display:'grid', gap:6, fontSize:14 },
-  input: {
-    width:'100%',
-    padding:'12px 14px',
-    borderRadius:12,
-    border:'1px solid #243044',
-    background:'#0d1526',
-    color:'#e5e7eb',
-    outline:'none',
-    minHeight:48,
-  },
-  textarea: {
-    width:'100%',
-    padding:'12px 14px',
-    minHeight:140,
-    borderRadius:12,
-    border:'1px solid #243044',
-    background:'#0d1526',
-    color:'#e5e7eb',
-    outline:'none',
-    resize:'vertical',
-  },
-  req: { color:'#00e5ff', marginLeft:6, fontWeight:800 },
-  primary: {
-    background:'#00e5ff',
-    color:'#001018',
-    padding:'12px 18px',
-    borderRadius:12,
-    fontWeight:900,
-    border:'1px solid #00b9d1',
-    cursor:'pointer',
-    boxShadow:'0 12px 30px rgba(0,229,255,0.20)',
-    whiteSpace:'nowrap',
-    minHeight:48,
-  },
-  ghost: {
-    background:'#0d1526',
-    color:'#cbd5e1',
-    padding:'10px 12px',
-    borderRadius:10,
-    fontWeight:700,
-    border:'1px solid #243044',
-    cursor:'pointer',
-  },
-  ghostDanger: {
-    background:'#111827',
-    color:'#f87171',
-    padding:'10px 12px',
-    borderRadius:10,
-    fontWeight:800,
-    border:'1px solid #7f1d1d',
-    cursor:'pointer',
-  },
-  errorBox: {
-    background:'#1b0e12',
-    border:'1px solid #7f1d1d',
-    color:'#fecaca',
-    padding:12,
-    borderRadius:10,
-  },
-  okBox: {
-    background:'#0e1b17',
-    border:'1px solid #14532d',
-    color:'#bbf7d0',
-    padding:12,
-    borderRadius:10,
-  },
-  okInline: { color:'#86efac', marginLeft:12, fontSize:13 },
-
-  /* Géneros */
-  genreActions: {
-    display:'flex',
-    justifyContent:'space-between',
-    alignItems:'center',
-    gap:12,
-    margin:'8px 0 12px',
-    flexWrap:'wrap',
-  },
-  genreGrid: {
-    display:'grid',
-    gridTemplateColumns:'repeat(auto-fill, minmax(180px, 1fr))',
-    gap:8,
-  },
-  genreItem: (checked) => ({
-    display:'flex',
-    alignItems:'center',
-    gap:8,
-    padding:'8px 10px',
-    borderRadius:10,
-    border:'1px solid ' + (checked ? '#00b9d1' : '#243044'),
-    background: checked ? '#08222a' : '#0d1526',
-    cursor:'pointer',
-    userSelect:'none',
-    fontSize:14,
-  }),
-  chipsWrap: {
-    display:'flex',
-    flexWrap:'wrap',
-    gap:8,
-    marginBottom:8,
-  },
-  chip: {
-    border:'1px solid #00b9d1',
-    background:'#08222a',
-    color:'#c3f3fb',
-    padding:'6px 10px',
-    borderRadius:999,
-    fontSize:13,
-    cursor:'pointer',
-  },
-  chipX: { marginLeft:6, opacity:.8 },
-
-  /* Imagen */
-  fileLabel: {
-    display:'inline-flex',
-    alignItems:'center',
-    gap:8,
-    background:'#0d1526',
-    border:'1px solid #243044',
-    color:'#cbd5e1',
-    padding:'12px 14px',
-    borderRadius:12,
-    fontWeight:800,
-    cursor:'pointer',
-    width:'fit-content',
-  },
-
-  /* Galería */
-  galleryGrid: {
-    display:'grid',
-    gridTemplateColumns:'repeat(auto-fill, minmax(140px, 1fr))',
-    gap:12,
-    marginTop:8,
-  },
-  photoCell: {
-    position:'relative',
-    border:'1px solid #243044',
-    borderRadius:10,
-    overflow:'hidden',
-    height:140,
-    display:'flex',
-    alignItems:'center',
-    justifyContent:'center',
-    background:'#0b1220'
-  },
-  photoImg: { width:'100%', height:'100%', objectFit:'cover' },
-  deleteBtn: (disabled) => ({
-    position:'absolute',
-    top:6,
-    right:6,
-    padding:'6px 8px',
-    borderRadius:8,
-    border:'1px solid #ef4444',
-    background: disabled ? '#1f2937' : '#111827',
-    color:'#ef4444',
-    fontWeight:700,
-    cursor: disabled ? 'not-allowed' : 'pointer'
-  }),
-
-  footer: {
-    display:'flex',
-    alignItems:'center',
-    gap:12,
-    justifyContent:'flex-end',
-    marginTop:6,
-    padding:'14px 0 6px',
-  },
-};

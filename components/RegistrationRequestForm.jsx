@@ -42,72 +42,61 @@ export default function RegistrationRequestForm() {
     }
   }
 
-  const input = {
-    width: '100%',
-    padding: '10px 12px',
-    borderRadius: 10,
-    border: '1px solid #1f2937',
-    background: '#0b1220',
-    color: '#e5e7eb',
-  };
-
   return (
-    <form onSubmit={onSubmit} style={{
-      display: 'grid', gap: 12, maxWidth: 640, margin: '0 auto',
-      background: '#0b0f19', padding: 16, border: '1px solid #1d263a', borderRadius: 14
-    }}>
-      <h2 style={{ margin: 0 }}>Solicitar cuenta de club</h2>
+    <form
+      onSubmit={onSubmit}
+      className="nv-card"
+      style={{ display: 'grid', gap: 16, maxWidth: 640, margin: '0 auto', width: '100%' }}
+    >
+      <h2 className="nv-h3">Solicitar cuenta de club</h2>
 
-      <label style={{ display: 'grid', gap: 6 }}>
-        <span>Nombre del club *</span>
-        <input style={input} value={form.name} onChange={e=>set('name', e.target.value)} placeholder="NightVibe Club" />
+      <label className="nv-field">
+        <span className="nv-label">Nombre del club *</span>
+        <input className="nv-input" value={form.name} onChange={e=>set('name', e.target.value)} placeholder="NightVibe Club" />
       </label>
 
-      <label style={{ display: 'grid', gap: 6 }}>
-        <span>Email de contacto *</span>
-        <input style={input} type="email" value={form.email} onChange={e=>set('email', e.target.value)} placeholder="contacto@club.com" />
+      <label className="nv-field">
+        <span className="nv-label">Email de contacto *</span>
+        <input className="nv-input" type="email" value={form.email} onChange={e=>set('email', e.target.value)} placeholder="contacto@club.com" />
       </label>
 
       <div style={{ display: 'grid', gap: 12, gridTemplateColumns: '1fr 1fr' }}>
-        <label style={{ display: 'grid', gap: 6 }}>
-          <span>Ciudad</span>
-          <input style={input} value={form.city} onChange={e=>set('city', e.target.value)} placeholder="Barcelona" />
+        <label className="nv-field">
+          <span className="nv-label">Ciudad</span>
+          <input className="nv-input" value={form.city} onChange={e=>set('city', e.target.value)} placeholder="Barcelona" />
         </label>
-        <label style={{ display: 'grid', gap: 6 }}>
-          <span>Web</span>
-          <input style={input} value={form.website} onChange={e=>set('website', e.target.value)} placeholder="https://..." />
+        <label className="nv-field">
+          <span className="nv-label">Web</span>
+          <input className="nv-input" value={form.website} onChange={e=>set('website', e.target.value)} placeholder="https://..." />
         </label>
       </div>
 
-      <label style={{ display: 'grid', gap: 6 }}>
-        <span>Instagram</span>
-        <input style={input} value={form.instagram} onChange={e=>set('instagram', e.target.value)} placeholder="@tuclub" />
+      <label className="nv-field">
+        <span className="nv-label">Instagram</span>
+        <input className="nv-input" value={form.instagram} onChange={e=>set('instagram', e.target.value)} placeholder="@tuclub" />
       </label>
 
-      <label style={{ display: 'grid', gap: 6 }}>
-        <span>Notas (opcional)</span>
-        <textarea rows={4} style={{ ...input, resize: 'vertical' }} value={form.notes} onChange={e=>set('notes', e.target.value)} placeholder="Cuéntanos algo sobre el club..." />
+      <label className="nv-field">
+        <span className="nv-label">Notas (opcional)</span>
+        <textarea className="nv-textarea" rows={4} value={form.notes} onChange={e=>set('notes', e.target.value)} placeholder="Cuéntanos algo sobre el club..." />
       </label>
 
-      <label style={{ display: 'flex', gap: 10, alignItems: 'center', color: '#cbd5e1' }}>
+      <label className="nv-row" style={{ gap: 10, flexWrap: 'nowrap' }}>
         <input type="checkbox" checked={form.accept} onChange={e=>set('accept', e.target.checked)} />
-        <span>Acepto validar mi email y que revisemos la solicitud.</span>
+        <span className="nv-small nv-muted">Acepto validar mi email y que revisemos la solicitud.</span>
       </label>
 
-      <div style={{ display: 'flex', gap: 12 }}>
-        <button disabled={loading} type="submit" style={{
-          padding: '10px 14px', borderRadius: 10, border: '1px solid #0ea5e9',
-          background: loading ? '#0b1220' : '#0ea5e9', color: loading ? '#64748b' : '#001018', fontWeight: 700
-        }}>
+      <div className="nv-row">
+        <button disabled={loading} type="submit" className="nv-btn nv-btn-primary">
           {loading ? 'Enviando…' : 'Enviar solicitud'}
         </button>
-        <a href="/register/verify" style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid #334155', textDecoration: 'none', color: '#e5e7eb' }}>
+        <a href="/register/verify" className="nv-btn nv-btn-ghost">
           Ya tengo token de verificación
         </a>
       </div>
 
-      {okMsg && <div style={{ padding: 12, borderRadius: 10, background: '#052e1a', border: '1px solid #14532d', color: '#86efac' }}>{okMsg}</div>}
-      {errMsg && <div style={{ padding: 12, borderRadius: 10, background: '#2a0a0a', border: '1px solid #7f1d1d', color: '#fecaca' }}>{errMsg}</div>}
+      {okMsg && <p role="status" aria-live="polite" className="nv-notice nv-notice-success">{okMsg}</p>}
+      {errMsg && <p role="alert" aria-live="assertive" className="nv-notice nv-notice-error">{errMsg}</p>}
     </form>
   );
 }

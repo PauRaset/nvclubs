@@ -126,11 +126,16 @@ async function resolveClubNameClient(backendBase, eventId) {
 }
 
 const Banner = ({ type='info', children }) => {
-  const c = { success:'#22c55e', warn:'#f59e0b', error:'#ef4444', info:'#0ea5e9' }[type];
+  const cls = {
+    success: 'nv-badge nv-badge-success',
+    warn: 'nv-badge nv-badge-warn',
+    error: 'nv-badge nv-badge-danger',
+    info: 'nv-badge',
+  }[type] || 'nv-badge';
   return (
-    <div style={{position:'absolute',top:12,left:12,padding:'6px 10px',background:c,color:'#001015',borderRadius:8,fontWeight:800}}>
+    <span className={cls} style={{ position: 'absolute', top: 12, left: 12, zIndex: 2 }}>
       {children}
-    </div>
+    </span>
   );
 };
 
@@ -282,7 +287,15 @@ export default function ScannerCheckin({ backendBase='https://api.nightvibe.life
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  const colorBy = { scanning:'#1f2937', posting:'#0ea5e9', success:'#22c55e', duplicate:'#f59e0b', invalid:'#ef4444', badsig:'#ef4444', error:'#ef4444' };
+  const colorBy = {
+    scanning: 'var(--nv-border-strong)',
+    posting: 'var(--nv-accent)',
+    success: 'var(--nv-success)',
+    duplicate: 'var(--nv-warn)',
+    invalid: 'var(--nv-danger)',
+    badsig: 'var(--nv-danger)',
+    error: 'var(--nv-danger)',
+  };
   const titleBy = { success:'Entrada válida', duplicate:'Entrada ya usada', invalid:'Entrada no encontrada', badsig:'QR no válido', error:'Error' };
   const noteBy  = {
     success:'¡Listo! Puedes pasar.',
@@ -296,35 +309,36 @@ export default function ScannerCheckin({ backendBase='https://api.nightvibe.life
     if (!['success','duplicate','invalid','badsig','error'].includes(status)) return null;
     const color = colorBy[status];
     return (
-      <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(0,0,0,.45)',padding:16}}>
-        <div style={{width:'100%',maxWidth:520,background:'#0b0f19',borderRadius:16,border:`2px solid ${color}`,boxShadow:'0 10px 40px rgba(0,0,0,.45)'}}>
-          <div style={{padding:18,borderBottom:'1px solid #1e293b',display:'flex',gap:10,alignItems:'center'}}>
-            <div style={{width:10,height:10,borderRadius:999,background:color}} />
-            <div style={{fontWeight:900,color:'#e5e7eb'}}>{titleBy[status]}</div>
+      <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(0,0,0,.55)',padding:16,zIndex:3}} role="dialog" aria-live="assertive">
+        <div className="nv-card" style={{width:'100%',maxWidth:520,padding:0,overflow:'hidden',borderColor:color,borderWidth:2}}>
+          <div style={{padding:18,borderBottom:'1px solid var(--nv-border)',display:'flex',gap:10,alignItems:'center'}}>
+            <span style={{width:10,height:10,borderRadius:999,background:color,flex:'0 0 auto'}} />
+            <div className="nv-h4">{titleBy[status]}</div>
           </div>
 
-          <div style={{padding:18,color:'#cbd5e1',lineHeight:1.35}}>
-            {last?.serial && <div style={{marginBottom:8}}><b>Serial:</b> {last.serial}</div>}
-            {last?.eventId && <div style={{marginBottom:8}}><b>Evento:</b> {last.eventId}</div>}
-            {(last?.buyerName || last?.buyerEmail) && (
+          <div style={{padding:18}}>
+            <div className="nv-lead nv-small" style={{color:'var(--nv-text-soft)'}}>
+              {last?.serial && <div style={{marginBottom:8}}><b>Serial:</b> {last.serial}</div>}
+              {last?.eventId && <div style={{marginBottom:8}}><b>Evento:</b> {last.eventId}</div>}
+              {(last?.buyerName || last?.buyerEmail) && (
+                <div style={{marginBottom:8}}>
+                  <b>Comprador:</b> {last.buyerName || last.buyerEmail}
+                  {last?.buyerName && last?.buyerEmail ? ` · ${last.buyerEmail}` : ''}
+                </div>
+              )}
               <div style={{marginBottom:8}}>
-                <b>Comprador:</b> {last.buyerName || last.buyerEmail}
-                {last?.buyerName && last?.buyerEmail ? ` · ${last.buyerEmail}` : ''}
+                <b>Organizador:</b> {last?.clubName || last?.buyerName || last?.buyerEmail || '—'}
               </div>
-            )}
-            <div style={{marginBottom:8}}>
-              <b>Organizador:</b> {last?.clubName || last?.buyerName || last?.buyerEmail || '—'}
+              {last?.checkedInAt && status !== 'success' && (
+                <div style={{marginBottom:8}}><b>Primer check-in:</b> {new Date(last.checkedInAt).toLocaleString()}</div>
+              )}
             </div>
-            {last?.checkedInAt && status !== 'success' && (
-              <div style={{marginBottom:8}}><b>Primer check-in:</b> {new Date(last.checkedInAt).toLocaleString()}</div>
-            )}
-            <div style={{opacity:.9}}>{noteBy[status]}</div>
+            <div className="nv-muted nv-small" style={{marginTop:6}}>{noteBy[status]}</div>
           </div>
 
-          <div style={{padding:14,borderTop:'1px solid #1e293b',display:'flex',justifyContent:'flex-end',gap:10}}>
-            <button onClick={resumeScan}
-                    style={{padding:'10px 14px',borderRadius:10,background:'#0ea5e9',color:'#001015',border:0,fontWeight:900}}>
-              Escanear siguiente (↵)
+          <div style={{padding:14,borderTop:'1px solid var(--nv-border)',display:'flex',justifyContent:'flex-end',gap:10}}>
+            <button className="nv-btn nv-btn-primary" onClick={resumeScan}>
+              Escanear siguiente (Enter)
             </button>
           </div>
         </div>
@@ -333,32 +347,32 @@ export default function ScannerCheckin({ backendBase='https://api.nightvibe.life
   };
 
   return (
-    <div style={{background:'#0b0f19',border:'1px solid #1e293b',borderRadius:12,overflow:'hidden'}}>
-      <div style={{position:'relative',aspectRatio:'4 / 3',background:'#000'}}>
+    <div>
+      <div style={{position:'relative',aspectRatio:'4 / 3',background:'#000',borderRadius:'var(--nv-r-sm)',overflow:'hidden',border:'1px solid var(--nv-border)'}}>
         {status==='scanning' && <Banner type="info">Escaneando…</Banner>}
         {status==='posting'  && <Banner type="info">Verificando…</Banner>}
         {status==='success'  && <Banner type="success">OK</Banner>}
-        {status==='duplicate'&& <Banner type="warn">DUPLICADO</Banner>}
-        {['invalid','badsig','error'].includes(status) && <Banner type="error">ERROR</Banner>}
+        {status==='duplicate'&& <Banner type="warn">Duplicado</Banner>}
+        {['invalid','badsig','error'].includes(status) && <Banner type="error">Error</Banner>}
         <video ref={videoRef} autoPlay muted playsInline style={{width:'100%',height:'100%',objectFit:'cover'}} />
         <Card />
       </div>
 
-      <div style={{padding:12,color:'#9ca3af',fontSize:14}}>
-        <div style={{marginBottom:6}}><b>Estado:</b> {message}</div>
-        <div style={{display:'flex',gap:12}}>
+      <div className="nv-card-soft" style={{marginTop:12,padding:14}}>
+        <div className="nv-row" style={{justifyContent:'space-between'}}>
+          <div className="nv-small"><b>Estado:</b> {message}</div>
+          <span className={`nv-badge ${scannerKey ? 'nv-badge-success' : 'nv-badge-warn'}`}>
+            {scannerKey ? 'Escáner listo' : 'Escáner no configurado'}
+          </span>
+        </div>
+        <div style={{marginTop:12}}>
           <button
+            className="nv-btn nv-btn-primary"
             onClick={resumeScan}
             disabled={status==='scanning'||status==='posting'}
-            style={{padding:'8px 12px',background:'#0ea5e9',color:'#001015',border:0,borderRadius:8,fontWeight:800,
-                    opacity:(status==='scanning'||status==='posting')?0.6:1}}
           >
             Escanear siguiente
           </button>
-        </div>
-        <div style={{marginTop:10,fontSize:12,opacity:.7}}>
-          Endpoint: {endpoint}<br />
-          Cabecera x-scanner-key: {scannerKey ? '(configurada)' : '(falta)'}
         </div>
       </div>
     </div>

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { getUser, setSession } from '@/lib/apiClient';
 import { getMe, updateMe, uploadAvatar } from '@/lib/userApi';
 import TopNav from '@/components/TopNav';
+import RequireClub from '@/components/RequireClub';
 import { toast } from '@/components/Toast';
 
 function normalizeInstagram(input) {
@@ -25,44 +26,7 @@ function normalizeInstagram(input) {
   return { handle: v, url: `https://instagram.com/${v}` };
 }
 
-const styles = {
-  page: 'nvp',
-  container: 'nvp__container',
-  hero: 'nvp__hero',
-  heroLeft: 'nvp__heroLeft',
-  heroRight: 'nvp__heroRight',
-  heroBadge: 'nvp__heroBadge',
-  heroTitle: 'nvp__heroTitle',
-  heroText: 'nvp__heroText',
-  card: 'nvp__card',
-  title: 'nvp__title',
-  subtitle: 'nvp__subtitle',
-  grid: 'nvp__grid',
-  leftCol: 'nvp__leftCol',
-  rightCol: 'nvp__rightCol',
-  avatarWrap: 'nvp__avatarWrap',
-  avatar: 'nvp__avatar',
-  avatarMeta: 'nvp__avatarMeta',
-  infoGrid: 'nvp__infoGrid',
-  miniStat: 'nvp__miniStat',
-  miniStatLabel: 'nvp__miniStatLabel',
-  miniStatValue: 'nvp__miniStatValue',
-  input: 'nvp__input',
-  inputReadOnly: 'nvp__input--ro',
-  label: 'nvp__label',
-  labelText: 'nvp__labelText',
-  button: 'nvp__button',
-  buttonBlock: 'nvp__button--block',
-  buttonGhost: 'nvp__buttonGhost',
-  buttonDanger: 'nvp__buttonDanger',
-  note: 'nvp__note',
-  notice: 'nvp__notice',
-  actions: 'nvp__actions',
-  sectionHead: 'nvp__sectionHead',
-  helper: 'nvp__helper',
-};
-
-export default function ProfilePage() {
+function ProfileInner() {
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState('');
   const [saving, setSaving] = useState(false);
@@ -191,7 +155,7 @@ export default function ProfilePage() {
     }
 
     setSaving(false);
-    setNotice('✅ Perfil actualizado');
+    setNotice('Perfil actualizado');
     toast.success('Perfil actualizado correctamente.');
   }
 
@@ -219,36 +183,43 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className={styles.page}>
+      <main className="nv-page">
         <TopNav active="profile" />
-        <main className={styles.container} style={{ marginTop: 20, marginBottom: 24 }}>
-          <section className={styles.card}>
-            <div className={styles.notice}>Cargando perfil...</div>
+        <div className="nv-shell" style={{ maxWidth: 1180 }}>
+          <section className="nv-card">
+            <div className="nv-skeleton" style={{ height: 20, width: '35%' }} />
+            <div className="nv-skeleton nv-skeleton-line lg" style={{ width: '70%', marginTop: 16 }} />
+            <div className="nv-skeleton nv-skeleton-line" style={{ width: '55%' }} />
           </section>
-        </main>
-      </div>
+          <section className="nv-card" style={{ minHeight: 220 }}>
+            <div className="nv-skeleton" style={{ height: 132, width: 132, borderRadius: '50%' }} />
+            <div className="nv-skeleton nv-skeleton-line lg" style={{ width: '40%', marginTop: 18 }} />
+            <div className="nv-skeleton nv-skeleton-line" style={{ width: '60%' }} />
+          </section>
+        </div>
+      </main>
     );
   }
 
   return (
-    <div className={styles.page}>
+    <main className="nv-page">
       <TopNav active="profile" />
 
-      <main className={styles.container} style={{ marginTop: 20, marginBottom: 24 }}>
-        <section className={styles.hero}>
-          <div className={styles.heroLeft}>
-            <div className={styles.heroBadge}>Perfil del club</div>
-            <h1 className={styles.heroTitle}>Tu perfil</h1>
-            <p className={styles.heroText}>
+      <div className="nv-shell" style={{ maxWidth: 1180 }}>
+        <section className="nv-hero nv-hero-split">
+          <div>
+            <div className="nv-badge">Perfil del club</div>
+            <h1 className="nv-h1" style={{ marginTop: 14 }}>Tu perfil</h1>
+            <p className="nv-lead" style={{ marginTop: 12, maxWidth: 760 }}>
               Gestiona la identidad visual y los datos principales de tu club. Aquí podrás actualizar
               tu avatar, nombre visible e Instagram para que toda la presencia del panel quede limpia y profesional.
             </p>
           </div>
 
-          <div className={styles.heroRight}>
+          <div>
             <button
               type="button"
-              className={`${styles.button} ${styles.buttonDanger}`}
+              className="nv-btn nv-btn-danger"
               onClick={onLogout}
               disabled={loggingOut}
             >
@@ -258,11 +229,11 @@ export default function ProfilePage() {
         </section>
 
         {notice && (
-          <div className={styles.notice}>
+          <div className="nv-notice nv-notice-info" role="status" aria-live="polite">
             {notice}
             {notice.includes('iniciar sesión') && (
               <button
-                className={`${styles.button} ${styles.buttonGhost}`}
+                className="nv-btn nv-btn-ghost"
                 style={{ marginLeft: 12 }}
                 onClick={() => (window.location.href = '/login')}
               >
@@ -272,18 +243,26 @@ export default function ProfilePage() {
           </div>
         )}
 
-        <div className={styles.grid}>
-          <div className={styles.leftCol}>
-            <section className={styles.card}>
-              <div className={styles.sectionHead}>
-                <div>
-                  <h2 className={styles.title}>Imagen del club</h2>
-                  <p className={styles.subtitle}>La foto de perfil es una de las partes más visibles del panel.</p>
-                </div>
-              </div>
+        <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', alignItems: 'start' }}>
+          <div className="nv-stack">
+            <section className="nv-card">
+              <h2 className="nv-h3">Imagen del club</h2>
+              <p className="nv-lead nv-small" style={{ marginTop: 6 }}>
+                La foto de perfil es una de las partes más visibles del panel.
+              </p>
 
-              <div className={styles.avatarWrap}>
-                <div className={styles.avatar}>
+              <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginTop: 16, flexWrap: 'wrap' }}>
+                <div
+                  style={{
+                    width: 132,
+                    height: 132,
+                    borderRadius: '50%',
+                    overflow: 'hidden',
+                    border: '1px solid var(--nv-border-strong)',
+                    background: 'rgba(255,255,255,0.03)',
+                    flex: '0 0 auto',
+                  }}
+                >
                   {avatarPreview ? (
                     <img
                       src={avatarPreview}
@@ -291,122 +270,114 @@ export default function ProfilePage() {
                       style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />
                   ) : (
-                    <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', opacity: 0.6 }}>
+                    <div className="nv-muted nv-small" style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center' }}>
                       Sin foto
                     </div>
                   )}
                 </div>
 
-                <div className={styles.avatarMeta}>
-                  <div style={{ fontSize: 18, fontWeight: 900, letterSpacing: '-0.02em' }}>
+                <div style={{ display: 'grid', gap: 10, minWidth: 0, flex: '1 1 180px' }}>
+                  <div className="nv-h4">
                     {form.entityName || form.username || 'Tu club'}
                   </div>
-                  <div className={styles.helper}>
+                  <div className="nv-muted nv-small" style={{ wordBreak: 'break-word' }}>
                     {form.email || 'Sin correo disponible'}
                   </div>
 
-                  <label className={`${styles.button} ${styles.buttonGhost}`} style={{ width: 'fit-content' }}>
+                  <label className="nv-btn nv-btn-ghost" style={{ width: 'fit-content' }}>
                     Cambiar avatar
                     <input type="file" accept="image/*" onChange={onPick} style={{ display: 'none' }} />
                   </label>
                 </div>
               </div>
 
-              <div className={styles.note}>
+              <div className="nv-notice nv-notice-info" style={{ marginTop: 16 }}>
                 Recomendación: usa una imagen cuadrada, limpia y reconocible. Formatos admitidos: JPG, PNG o WebP.
               </div>
             </section>
 
-            <section className={styles.card}>
-              <div className={styles.sectionHead}>
-                <div>
-                  <h2 className={styles.title}>Resumen rápido</h2>
-                  <p className={styles.subtitle}>Datos principales del perfil de club.</p>
-                </div>
-              </div>
+            <section className="nv-card">
+              <h2 className="nv-h3">Resumen rápido</h2>
+              <p className="nv-lead nv-small" style={{ marginTop: 6 }}>Datos principales del perfil de club.</p>
 
-              <div className={styles.infoGrid}>
-                <article className={styles.miniStat}>
-                  <div className={styles.miniStatLabel}>Usuario</div>
-                  <div className={styles.miniStatValue}>{form.username || 'Pendiente'}</div>
+              <div className="nv-stack" style={{ marginTop: 16 }}>
+                <article className="nv-card-soft" style={{ padding: 14 }}>
+                  <div className="nv-kpi-label" style={{ marginBottom: 6 }}>Usuario</div>
+                  <div style={{ fontWeight: 800, wordBreak: 'break-word' }}>{form.username || 'Pendiente'}</div>
                 </article>
-                <article className={styles.miniStat}>
-                  <div className={styles.miniStatLabel}>Entidad</div>
-                  <div className={styles.miniStatValue}>{form.entityName || 'Pendiente'}</div>
+                <article className="nv-card-soft" style={{ padding: 14 }}>
+                  <div className="nv-kpi-label" style={{ marginBottom: 6 }}>Entidad</div>
+                  <div style={{ fontWeight: 800, wordBreak: 'break-word' }}>{form.entityName || 'Pendiente'}</div>
                 </article>
-                <article className={styles.miniStat}>
-                  <div className={styles.miniStatLabel}>Instagram</div>
-                  <div className={styles.miniStatValue}>{igHandle ? `@${igHandle}` : 'No conectado'}</div>
+                <article className="nv-card-soft" style={{ padding: 14 }}>
+                  <div className="nv-kpi-label" style={{ marginBottom: 6 }}>Instagram</div>
+                  <div style={{ fontWeight: 800, wordBreak: 'break-word' }}>{igHandle ? `@${igHandle}` : 'No conectado'}</div>
                 </article>
               </div>
             </section>
           </div>
 
-          <div className={styles.rightCol}>
-            <section className={styles.card}>
-              <div className={styles.sectionHead}>
-                <div>
-                  <h2 className={styles.title}>Datos de tu perfil</h2>
-                  <p className={styles.subtitle}>Actualiza la identidad pública del club dentro del panel.</p>
-                </div>
-              </div>
+          <div className="nv-stack">
+            <section className="nv-card">
+              <h2 className="nv-h3">Datos de tu perfil</h2>
+              <p className="nv-lead nv-small" style={{ marginTop: 6 }}>Actualiza la identidad pública del club dentro del panel.</p>
 
-              <form onSubmit={onSave} style={{ display: 'grid', gap: 14 }}>
-                <label className={styles.label}>
-                  <span className={styles.labelText}>Email <i style={{ opacity: 0.6 }}>(solo lectura)</i></span>
+              <form onSubmit={onSave} style={{ display: 'grid', gap: 14, marginTop: 16 }}>
+                <label className="nv-field">
+                  <span className="nv-label">Email <i style={{ opacity: 0.6 }}>(solo lectura)</i></span>
                   <input
                     name="email"
                     value={form.email}
                     readOnly
                     placeholder="—"
-                    className={`${styles.input} ${styles.inputReadOnly}`}
+                    className="nv-input"
+                    style={{ opacity: 0.75 }}
                   />
                 </label>
 
-                <div className="nvp__row2">
-                  <label className={styles.label}>
-                    <span className={styles.labelText}>Usuario</span>
+                <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+                  <label className="nv-field">
+                    <span className="nv-label">Usuario</span>
                     <input
                       name="username"
                       value={form.username}
                       onChange={onChange}
                       required
-                      className={styles.input}
+                      className="nv-input"
                     />
                   </label>
 
-                  <label className={styles.label}>
-                    <span className={styles.labelText}>Nombre entidad / club</span>
+                  <label className="nv-field">
+                    <span className="nv-label">Nombre entidad / club</span>
                     <input
                       name="entityName"
                       value={form.entityName}
                       onChange={onChange}
-                      className={styles.input}
+                      className="nv-input"
                     />
                   </label>
                 </div>
 
-                <div className="nvp__row2">
-                  <label className={styles.label}>
-                    <span className={styles.labelText}>Instagram</span>
+                <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', alignItems: 'end' }}>
+                  <label className="nv-field">
+                    <span className="nv-label">Instagram</span>
                     <input
                       name="instagram"
                       value={form.instagram}
                       onChange={onChange}
                       placeholder="@tuusuario o https://instagram.com/tuusuario"
-                      className={styles.input}
+                      className="nv-input"
                     />
                   </label>
 
-                  <div className={styles.label} style={{ alignSelf: 'end' }}>
-                    <span className={styles.labelText}>Acceso rápido</span>
+                  <div className="nv-field">
+                    <span className="nv-label">Acceso rápido</span>
                     <a
                       href={igUrl || '#'}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={`${styles.button} ${styles.buttonGhost}`}
+                      className="nv-btn nv-btn-ghost"
                       style={{
-                        textDecoration: 'none',
                         justifyContent: 'center',
                         opacity: igUrl ? 1 : 0.45,
                         pointerEvents: igUrl ? 'auto' : 'none',
@@ -417,14 +388,14 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
-                <div className={styles.note}>
+                <div className="nv-notice nv-notice-info">
                   Consejo: usa el mismo nombre, avatar e Instagram que el público ya reconoce. Eso hace que el club se vea más sólido y coherente dentro de NightVibe.
                 </div>
 
-                <div className={styles.actions}>
+                <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 6, flexWrap: 'wrap' }}>
                   <button
                     type="button"
-                    className={`${styles.button} ${styles.buttonGhost}`}
+                    className="nv-btn nv-btn-ghost"
                     onClick={() => window.location.reload()}
                   >
                     Restaurar vista
@@ -432,7 +403,8 @@ export default function ProfilePage() {
                   <button
                     type="submit"
                     disabled={saving}
-                    className={`${styles.button} ${styles.buttonBlock}`}
+                    className="nv-btn nv-btn-primary"
+                    style={{ minWidth: 180 }}
                   >
                     {saving ? 'Guardando...' : 'Guardar cambios'}
                   </button>
@@ -441,258 +413,15 @@ export default function ProfilePage() {
             </section>
           </div>
         </div>
-      </main>
+      </div>
+    </main>
+  );
+}
 
-      <style jsx>{`
-        :global(html), :global(body) {
-          background: var(--nv-bg);
-        }
-        .${styles.page} {
-          min-height: 100dvh;
-          background: radial-gradient(circle at top, rgba(0,229,255,0.08), transparent 0 24%), var(--nv-bg);
-          color: #e6f0ff;
-        }
-        .${styles.container} {
-          max-width: 1180px;
-          margin: 0 auto;
-          padding: 0 16px;
-          display: grid;
-          gap: 18px;
-        }
-        .${styles.hero} {
-          display: grid;
-          grid-template-columns: minmax(0, 1.2fr) auto;
-          gap: 18px;
-          align-items: center;
-          padding: 26px;
-          border-radius: 24px;
-          background: linear-gradient(135deg, rgba(0,229,255,0.12), rgba(15,22,41,0.96));
-          border: 1px solid rgba(0,229,255,0.18);
-          box-shadow: 0 18px 50px rgba(0,0,0,0.24);
-        }
-        .${styles.heroBadge} {
-          display: inline-flex;
-          align-items: center;
-          padding: 8px 12px;
-          border-radius: 999px;
-          border: 1px solid rgba(0,229,255,0.2);
-          background: rgba(0,229,255,0.08);
-          color: #7dd3fc;
-          font-weight: 800;
-          font-size: 13px;
-          margin-bottom: 14px;
-        }
-        .${styles.heroTitle} {
-          margin: 0;
-          font-size: clamp(28px, 4vw, 42px);
-          line-height: 1.02;
-          letter-spacing: -0.03em;
-          font-weight: 900;
-        }
-        .${styles.heroText} {
-          color: #cbd5e1;
-          line-height: 1.65;
-          font-size: 15px;
-          margin: 12px 0 0;
-          max-width: 760px;
-        }
-        .${styles.grid} {
-          display: grid;
-          grid-template-columns: 360px minmax(0, 1fr);
-          gap: 16px;
-          align-items: start;
-        }
-        .${styles.leftCol}, .${styles.rightCol} {
-          display: grid;
-          gap: 16px;
-        }
-        .${styles.card} {
-          border: 1px solid rgba(255,255,255,0.06);
-          background: var(--nv-surface);
-          border-radius: 18px;
-          padding: 18px;
-          box-shadow: 0 14px 40px rgba(0,0,0,0.2);
-        }
-        .${styles.sectionHead} {
-          display: flex;
-          align-items: flex-start;
-          justify-content: space-between;
-          gap: 12px;
-          margin-bottom: 14px;
-        }
-        .${styles.title} {
-          font-size: 18px;
-          font-weight: 900;
-          letter-spacing: -0.02em;
-          margin: 0;
-        }
-        .${styles.subtitle} {
-          color: #94a3b8;
-          font-size: 14px;
-          line-height: 1.6;
-          margin: 8px 0 0;
-        }
-        .${styles.avatarWrap} {
-          display: grid;
-          grid-template-columns: 132px minmax(0, 1fr);
-          gap: 16px;
-          align-items: center;
-        }
-        .${styles.avatar} {
-          width: 132px;
-          height: 132px;
-          border-radius: 50%;
-          overflow: hidden;
-          border: 1px solid #243044;
-          background: var(--nv-bg-soft);
-          flex: 0 0 auto;
-        }
-        .${styles.avatarMeta} {
-          display: grid;
-          gap: 10px;
-          min-width: 0;
-        }
-        .${styles.infoGrid} {
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 12px;
-        }
-        .${styles.miniStat} {
-          padding: 14px;
-          border-radius: 14px;
-          border: 1px solid rgba(255,255,255,0.06);
-          background: rgba(255,255,255,0.02);
-        }
-        .${styles.miniStatLabel} {
-          color: #94a3b8;
-          font-size: 12px;
-          font-weight: 700;
-          margin-bottom: 8px;
-        }
-        .${styles.miniStatValue} {
-          font-size: 15px;
-          line-height: 1.5;
-          font-weight: 800;
-          word-break: break-word;
-        }
-        .${styles.input} {
-          width: 100%;
-          padding: 12px 14px;
-          min-height: 48px;
-          border-radius: 12px;
-          border: 1px solid #2c3a52;
-          background: var(--nv-bg-soft);
-          color: #e6f0ff;
-          outline: none;
-        }
-        .${styles.inputReadOnly} {
-          border-color: #334155;
-          background: var(--nv-bg);
-          opacity: 0.85;
-        }
-        .${styles.label} {
-          display: grid;
-          gap: 6px;
-        }
-        .${styles.labelText} {
-          font-size: 12px;
-          opacity: 0.82;
-          font-weight: 700;
-        }
-        .${styles.button} {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          padding: 12px 16px;
-          min-height: 46px;
-          border-radius: 12px;
-          background: #00e5ff;
-          color: #001018;
-          font-weight: 800;
-          border: 1px solid #00d4eb;
-          cursor: pointer;
-          box-shadow: 0 12px 32px rgba(0,229,255,0.2);
-        }
-        .${styles.buttonGhost} {
-          background: rgba(255,255,255,0.03);
-          color: #e6f0ff;
-          border: 1px solid #334155;
-          box-shadow: none;
-        }
-        .${styles.buttonDanger} {
-          background: rgba(244,63,94,0.08);
-          color: #fecdd3;
-          border: 1px solid rgba(244,63,94,0.2);
-          box-shadow: none;
-        }
-        .${styles.button}[disabled] {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-        .${styles.buttonBlock} {
-          min-width: 180px;
-        }
-        .${styles.actions} {
-          display: flex;
-          gap: 10px;
-          justify-content: flex-end;
-          margin-top: 6px;
-          flex-wrap: wrap;
-        }
-        .${styles.note}, .${styles.notice} {
-          padding: 12px 14px;
-          border-radius: 12px;
-          border: 1px solid #334155;
-          background: #101829;
-          font-size: 13px;
-          line-height: 1.5;
-          overflow-wrap: anywhere;
-          word-break: break-word;
-        }
-        .${styles.notice} {
-          border-color: rgba(0,229,255,0.16);
-          background: rgba(0,229,255,0.06);
-          color: #dff9ff;
-        }
-        .${styles.helper} {
-          color: #94a3b8;
-          font-size: 13px;
-          line-height: 1.5;
-          word-break: break-word;
-        }
-        .nvp__row2 {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 12px;
-        }
-        @media (max-width: 980px) {
-          .${styles.hero} {
-            grid-template-columns: 1fr;
-          }
-          .${styles.grid} {
-            grid-template-columns: 1fr;
-          }
-        }
-        @media (max-width: 640px) {
-          .nvp__row2 {
-            grid-template-columns: 1fr;
-          }
-          .${styles.avatarWrap} {
-            grid-template-columns: 1fr;
-          }
-          .${styles.avatar} {
-            width: 110px;
-            height: 110px;
-          }
-          .${styles.actions} {
-            justify-content: stretch;
-          }
-          .${styles.buttonBlock} {
-            width: 100%;
-          }
-        }
-      `}</style>
-    </div>
+export default function ProfilePage() {
+  return (
+    <RequireClub>
+      <ProfileInner />
+    </RequireClub>
   );
 }

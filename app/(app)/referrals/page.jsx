@@ -127,13 +127,28 @@ function Avatar({ src, name }) {
       <img
         src={resolvedSrc}
         alt={name || 'avatar'}
-        className="h-10 w-10 rounded-full object-cover ring-1 ring-white/10"
+        style={{ height: 40, width: 40, borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--nv-border)', flex: '0 0 auto' }}
       />
     );
   }
 
   return (
-    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-cyan-400/15 text-sm font-bold text-cyan-300 ring-1 ring-cyan-400/20">
+    <div
+      style={{
+        display: 'flex',
+        height: 40,
+        width: 40,
+        flex: '0 0 auto',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: '50%',
+        background: 'var(--nv-accent-soft)',
+        border: '1px solid var(--nv-accent-border)',
+        color: 'var(--nv-accent)',
+        fontSize: 13,
+        fontWeight: 800,
+      }}
+    >
       {initials(name)}
     </div>
   );
@@ -141,23 +156,21 @@ function Avatar({ src, name }) {
 
 function StatCard({ label, value, hint }) {
   return (
-    <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))] p-5 shadow-[0_16px_40px_rgba(0,0,0,0.22)] transition hover:border-cyan-400/20 hover:shadow-[0_18px_46px_rgba(0,229,255,0.08)]">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/40 to-transparent" />
-      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/45">{label}</div>
-      <div className="mt-3 text-3xl font-black tracking-tight text-white md:text-[2rem]">{value}</div>
-      {hint ? <div className="mt-3 text-xs leading-5 text-white/42">{hint}</div> : null}
-    </div>
+    <article className="nv-kpi">
+      <div className="nv-kpi-label">{label}</div>
+      <div className="nv-kpi-value">{value}</div>
+      {hint ? <div className="nv-kpi-help">{hint}</div> : null}
+    </article>
   );
 }
 
 function SectionCard({ title, subtitle, action, children }) {
   return (
-    <section className="relative overflow-hidden rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(0,229,255,0.08),transparent_28%),linear-gradient(180deg,rgba(17,22,36,0.98),rgba(12,16,26,0.98))] p-5 shadow-[0_18px_50px_rgba(0,0,0,0.28)]">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/35 to-transparent" />
-      <div className="mb-5 flex items-start justify-between gap-4">
+    <section className="nv-card">
+      <div className="nv-section-head" style={{ marginBottom: 16 }}>
         <div>
-          <h2 className="text-lg font-extrabold text-white md:text-[1.1rem]">{title}</h2>
-          {subtitle ? <p className="mt-1.5 max-w-2xl text-sm leading-6 text-white/50">{subtitle}</p> : null}
+          <h2 className="nv-h3">{title}</h2>
+          {subtitle ? <p className="nv-small nv-muted" style={{ marginTop: 6, maxWidth: 520 }}>{subtitle}</p> : null}
         </div>
         {action}
       </div>
@@ -165,6 +178,10 @@ function SectionCard({ title, subtitle, action, children }) {
     </section>
   );
 }
+
+const TABLE_WRAP = { border: '1px solid var(--nv-border)', borderRadius: 'var(--nv-r)', overflow: 'hidden' };
+const HEAD_CELL = { fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.14em', color: 'var(--nv-muted)' };
+const twoColGrid = { display: 'grid', gap: 22, gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', alignItems: 'start' };
 
 export default function ReferralsPage() {
   const [loading, setLoading] = useState(true);
@@ -274,273 +291,262 @@ export default function ReferralsPage() {
     return eventDetail?.rows || eventDetail?.users || eventDetail?.items || [];
   }, [eventDetail]);
 
+  const usersCols = 'minmax(0,1.7fr) 0.7fr 0.7fr 0.7fr 0.8fr';
+  const detailCols = 'minmax(0,1.45fr) 0.65fr 0.65fr 0.65fr 0.65fr 0.8fr';
+
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(0,229,255,0.10),transparent_22%),linear-gradient(180deg,var(--nv-bg),var(--nv-bg))] text-white">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 md:px-6 lg:px-8">
-        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-          <div>
-            <div className="text-sm font-semibold uppercase tracking-[0.18em] text-cyan-300/80">
-              Difusión
-            </div>
-            <h1 className="mt-1 text-3xl font-black tracking-tight text-white md:text-4xl">
-              Analítica de compartidos
-            </h1>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-white/55">
-              Aquí puedes ver qué usuarios están trayendo tráfico a tus eventos, qué eventos se comparten más y qué canales generan más movimiento.
-            </p>
-          </div>
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-white/80 transition hover:bg-white/[0.07] hover:text-white"
-          >
-            Volver al dashboard
-          </Link>
+    <div className="nv-views">
+      <section className="nv-hero nv-hero-split nv-animate-in">
+        <div>
+          <span className="nv-eyebrow">Difusión</span>
+          <h1 className="nv-h1" style={{ marginTop: 10 }}>Analítica de compartidos</h1>
+          <p className="nv-lead" style={{ marginTop: 10, maxWidth: 620 }}>
+            Aquí puedes ver qué usuarios están trayendo tráfico a tus eventos, qué eventos se comparten más y qué canales generan más movimiento.
+          </p>
         </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+          <Link href="/dashboard" className="nv-btn nv-btn-ghost">Volver al dashboard</Link>
+        </div>
+      </section>
 
-        {loading ? (
-          <div className="grid gap-4">
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="nv-skeleton-card">
-                  <div className="nv-skeleton nv-skeleton-line" style={{ width: '50%' }} />
-                  <div className="nv-skeleton nv-skeleton-line lg" style={{ width: '70%', marginTop: 14 }} />
-                </div>
-              ))}
-            </div>
-            <div className="nv-skeleton" style={{ height: 280, borderRadius: 24 }} />
-          </div>
-        ) : error ? (
-          <div className="rounded-3xl border border-rose-400/20 bg-rose-500/10 p-8 text-center text-rose-100">
-            {error}
-          </div>
-        ) : (
-          <>
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
-              <StatCard label="Clicks" value={formatInt(totals.clicks)} hint="Total de visitas desde links compartidos" />
-              <StatCard label="Clicks únicos" value={formatInt(totals.uniqueClicks)} hint="Usuarios únicos aproximados" />
-              <StatCard label="Links creados" value={formatInt(totals.links)} hint="Total de enlaces generados" />
-              <StatCard label="Pedidos" value={formatInt(totals.orders)} hint="Ventas atribuidas a links compartidos" />
-              <StatCard label="Entradas" value={formatInt(totals.tickets)} hint="Tickets vendidos atribuidos" />
-              <StatCard label="Revenue" value={formatEUR(totals.revenueEUR)} hint="Ingresos atribuidos a compartidos" />
-            </div>
+      {loading ? (
+        <>
+          <section className="nv-grid-auto">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="nv-kpi">
+                <div className="nv-skeleton nv-skeleton-line" style={{ width: '50%' }} />
+                <div className="nv-skeleton nv-skeleton-line lg" style={{ width: '70%', marginTop: 14 }} />
+              </div>
+            ))}
+          </section>
+          <div className="nv-skeleton" style={{ height: 280, borderRadius: 'var(--nv-r-lg)' }} />
+        </>
+      ) : error ? (
+        <div className="nv-notice nv-notice-error" role="alert">{error}</div>
+      ) : (
+        <>
+          <section className="nv-grid-auto nv-stagger">
+            <StatCard label="Clicks" value={formatInt(totals.clicks)} hint="Total de visitas desde links compartidos" />
+            <StatCard label="Clicks únicos" value={formatInt(totals.uniqueClicks)} hint="Usuarios únicos aproximados" />
+            <StatCard label="Links creados" value={formatInt(totals.links)} hint="Total de enlaces generados" />
+            <StatCard label="Pedidos" value={formatInt(totals.orders)} hint="Ventas atribuidas a links compartidos" />
+            <StatCard label="Entradas" value={formatInt(totals.tickets)} hint="Tickets vendidos atribuidos" />
+            <StatCard label="Revenue" value={formatEUR(totals.revenueEUR)} hint="Ingresos atribuidos a compartidos" />
+          </section>
 
-            <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-              <SectionCard
-                title="Top usuarios que comparten"
-                subtitle="Ranking de usuarios que más tráfico y ventas generan para el club."
-              >
-                <div className="overflow-hidden rounded-2xl border border-white/8">
-                  <div className="grid grid-cols-[minmax(0,1.7fr)_0.7fr_0.7fr_0.7fr_0.8fr] gap-3 bg-white/[0.04] px-4 py-3 text-[11px] font-bold uppercase tracking-[0.16em] text-white/45">
-                    <div>Usuario</div>
-                    <div>Clicks</div>
-                    <div>Únicos</div>
-                    <div>Pedidos</div>
-                    <div>Revenue</div>
+          <div style={twoColGrid}>
+            <SectionCard
+              title="Top usuarios que comparten"
+              subtitle="Ranking de usuarios que más tráfico y ventas generan para el club."
+            >
+              <div style={{ overflowX: 'auto' }}>
+                <div style={{ minWidth: 520, ...TABLE_WRAP }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: usersCols, gap: 12, padding: '12px 14px', background: 'var(--nv-bg-soft)' }}>
+                    <div style={HEAD_CELL}>Usuario</div>
+                    <div style={HEAD_CELL}>Clicks</div>
+                    <div style={HEAD_CELL}>Únicos</div>
+                    <div style={HEAD_CELL}>Pedidos</div>
+                    <div style={HEAD_CELL}>Revenue</div>
                   </div>
-                  <div className="divide-y divide-white/6">
-                    {topUsers.length ? (
-                      topUsers.map((user, index) => (
-                        <div
-                          key={`${user?.userId || user?.id || index}`}
-                          className="grid grid-cols-[minmax(0,1.7fr)_0.7fr_0.7fr_0.7fr_0.8fr] gap-3 px-4 py-3 text-sm transition hover:bg-white/[0.03]"
-                        >
-                          <div className="flex min-w-0 items-center gap-3">
-                            <Avatar
-                              src={user?.user?.profilePicture || user?.profilePicture || user?.avatarUrl || ''}
-                              name={user?.user?.username || user?.username || user?.name || 'Usuario'}
-                            />
-                            <div className="min-w-0">
-                              <div className="truncate font-bold text-white">
-                                {user?.user?.username || user?.username || user?.name || 'Usuario NightVibe'}
+                  {topUsers.length ? (
+                    topUsers.map((user, index) => (
+                      <div
+                        key={`${user?.userId || user?.id || index}`}
+                        style={{ display: 'grid', gridTemplateColumns: usersCols, gap: 12, padding: '12px 14px', borderTop: '1px solid var(--nv-border)', alignItems: 'center', fontSize: 14 }}
+                      >
+                        <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 12 }}>
+                          <Avatar
+                            src={user?.user?.profilePicture || user?.profilePicture || user?.avatarUrl || ''}
+                            name={user?.user?.username || user?.username || user?.name || 'Usuario'}
+                          />
+                          <div style={{ minWidth: 0 }}>
+                            <div className="nv-truncate" style={{ fontWeight: 700 }}>
+                              {user?.user?.username || user?.username || user?.name || 'Usuario NightVibe'}
+                            </div>
+                            <div className="nv-small nv-muted nv-truncate">
+                              {user?.channel || 'Compartidos NightVibe'}
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{ fontWeight: 600, color: 'var(--nv-text-soft)' }}>{formatInt(user?.clicks)}</div>
+                        <div style={{ fontWeight: 600, color: 'var(--nv-text-soft)' }}>{formatInt(user?.uniqueClicks)}</div>
+                        <div style={{ fontWeight: 600, color: 'var(--nv-text-soft)' }}>{formatInt(user?.orders)}</div>
+                        <div className="nv-accent-text" style={{ fontWeight: 700 }}>{formatEUR(user?.revenueEUR)}</div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="nv-small nv-muted" style={{ padding: '22px 14px', textAlign: 'center', borderTop: '1px solid var(--nv-border)' }}>
+                      Todavía no hay datos de usuarios con tráfico compartido.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </SectionCard>
+
+            <SectionCard
+              title="Eventos con más difusión"
+              subtitle="Qué eventos están generando más movimiento desde los links compartidos."
+            >
+              <div style={{ display: 'grid', gap: 12 }}>
+                {topEvents.length ? (
+                  topEvents.map((event, index) => {
+                    const active = String(event?.eventId || '') === String(selectedEventId || '');
+                    const cover = resolveMediaUrl(event?.coverImage);
+                    return (
+                      <button
+                        key={`${event?.eventId || index}`}
+                        type="button"
+                        onClick={() => setSelectedEventId(String(event?.eventId || ''))}
+                        className="nv-item"
+                        style={{
+                          textAlign: 'left',
+                          borderColor: active ? 'var(--nv-accent-border)' : undefined,
+                          background: active ? 'var(--nv-accent-soft)' : undefined,
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+                          <div style={{ height: 56, width: 56, flex: '0 0 auto', overflow: 'hidden', borderRadius: 14, border: '1px solid var(--nv-border)', background: 'var(--nv-bg-soft)', display: 'grid', placeItems: 'center' }}>
+                            {cover ? (
+                              <img
+                                src={cover}
+                                alt={event?.eventTitle || event?.title || 'Evento'}
+                                style={{ height: '100%', width: '100%', objectFit: 'cover' }}
+                              />
+                            ) : (
+                              <span className="nv-accent-text" style={{ fontSize: 18, fontWeight: 800 }}>
+                                {String(event?.eventTitle || event?.title || 'E').trim().charAt(0).toUpperCase() || 'E'}
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ display: 'flex', minWidth: 0, flex: 1, alignItems: 'flex-start', justifyContent: 'space-between', gap: 14 }}>
+                            <div style={{ minWidth: 0 }}>
+                              <div className="nv-truncate" style={{ fontSize: 16, fontWeight: 700 }}>
+                                {event?.eventTitle || event?.title || `Evento ${index + 1}`}
                               </div>
-                              <div className="truncate text-xs text-white/45">
-                                {user?.channel || 'Compartidos NightVibe'}
+                              <div className="nv-small nv-muted" style={{ marginTop: 4 }}>
+                                {formatInt(event?.clicks)} clicks · {formatInt(event?.uniqueClicks)} únicos
+                              </div>
+                              <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                                <span className="nv-badge nv-badge-neutral">
+                                  {formatInt(event?.links || event?.shareLinks || 0)} links
+                                </span>
+                                <span className="nv-badge">{formatEUR(event?.revenueEUR)}</span>
                               </div>
                             </div>
                           </div>
-                          <div className="font-semibold text-white/85">{formatInt(user?.clicks)}</div>
-                          <div className="font-semibold text-white/85">{formatInt(user?.uniqueClicks)}</div>
-                          <div className="font-semibold text-white/85">{formatInt(user?.orders)}</div>
-                          <div className="font-semibold text-cyan-300">{formatEUR(user?.revenueEUR)}</div>
+                        </div>
+                      </button>
+                    );
+                  })
+                ) : (
+                  <div className="nv-small nv-muted" style={{ padding: '22px 14px', textAlign: 'center', border: '1px solid var(--nv-border)', borderRadius: 'var(--nv-r)' }}>
+                    Todavía no hay eventos con compartidos registrados.
+                  </div>
+                )}
+              </div>
+            </SectionCard>
+          </div>
+
+          <div style={twoColGrid}>
+            <SectionCard
+              title="Detalle del evento seleccionado"
+              subtitle="Desglose por usuario del tráfico y ventas atribuidas al evento."
+              action={
+                selectedEventId ? (
+                  <span className="nv-badge nv-badge-neutral">
+                    {eventLoading ? 'Actualizando…' : 'Evento activo'}
+                  </span>
+                ) : null
+              }
+            >
+              {selectedEventId ? (
+                <div style={{ overflowX: 'auto' }}>
+                  <div style={{ minWidth: 620, ...TABLE_WRAP }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: detailCols, gap: 12, padding: '12px 14px', background: 'var(--nv-bg-soft)' }}>
+                      <div style={HEAD_CELL}>Usuario</div>
+                      <div style={HEAD_CELL}>Links</div>
+                      <div style={HEAD_CELL}>Clicks</div>
+                      <div style={HEAD_CELL}>Únicos</div>
+                      <div style={HEAD_CELL}>Pedidos</div>
+                      <div style={HEAD_CELL}>Revenue</div>
+                    </div>
+                    {eventRows.length ? (
+                      eventRows.map((row, index) => (
+                        <div
+                          key={`${row?.userId || row?.id || index}`}
+                          style={{ display: 'grid', gridTemplateColumns: detailCols, gap: 12, padding: '12px 14px', borderTop: '1px solid var(--nv-border)', alignItems: 'center', fontSize: 14 }}
+                        >
+                          <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 12 }}>
+                            <Avatar
+                              src={row?.user?.profilePicture || row?.profilePicture || row?.avatarUrl || ''}
+                              name={row?.user?.username || row?.username || row?.name || 'Usuario'}
+                            />
+                            <div style={{ minWidth: 0 }}>
+                              <div className="nv-truncate" style={{ fontWeight: 700 }}>
+                                {row?.user?.username || row?.username || row?.name || 'Usuario NightVibe'}
+                              </div>
+                              <div className="nv-small nv-muted nv-truncate">
+                                {row?.channel || 'Difusión NightVibe'}
+                              </div>
+                            </div>
+                          </div>
+                          <div style={{ fontWeight: 600, color: 'var(--nv-text-soft)' }}>{formatInt(row?.links)}</div>
+                          <div style={{ fontWeight: 600, color: 'var(--nv-text-soft)' }}>{formatInt(row?.clicks)}</div>
+                          <div style={{ fontWeight: 600, color: 'var(--nv-text-soft)' }}>{formatInt(row?.uniqueClicks)}</div>
+                          <div style={{ fontWeight: 600, color: 'var(--nv-text-soft)' }}>{formatInt(row?.orders)}</div>
+                          <div className="nv-accent-text" style={{ fontWeight: 700 }}>{formatEUR(row?.revenueEUR)}</div>
                         </div>
                       ))
                     ) : (
-                      <div className="px-4 py-8 text-center text-sm text-white/45">
-                        Todavía no hay datos de usuarios con tráfico compartido.
+                      <div className="nv-small nv-muted" style={{ padding: '22px 14px', textAlign: 'center', borderTop: '1px solid var(--nv-border)' }}>
+                        {eventLoading
+                          ? 'Cargando detalle del evento…'
+                          : 'Todavía no hay detalle de compartidos para este evento.'}
                       </div>
                     )}
                   </div>
                 </div>
-              </SectionCard>
-
-              <SectionCard
-                title="Eventos con más difusión"
-                subtitle="Qué eventos están generando más movimiento desde los links compartidos."
-              >
-                <div className="space-y-3">
-                  {topEvents.length ? (
-                    topEvents.map((event, index) => {
-                      const active = String(event?.eventId || '') === String(selectedEventId || '');
-                      return (
-                        <button
-                          key={`${event?.eventId || index}`}
-                          type="button"
-                          onClick={() => setSelectedEventId(String(event?.eventId || ''))}
-                          className={`w-full rounded-2xl border p-4 text-left transition ${
-                            active
-                              ? 'border-cyan-400/40 bg-cyan-400/10'
-                              : 'border-white/8 bg-white/[0.03] hover:bg-white/[0.05]'
-                          }`}
-                        >
-                          <div className="flex items-start gap-4">
-                            <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
-                              {resolveMediaUrl(event?.coverImage) ? (
-                                <img
-                                  src={resolveMediaUrl(event?.coverImage)}
-                                  alt={event?.eventTitle || event?.title || 'Evento'}
-                                  className="h-full w-full object-cover"
-                                />
-                              ) : (
-                                <div className="flex h-full w-full items-center justify-center text-lg font-black text-cyan-300/80">
-                                  {String(event?.eventTitle || event?.title || 'E').trim().charAt(0).toUpperCase() || 'E'}
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex min-w-0 flex-1 items-start justify-between gap-4">
-                              <div className="min-w-0">
-                                <div className="truncate text-base font-bold text-white">
-                                  {event?.eventTitle || event?.title || `Evento ${index + 1}`}
-                                </div>
-                                <div className="mt-1 text-sm text-white/45">
-                                  {formatInt(event?.clicks)} clicks · {formatInt(event?.uniqueClicks)} únicos
-                                </div>
-                                <div className="mt-2 flex flex-wrap gap-2">
-                                  <span className="rounded-full bg-white/[0.05] px-2.5 py-1 text-[11px] font-semibold text-white/70">
-                                    {formatInt(event?.links || event?.shareLinks || 0)} links
-                                  </span>
-                                  <span className="rounded-full bg-cyan-400/10 px-2.5 py-1 text-[11px] font-semibold text-cyan-300">
-                                    {formatEUR(event?.revenueEUR)}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })
-                  ) : (
-                    <div className="rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-8 text-center text-sm text-white/45">
-                      Todavía no hay eventos con compartidos registrados.
-                    </div>
-                  )}
+              ) : (
+                <div className="nv-small nv-muted" style={{ padding: '22px 14px', textAlign: 'center', border: '1px solid var(--nv-border)', borderRadius: 'var(--nv-r)' }}>
+                  Selecciona un evento para ver el detalle completo.
                 </div>
-              </SectionCard>
-            </div>
+              )}
+            </SectionCard>
 
-            <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-              <SectionCard
-                title="Detalle del evento seleccionado"
-                subtitle="Desglose por usuario del tráfico y ventas atribuidas al evento."
-                action={
-                  selectedEventId ? (
-                    <span className="rounded-full bg-white/[0.06] px-3 py-1 text-xs font-semibold text-white/65">
-                      {eventLoading ? 'Actualizando…' : 'Evento activo'}
-                    </span>
-                  ) : null
-                }
-              >
-                {selectedEventId ? (
-                  <div className="overflow-hidden rounded-2xl border border-white/8">
-                    <div className="grid grid-cols-[minmax(0,1.45fr)_0.65fr_0.65fr_0.65fr_0.65fr_0.8fr] gap-3 bg-white/[0.04] px-4 py-3 text-[11px] font-bold uppercase tracking-[0.16em] text-white/45">
-                      <div>Usuario</div>
-                      <div>Links</div>
-                      <div>Clicks</div>
-                      <div>Únicos</div>
-                      <div>Pedidos</div>
-                      <div>Revenue</div>
-                    </div>
-                    <div className="divide-y divide-white/6">
-                      {eventRows.length ? (
-                        eventRows.map((row, index) => (
-                          <div
-                            key={`${row?.userId || row?.id || index}`}
-                            className="grid grid-cols-[minmax(0,1.45fr)_0.65fr_0.65fr_0.65fr_0.65fr_0.8fr] gap-3 px-4 py-3 text-sm transition hover:bg-white/[0.03]"
-                          >
-                            <div className="flex min-w-0 items-center gap-3">
-                              <Avatar
-                                src={row?.user?.profilePicture || row?.profilePicture || row?.avatarUrl || ''}
-                                name={row?.user?.username || row?.username || row?.name || 'Usuario'}
-                              />
-                              <div className="min-w-0">
-                                <div className="truncate font-bold text-white">
-                                  {row?.user?.username || row?.username || row?.name || 'Usuario NightVibe'}
-                                </div>
-                                <div className="truncate text-xs text-white/45">
-                                  {row?.channel || 'Difusión NightVibe'}
-                                </div>
-                              </div>
-                            </div>
-                            <div className="font-semibold text-white/85">{formatInt(row?.links)}</div>
-                            <div className="font-semibold text-white/85">{formatInt(row?.clicks)}</div>
-                            <div className="font-semibold text-white/85">{formatInt(row?.uniqueClicks)}</div>
-                            <div className="font-semibold text-white/85">{formatInt(row?.orders)}</div>
-                            <div className="font-semibold text-cyan-300">{formatEUR(row?.revenueEUR)}</div>
+            <SectionCard
+              title="Canales de difusión"
+              subtitle="Qué origen de compartido está generando más volumen."
+            >
+              <div style={{ display: 'grid', gap: 12 }}>
+                {channels.length ? (
+                  channels.map((item, index) => (
+                    <div key={`${item?.channel || index}`} className="nv-item">
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+                        <div>
+                          <div style={{ fontWeight: 700, textTransform: 'capitalize' }}>
+                            {item?.channel || 'app'}
                           </div>
-                        ))
-                      ) : (
-                        <div className="px-4 py-8 text-center text-sm text-white/45">
-                          {eventLoading
-                            ? 'Cargando detalle del evento…'
-                            : 'Todavía no hay detalle de compartidos para este evento.'}
+                          <div className="nv-small nv-muted" style={{ marginTop: 4 }}>
+                            {formatInt(item?.links)} links · {formatInt(item?.clicks)} clicks · {formatInt(item?.uniqueClicks)} únicos
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-8 text-center text-sm text-white/45">
-                    Selecciona un evento para ver el detalle completo.
-                  </div>
-                )}
-              </SectionCard>
-
-              <SectionCard
-                title="Canales de difusión"
-                subtitle="Qué origen de compartido está generando más volumen."
-              >
-                <div className="space-y-3">
-                  {channels.length ? (
-                    channels.map((item, index) => (
-                      <div
-                        key={`${item?.channel || index}`}
-                        className="rounded-2xl border border-white/8 bg-white/[0.03] p-4 transition hover:bg-white/[0.045]"
-                      >
-                        <div className="flex items-center justify-between gap-4">
-                          <div>
-                            <div className="text-sm font-bold capitalize text-white">
-                              {item?.channel || 'app'}
-                            </div>
-                            <div className="mt-1 text-xs text-white/45">
-                              {formatInt(item?.links)} links · {formatInt(item?.clicks)} clicks · {formatInt(item?.uniqueClicks)} únicos
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-sm font-bold text-cyan-300">{formatEUR(item?.revenueEUR)}</div>
-                            <div className="mt-1 text-xs text-white/45">{formatInt(item?.orders)} pedidos</div>
-                          </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div className="nv-accent-text" style={{ fontWeight: 700 }}>{formatEUR(item?.revenueEUR)}</div>
+                          <div className="nv-small nv-muted" style={{ marginTop: 4 }}>{formatInt(item?.orders)} pedidos</div>
                         </div>
                       </div>
-                    ))
-                  ) : (
-                    <div className="rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-8 text-center text-sm text-white/45">
-                      Todavía no hay suficientes datos por canal.
                     </div>
-                  )}
-                </div>
-              </SectionCard>
-            </div>
-          </>
-        )}
-      </div>
-    </main>
+                  ))
+                ) : (
+                  <div className="nv-small nv-muted" style={{ padding: '22px 14px', textAlign: 'center', border: '1px solid var(--nv-border)', borderRadius: 'var(--nv-r)' }}>
+                    Todavía no hay suficientes datos por canal.
+                  </div>
+                )}
+              </div>
+            </SectionCard>
+          </div>
+        </>
+      )}
+    </div>
   );
 }

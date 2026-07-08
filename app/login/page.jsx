@@ -155,10 +155,6 @@ export default function LoginPage() {
                   Crea una aquí
                 </a>
               </p>
-              <p className="nv-small nv-muted" style={{ marginTop: -8 }}>
-                ¿Olvidaste tu contraseña?{' '}
-                <a href="/login/reset" className="nv-link-accent">Restablécela</a>
-              </p>
             </form>
           )}
 

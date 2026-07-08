@@ -322,26 +322,10 @@ function buildPhotoCandidates(photo) {
   );
 }
 
-function statusStyles(status) {
-  if (status === 'approved') {
-    return {
-      background: 'rgba(34,197,94,0.12)',
-      border: '1px solid rgba(34,197,94,0.24)',
-      color: '#86efac',
-    };
-  }
-  if (status === 'rejected') {
-    return {
-      background: 'rgba(244,63,94,0.10)',
-      border: '1px solid rgba(244,63,94,0.22)',
-      color: '#fda4af',
-    };
-  }
-  return {
-    background: 'rgba(250,204,21,0.10)',
-    border: '1px solid rgba(250,204,21,0.20)',
-    color: '#fde68a',
-  };
+function statusBadge(status) {
+  if (status === 'approved') return { cls: 'nv-badge nv-badge-success', label: 'Aprobada' };
+  if (status === 'rejected') return { cls: 'nv-badge nv-badge-danger', label: 'Rechazada' };
+  return { cls: 'nv-badge nv-badge-warn', label: 'Pendiente' };
 }
 
 function SmartPhoto({ photo, alt, style }) {
@@ -437,7 +421,7 @@ function SmartPhoto({ photo, alt, style }) {
           height: '100%',
           display: 'grid',
           placeItems: 'center',
-          color: '#94a3b8',
+          color: 'var(--nv-muted)',
           fontSize: 13,
           textAlign: 'center',
           padding: 12,
@@ -456,7 +440,7 @@ function SmartPhoto({ photo, alt, style }) {
           height: '100%',
           display: 'grid',
           placeItems: 'center',
-          color: '#94a3b8',
+          color: 'var(--nv-muted)',
           fontSize: 13,
           textAlign: 'center',
           padding: 12,
@@ -780,171 +764,60 @@ export default function ContentPage() {
     }
   }
 
-  const pageStyle = {
-    padding: '28px 24px 44px',
-    color: '#e5e7eb',
-    background: 'radial-gradient(circle at top, rgba(0,229,255,0.08), transparent 0 24%), var(--nv-bg)',
-    minHeight: '100vh',
-  };
-
-  const shellStyle = {
-    width: '100%',
-    maxWidth: 1280,
-    margin: '0 auto',
-    display: 'grid',
-    gap: 22,
-  };
-
-  const heroStyle = {
-    gap: 18,
-    padding: 26,
-    borderRadius: 24,
-    background: 'linear-gradient(135deg, rgba(0,229,255,0.12), rgba(15,22,41,0.96))',
-    border: '1px solid rgba(0,229,255,0.18)',
-    boxShadow: '0 18px 50px rgba(0,0,0,0.24)',
-  };
-
-  const panelStyle = {
-    background: 'var(--nv-surface)',
-    border: '1px solid rgba(255,255,255,0.06)',
-    borderRadius: 22,
-    padding: 20,
-    boxShadow: '0 14px 40px rgba(0,0,0,0.20)',
-  };
-
-  const ghostBtn = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 44,
-    padding: '0 14px',
-    borderRadius: 12,
-    border: '1px solid rgba(255,255,255,0.12)',
-    background: 'rgba(255,255,255,0.03)',
-    color: '#e5e7eb',
-    textDecoration: 'none',
-    cursor: 'pointer',
-    fontWeight: 700,
-  };
-
-  const primaryBtn = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 46,
-    padding: '0 16px',
-    borderRadius: 14,
-    background: '#00e5ff',
-    color: '#001018',
-    fontWeight: 800,
-    textDecoration: 'none',
-    border: '1px solid #00d4eb',
-    cursor: 'pointer',
-    boxShadow: '0 12px 32px rgba(0,229,255,0.22)',
-    whiteSpace: 'nowrap',
-  };
-
   return (
     <RequireClub>
-      <main style={pageStyle}>
-        <div style={shellStyle}>
-          <section className="nv-hero-split" style={heroStyle}>
-            <div>
-              <div
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  padding: '8px 12px',
-                  borderRadius: 999,
-                  border: '1px solid rgba(0,229,255,0.2)',
-                  background: 'rgba(0,229,255,0.08)',
-                  color: '#7dd3fc',
-                  fontWeight: 800,
-                  fontSize: 13,
-                  marginBottom: 14,
-                }}
-              >
-                Contenido del club
-              </div>
-              <h1 style={{ margin: 0, fontSize: 'clamp(28px, 4vw, 42px)', lineHeight: 1.02, letterSpacing: '-0.03em', fontWeight: 900 }}>
-                Validación de fotos
-              </h1>
-              <p style={{ color: '#cbd5e1', lineHeight: 1.65, fontSize: 15, margin: '12px 0 0', maxWidth: 760 }}>
-                Revisa el contenido subido por asistentes, filtra por evento o estado y aprueba o rechaza cada foto según la misión o contexto del evento.
-              </p>
-            </div>
+      <div className="nv-views">
+        <section className="nv-hero nv-hero-split nv-animate-in">
+          <div>
+            <span className="nv-eyebrow">Contenido del club</span>
+            <h1 className="nv-h1" style={{ marginTop: 10 }}>Validación de fotos</h1>
+            <p className="nv-lead" style={{ marginTop: 10, maxWidth: 620 }}>
+              Revisa el contenido subido por asistentes, filtra por evento o estado y aprueba o rechaza cada foto según la misión o contexto del evento.
+            </p>
+          </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button type="button" onClick={refreshCurrentPhotos} style={ghostBtn}>
-                ↻ Recargar contenido
-              </button>
-            </div>
-          </section>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+            <button type="button" onClick={refreshCurrentPhotos} className="nv-btn nv-btn-ghost">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+                <path d="M21 3v6h-6" />
+              </svg>
+              Recargar contenido
+            </button>
+          </div>
+        </section>
 
-          {notice && (
-            <section
-              role="status"
-              aria-live="polite"
-              style={{
-                ...panelStyle,
-                border: '1px solid rgba(0,229,255,0.14)',
-                background: 'rgba(0,229,255,0.05)',
-                color: '#dff9ff',
-              }}
-            >
-              {notice}
-            </section>
-          )}
+        {notice && (
+          <div className="nv-notice" role="status" aria-live="polite">{notice}</div>
+        )}
 
-          <section
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-              gap: 14,
-            }}
-          >
-            <article style={panelStyle}>
-              <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 10 }}>Fotos visibles</div>
-              <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.03em' }}>{counts.total}</div>
-            </article>
-            <article style={panelStyle}>
-              <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 10 }}>Pendientes</div>
-              <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.03em' }}>{counts.pending}</div>
-            </article>
-            <article style={panelStyle}>
-              <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 10 }}>Aprobadas</div>
-              <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.03em' }}>{counts.approved}</div>
-            </article>
-            <article style={panelStyle}>
-              <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 10 }}>Rechazadas</div>
-              <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.03em' }}>{counts.rejected}</div>
-            </article>
-          </section>
+        <section className="nv-grid-auto nv-stagger">
+          <article className="nv-kpi">
+            <div className="nv-kpi-label">Fotos visibles</div>
+            <div className="nv-kpi-value">{counts.total}</div>
+          </article>
+          <article className="nv-kpi">
+            <div className="nv-kpi-label">Pendientes</div>
+            <div className="nv-kpi-value">{counts.pending}</div>
+          </article>
+          <article className="nv-kpi">
+            <div className="nv-kpi-label">Aprobadas</div>
+            <div className="nv-kpi-value">{counts.approved}</div>
+          </article>
+          <article className="nv-kpi">
+            <div className="nv-kpi-label">Rechazadas</div>
+            <div className="nv-kpi-value">{counts.rejected}</div>
+          </article>
+        </section>
 
-          <section
-            style={{
-              ...panelStyle,
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))',
-              gap: 14,
-              alignItems: 'end',
-            }}
-          >
-            <label style={{ display: 'grid', gap: 8 }}>
-              <span style={{ fontSize: 13, color: '#94a3b8', fontWeight: 700 }}>Evento</span>
+        <section className="nv-card">
+          <div className="nv-toolbar">
+            <label className="nv-field" style={{ flex: '1 1 240px', maxWidth: 380 }}>
+              <span className="nv-label">Evento</span>
               <select
                 value={selectedEventId}
                 onChange={(e) => setSelectedEventId(e.target.value)}
-                style={{
-                  width: '100%',
-                  minHeight: 48,
-                  borderRadius: 12,
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  background: 'rgba(255,255,255,0.03)',
-                  color: '#e5e7eb',
-                  padding: '0 14px',
-                  outline: 'none',
-                }}
+                className="nv-select"
               >
                 <option value="all">Todos mis eventos</option>
                 {events.map((event) => (
@@ -955,7 +828,7 @@ export default function ContentPage() {
               </select>
             </label>
 
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <div className="nv-seg" role="tablist" aria-label="Filtrar por estado">
               {[
                 { key: 'pending', label: 'Pendientes' },
                 { key: 'approved', label: 'Aprobadas' },
@@ -964,24 +837,24 @@ export default function ContentPage() {
                 <button
                   key={item.key}
                   type="button"
+                  role="tab"
+                  aria-selected={statusFilter === item.key}
                   onClick={() => setStatusFilter(item.key)}
-                  style={{
-                    ...ghostBtn,
-                    background: statusFilter === item.key ? '#111827' : 'rgba(255,255,255,0.03)',
-                  }}
+                  className={`nv-seg-btn ${statusFilter === item.key ? 'is-active' : ''}`}
                 >
                   {item.label}
                 </button>
               ))}
             </div>
 
-            <div style={{ color: '#94a3b8', fontSize: 13, whiteSpace: 'nowrap' }}>
+            <span className="nv-small nv-muted" style={{ whiteSpace: 'nowrap' }}>
               {selectedEvent ? `Evento: ${selectedEvent.title}` : 'Vista global del club'}
-            </div>
-          </section>
+            </span>
+          </div>
+        </section>
 
-          <section style={panelStyle}>
-            {loading || photosLoading ? (
+        <section className="nv-card">
+          {loading || photosLoading ? (
               <div
                 style={{
                   display: 'grid',
@@ -1022,15 +895,13 @@ export default function ContentPage() {
                   gap: 14,
                 }}
               >
-                {photos.map((photo) => (
+                {photos.map((photo) => {
+                  const badge = statusBadge(photo.status);
+                  return (
                   <button
                     key={`${photo.eventId}-${photo.photoId}`}
                     type="button"
-                    className="nv-card-interactive"
-                    /*onClick={() => {
-                      setSelectedPhoto(photo);
-                      setReviewNote(photo.reviewNote || '');
-                    }}*/
+                    className="nv-card nv-card-interactive"
                     onClick={() => {
                       const detectedMissionType = getPhotoMissionType(photo) || 'approved_event_photo';
                       const detectedLevelNumber = getPhotoLevelNumber(photo);
@@ -1042,21 +913,13 @@ export default function ContentPage() {
                         detectedLevelNumber != null ? String(detectedLevelNumber) : ''
                       );
                     }}
-                    style={{
-                      textAlign: 'left',
-                      border: '1px solid rgba(255,255,255,0.10)',
-                      borderRadius: 18,
-                      overflow: 'hidden',
-                      background: 'rgba(255,255,255,0.02)',
-                      color: '#e5e7eb',
-                      cursor: 'pointer',
-                    }}
+                    style={{ padding: 0, overflow: 'hidden', textAlign: 'left', display: 'block' }}
                   >
                     <div
                       style={{
                         width: '100%',
                         height: 210,
-                        background: 'rgba(255,255,255,0.03)',
+                        background: 'var(--nv-ink)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -1069,451 +932,264 @@ export default function ContentPage() {
                         style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                       />
                     </div>
-                    <div style={{ padding: 12, display: 'grid', gap: 8 }}>
-                      <div style={{ fontWeight: 800, fontSize: 15, lineHeight: 1.45 }}>
-                        {photo.eventTitle || 'Evento sin título'}
-                      </div>
-                      <div style={{ color: '#94a3b8', fontSize: 12.5, lineHeight: 1.5 }}>
-                        @{photo.byUsername || 'usuario'}
-                      </div>
-                      <div
-                        style={{
-                          display: 'grid',
-                          gap: 6,
-                          padding: '10px 12px',
-                          borderRadius: 14,
-                          background: 'rgba(255,255,255,0.03)',
-                          border: '1px solid rgba(255,255,255,0.06)',
-                        }}
-                      >
-                        <div style={{ color: '#94a3b8', fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                    <div style={{ padding: 14, display: 'grid', gap: 8 }}>
+                      <div className="nv-h4">{photo.eventTitle || 'Evento sin título'}</div>
+                      <div className="nv-small nv-muted">@{photo.byUsername || 'usuario'}</div>
+                      <div className="nv-card-soft" style={{ display: 'grid', gap: 6 }}>
+                        <div className="nv-small nv-muted" style={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.04em' }}>
                           Misión objetivo
                         </div>
-                        <div style={{ fontSize: 13, fontWeight: 800, color: '#e5e7eb', lineHeight: 1.4 }}>
+                        <div style={{ fontSize: 13, fontWeight: 800, lineHeight: 1.4 }}>
                           {getPhotoMissionTitle(photo)}
                         </div>
                         {getPhotoLevelNumber(photo) != null && (
-                          <div style={{ color: '#7dd3fc', fontSize: 12, fontWeight: 700 }}>
+                          <div className="nv-accent-text nv-small" style={{ fontWeight: 700 }}>
                             Nivel {getPhotoLevelNumber(photo)}
                           </div>
                         )}
 
                         {(getPhotoMissionCurrent(photo) != null || getPhotoMissionTarget(photo) != null) && (
-                          <div style={{ color: '#cbd5e1', fontSize: 12, lineHeight: 1.45 }}>
+                          <div className="nv-small nv-muted">
                             Objetivo {getPhotoMissionCurrent(photo) ?? 0}/{getPhotoMissionTarget(photo) ?? '—'}
                           </div>
                         )}
                       </div>
-                      <div style={{ color: '#64748b', fontSize: 11, lineHeight: 1.45, wordBreak: 'break-all', display: 'none' }}>
-                        {photo.rawUrl || photo.url || photo.path || photo.photoUrl || 'sin ruta'}
-                      </div>
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                        <div
-                          style={{
-                            ...statusStyles(photo.status),
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            width: 'fit-content',
-                            minHeight: 28,
-                            padding: '0 10px',
-                            borderRadius: 999,
-                            fontSize: 11.5,
-                            fontWeight: 800,
-                          }}
-                        >
-                          {photo.status === 'approved'
-                            ? 'Aprobada'
-                            : photo.status === 'rejected'
-                              ? 'Rechazada'
-                              : 'Pendiente'}
-                        </div>
-
+                        <span className={badge.cls}>{badge.label}</span>
                         {photo.validatedForMissionType && (
-                          <div
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              width: 'fit-content',
-                              minHeight: 28,
-                              padding: '0 10px',
-                              borderRadius: 999,
-                              fontSize: 11.5,
-                              fontWeight: 800,
-                              background: 'rgba(0,229,255,0.10)',
-                              border: '1px solid rgba(0,229,255,0.20)',
-                              color: '#7dd3fc',
-                            }}
-                          >
-                            Validada como {validatedMissionDisplayLabel(photo)}
-                          </div>
+                          <span className="nv-badge">Validada como {validatedMissionDisplayLabel(photo)}</span>
                         )}
                       </div>
-                      <div style={{ color: '#94a3b8', fontSize: 12.5 }}>
+                      <div className="nv-small nv-muted">
                         {photo.uploadedAt ? new Date(photo.uploadedAt).toLocaleString('es-ES') : ''}
                       </div>
                     </div>
                   </button>
-                ))}
+                  );
+                })}
               </div>
             )}
           </section>
 
-          {selectedPhoto && (
+        {selectedPhoto && (
+          <div
+            onClick={() => {
+              if (actionBusy) return;
+              setSelectedPhoto(null);
+              setReviewNote('');
+              setSelectedMissionType('approved_event_photo');
+              setSelectedLevelNumber('');
+            }}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Revisión de foto"
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0,0,0,0.68)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 16,
+              zIndex: 80,
+            }}
+          >
             <div
-              onClick={() => {
-                if (actionBusy) return;
-                setSelectedPhoto(null);
-                setReviewNote('');
-                setSelectedMissionType('approved_event_photo');
-                setSelectedLevelNumber('');
-              }}
+              onClick={(e) => e.stopPropagation()}
               style={{
-                position: 'fixed',
-                inset: 0,
-                background: 'rgba(0,0,0,0.68)',
+                width: 'min(860px, 100%)',
+                maxHeight: '84vh',
+                background: 'var(--nv-surface)',
+                border: '1px solid var(--nv-border-strong)',
+                borderRadius: 'var(--nv-r-lg)',
+                overflow: 'auto',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
+              }}
+            >
+              <div style={{
+                background: 'var(--nv-ink)',
+                minHeight: 320,
+                maxHeight: '84vh',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                padding: 16,
-                zIndex: 80,
-              }}
-            >
-              <div
-                onClick={(e) => e.stopPropagation()}
-                style={{
-                  width: 'min(860px, 100%)',
-                  maxHeight: '84vh',
-                  background: 'var(--nv-bg)',
-                  border: '1px solid rgba(255,255,255,0.12)',
-                  borderRadius: 20,
-                  overflow: 'auto',
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
-                }}
-              >
-                <div style={{
-                  background: 'var(--nv-ink)',
-                  minHeight: 320,
-                  maxHeight: '84vh',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: 12,
-                  overflow: 'hidden',
-                }}>
-                  <SmartPhoto
-                    photo={selectedPhoto}
-                    alt="Foto seleccionada"
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      maxHeight: '70vh',
-                      objectFit: 'contain',
-                      borderRadius: 14,
-                      display: 'block',
-                    }}
-                  />
+                padding: 12,
+                overflow: 'hidden',
+              }}>
+                <SmartPhoto
+                  photo={selectedPhoto}
+                  alt="Foto seleccionada"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    maxHeight: '70vh',
+                    objectFit: 'contain',
+                    borderRadius: 14,
+                    display: 'block',
+                  }}
+                />
+              </div>
+
+              <div style={{
+                padding: 18,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 14,
+                maxHeight: '84vh',
+                overflowY: 'auto',
+              }}>
+                <div>
+                  <div className="nv-h3">{selectedPhoto.eventTitle || 'Evento sin título'}</div>
+                  <div className="nv-small nv-muted" style={{ marginTop: 6 }}>
+                    Subida por @{selectedPhoto.byUsername || 'usuario'}
+                  </div>
                 </div>
 
-                <div style={{
-                  padding: 16,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 12,
-                  maxHeight: '84vh',
-                  overflowY: 'auto',
-                }}>
-                  <div>
-                    <div style={{ fontSize: 22, fontWeight: 900, letterSpacing: '-0.02em' }}>
-                      {selectedPhoto.eventTitle || 'Evento sin título'}
-                    </div>
-                    <div style={{ color: '#94a3b8', fontSize: 14, marginTop: 6 }}>
-                      Subida por @{selectedPhoto.byUsername || 'usuario'}
-                    </div>
-                  </div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <span className={statusBadge(selectedPhoto.status).cls}>
+                    {statusBadge(selectedPhoto.status).label}
+                  </span>
+                </div>
 
+                <p className="nv-small" style={{ color: 'var(--nv-text-soft)', lineHeight: 1.6, margin: 0 }}>
+                  Aquí ves la misión objetivo de la foto y puedes decidir si realmente la cumple. Solo debería aprobarse si encaja con la misión requerida por ese usuario en ese momento.
+                </p>
+
+                <div className="nv-card-soft" style={{ display: 'grid', gap: 10 }}>
+                  <div className="nv-small nv-muted" style={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                    Misión objetivo detectada en esta foto
+                  </div>
+                  <div className="nv-h4">{getPhotoMissionTitle(selectedPhoto)}</div>
+                  <div className="nv-small" style={{ color: 'var(--nv-text-soft)', lineHeight: 1.6 }}>
+                    {getPhotoMissionDescription(selectedPhoto)}
+                  </div>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <div
-                      style={{
-                        ...statusStyles(selectedPhoto.status),
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        width: 'fit-content',
-                        minHeight: 30,
-                        padding: '0 10px',
-                        borderRadius: 999,
-                        fontSize: 12,
-                        fontWeight: 800,
-                      }}
-                    >
-                      {selectedPhoto.status === 'approved'
-                        ? 'Aprobada'
-                        : selectedPhoto.status === 'rejected'
-                          ? 'Rechazada'
-                          : 'Pendiente'}
-                    </div>
+                    {getPhotoLevelNumber(selectedPhoto) != null && (
+                      <span className="nv-badge">Nivel objetivo {getPhotoLevelNumber(selectedPhoto)}</span>
+                    )}
+                    {(getPhotoMissionCurrent(selectedPhoto) != null || getPhotoMissionTarget(selectedPhoto) != null) && (
+                      <span className="nv-badge nv-badge-neutral">
+                        Objetivo {getPhotoMissionCurrent(selectedPhoto) ?? 0}/{getPhotoMissionTarget(selectedPhoto) ?? '—'}
+                      </span>
+                    )}
+                    {selectedPhoto?.validationResult && (
+                      <span className="nv-badge nv-badge-neutral">
+                        {selectedPhoto.validationResult === 'matched' ? 'Coincide con la misión' : 'No coincide con la misión'}
+                      </span>
+                    )}
                   </div>
+                </div>
 
-                  <div style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.6 }}>
-                    Aquí ves la misión objetivo de la foto y puedes decidir si realmente la cumple. Solo debería aprobarse si encaja con la misión requerida por ese usuario en ese momento.
-                  </div>
-
-                  <div
-                    style={{
-                      padding: 14,
-                      borderRadius: 16,
-                      background: 'rgba(255,255,255,0.03)',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      display: 'grid',
-                      gap: 10,
-                    }}
-                  >
-                    <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.04em' }}>
-                      Misión objetivo detectada en esta foto
-                    </div>
-                    <div style={{ fontSize: 18, fontWeight: 900, color: '#f8fafc', lineHeight: 1.3 }}>
+                <div className="nv-card-soft" style={{ display: 'grid', gap: 12 }}>
+                  <div>
+                    <div className="nv-label">Misión que le toca cumplir al usuario</div>
+                    <div className="nv-input" style={{ display: 'flex', alignItems: 'center', fontWeight: 800, lineHeight: 1.45 }}>
                       {getPhotoMissionTitle(selectedPhoto)}
                     </div>
-                    <div style={{ color: '#cbd5e1', fontSize: 13.5, lineHeight: 1.6 }}>
-                      {getPhotoMissionDescription(selectedPhoto)}
-                    </div>
-                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    {getPhotoLevelNumber(selectedPhoto) != null && (
-                      <div
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          minHeight: 30,
-                          padding: '0 10px',
-                          borderRadius: 999,
-                          background: 'rgba(0,229,255,0.10)',
-                          border: '1px solid rgba(0,229,255,0.20)',
-                          color: '#7dd3fc',
-                          fontSize: 12,
-                          fontWeight: 800,
-                        }}
-                      >
-                        Nivel objetivo {getPhotoLevelNumber(selectedPhoto)}
-                      </div>
-                    )}
+                  </div>
 
+                  <div>
+                    <div className="nv-label">Nivel de la misión</div>
+                    <div className="nv-input" style={{ display: 'flex', alignItems: 'center', fontWeight: 800 }}>
+                      {getPhotoLevelNumber(selectedPhoto) != null
+                        ? `Nivel ${getPhotoLevelNumber(selectedPhoto)}`
+                        : 'Sin nivel objetivo'}
+                    </div>
+                  </div>
+
+                  <div className="nv-notice nv-notice-info">
+                    <strong style={{ display: 'block', marginBottom: 6 }}>
+                      {getPhotoMissionTitle(selectedPhoto)}
+                    </strong>
+                    {getPhotoMissionDescription(selectedPhoto)}
                     {(getPhotoMissionCurrent(selectedPhoto) != null || getPhotoMissionTarget(selectedPhoto) != null) && (
-                      <div
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          minHeight: 30,
-                          padding: '0 10px',
-                          borderRadius: 999,
-                          background: 'rgba(255,255,255,0.04)',
-                          border: '1px solid rgba(255,255,255,0.08)',
-                          color: '#cbd5e1',
-                          fontSize: 12,
-                          fontWeight: 800,
-                        }}
-                      >
-                        Objetivo {getPhotoMissionCurrent(selectedPhoto) ?? 0}/{getPhotoMissionTarget(selectedPhoto) ?? '—'}
+                      <div style={{ marginTop: 8, fontWeight: 700 }}>
+                        Objetivo actual: {getPhotoMissionCurrent(selectedPhoto) ?? 0}/{getPhotoMissionTarget(selectedPhoto) ?? '—'}
                       </div>
                     )}
-
-                      {selectedPhoto?.validationResult && (
-                        <div
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            minHeight: 30,
-                            padding: '0 10px',
-                            borderRadius: 999,
-                            background: 'rgba(255,255,255,0.04)',
-                            border: '1px solid rgba(255,255,255,0.08)',
-                            color: '#cbd5e1',
-                            fontSize: 12,
-                            fontWeight: 800,
-                          }}
-                        >
-                          {selectedPhoto.validationResult === 'matched' ? 'Coincide con la misión' : 'No coincide con la misión'}
-                        </div>
-                      )}
-                    </div>
                   </div>
+                </div>
 
-                  <div
-                    style={{
-                      padding: 14,
-                      borderRadius: 16,
-                      background: 'rgba(255,255,255,0.03)',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      display: 'grid',
-                      gap: 12,
-                    }}
-                  >
-                    <div>
-                      <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 800, marginBottom: 6 }}>
-                        Misión que le toca cumplir al usuario
-                      </div>
-                      <div
-                        style={{
-                          width: '100%',
-                          minHeight: 46,
-                          borderRadius: 12,
-                          border: '1px solid rgba(255,255,255,0.12)',
-                          background: 'rgba(255,255,255,0.03)',
-                          color: '#e5e7eb',
-                          padding: '12px 12px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          fontWeight: 800,
-                          lineHeight: 1.45,
-                        }}
-                      >
-                        {getPhotoMissionTitle(selectedPhoto)}
-                      </div>
+                {selectedPhoto?.validatedForMissionType && (
+                  <div className="nv-card-soft" style={{ display: 'grid', gap: 8 }}>
+                    <div className="nv-small nv-muted" style={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                      Última validación guardada
                     </div>
-
-                    <div>
-                      <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 800, marginBottom: 6 }}>
-                        Nivel de la misión
+                    <div className="nv-h4">{validatedMissionDisplayLabel(selectedPhoto)}</div>
+                    {selectedPhoto?.validatedForLevelNumber != null && selectedPhoto?.validatedForLevelNumber !== '' && (
+                      <div className="nv-accent-text nv-small" style={{ fontWeight: 700 }}>
+                        Nivel validado {selectedPhoto.validatedForLevelNumber}
                       </div>
-                      <div
-                        style={{
-                          width: '100%',
-                          minHeight: 46,
-                          borderRadius: 12,
-                          border: '1px solid rgba(255,255,255,0.12)',
-                          background: 'rgba(255,255,255,0.03)',
-                          color: '#e5e7eb',
-                          padding: '12px 12px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          fontWeight: 800,
-                        }}
-                      >
-                        {getPhotoLevelNumber(selectedPhoto) != null
-                          ? `Nivel ${getPhotoLevelNumber(selectedPhoto)}`
-                          : 'Sin nivel objetivo'}
-                      </div>
-                    </div>
-
-                    <div
-                      style={{
-                        padding: '12px 14px',
-                        borderRadius: 14,
-                        background: 'rgba(0,229,255,0.05)',
-                        border: '1px solid rgba(0,229,255,0.14)',
-                        color: '#dff9ff',
-                        fontSize: 13,
-                        lineHeight: 1.55,
-                      }}
-                    >
-                      <strong style={{ display: 'block', marginBottom: 6 }}>
-                        {getPhotoMissionTitle(selectedPhoto)}
-                      </strong>
-                      {getPhotoMissionDescription(selectedPhoto)}
-                      {(getPhotoMissionCurrent(selectedPhoto) != null || getPhotoMissionTarget(selectedPhoto) != null) && (
-                        <div style={{ marginTop: 8, color: '#cbd5e1', fontWeight: 700 }}>
-                          Objetivo actual: {getPhotoMissionCurrent(selectedPhoto) ?? 0}/{getPhotoMissionTarget(selectedPhoto) ?? '—'}
-                        </div>
-                      )}
-                    </div>
+                    )}
                   </div>
+                )}
 
-                  {selectedPhoto?.validatedForMissionType && (
-                    <div
-                      style={{
-                        padding: 14,
-                        borderRadius: 16,
-                        background: 'rgba(255,255,255,0.03)',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        display: 'grid',
-                        gap: 8,
-                      }}
-                    >
-                      <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.04em' }}>
-                        Última validación guardada
-                      </div>
-                      <div style={{ fontSize: 15, fontWeight: 800, color: '#e5e7eb' }}>
-                        {validatedMissionDisplayLabel(selectedPhoto)}
-                      </div>
-                      {selectedPhoto?.validatedForLevelNumber != null && selectedPhoto?.validatedForLevelNumber !== '' && (
-                        <div style={{ color: '#7dd3fc', fontSize: 13, fontWeight: 700 }}>
-                          Nivel validado {selectedPhoto.validatedForLevelNumber}
-                        </div>
-                      )}
-                    </div>
-                  )}
+                <label className="nv-field">
+                  <span className="nv-label">Nota de revisión</span>
+                  <textarea
+                    value={reviewNote}
+                    onChange={(e) => setReviewNote(e.target.value)}
+                    rows={5}
+                    className="nv-textarea"
+                    style={{ resize: 'vertical' }}
+                  />
+                </label>
 
-                  <label style={{ display: 'grid', gap: 8 }}>
-                    <span style={{ fontSize: 13, color: '#94a3b8', fontWeight: 700 }}>Nota de revisión</span>
-                    <textarea
-                      value={reviewNote}
-                      onChange={(e) => setReviewNote(e.target.value)}
-                      rows={5}
-                      style={{
-                        width: '100%',
-                        border: '1px solid rgba(255,255,255,0.12)',
-                        borderRadius: 12,
-                        padding: 12,
-                        background: 'rgba(255,255,255,0.03)',
-                        color: '#e5e7eb',
-                        resize: 'vertical',
-                        outline: 'none',
-                      }}
-                    />
-                  </label>
-
-                  <div style={{ display: 'grid', gap: 10, marginTop: 'auto' }}>
-                    {selectedPhoto.status !== 'approved' && (
-                      <button
-                        type="button"
-                        onClick={approvePhoto}
-                        disabled={actionBusy}
-                        style={{
-                          ...primaryBtn,
-                          width: '100%',
-                        }}
-                      >
-                        {actionBusy ? 'Procesando...' : '✅ Aprobar porque sí cumple la misión'}
-                      </button>
-                    )}
-
-                    {selectedPhoto.status !== 'rejected' && (
-                      <button
-                        type="button"
-                        onClick={rejectPhoto}
-                        disabled={actionBusy}
-                        style={{
-                          ...ghostBtn,
-                          width: '100%',
-                        }}
-                      >
-                        {actionBusy ? 'Procesando...' : '❌ Rechazar porque no cumple la misión'}
-                      </button>
-                    )}
-
+                <div style={{ display: 'grid', gap: 10, marginTop: 'auto' }}>
+                  {selectedPhoto.status !== 'approved' && (
                     <button
                       type="button"
-                      onClick={deletePhoto}
+                      onClick={approvePhoto}
                       disabled={actionBusy}
-                      style={{
-                        width: '100%',
-                        minHeight: 44,
-                        borderRadius: 12,
-                        border: '1px solid rgba(239,68,68,0.55)',
-                        background: 'transparent',
-                        color: '#fca5a5',
-                        cursor: actionBusy ? 'not-allowed' : 'pointer',
-                        fontWeight: 700,
-                      }}
+                      className="nv-btn nv-btn-primary nv-btn-block"
                     >
-                      🗑 Eliminar foto
+                      {actionBusy ? 'Procesando…' : (
+                        <>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M20 6 9 17l-5-5" />
+                          </svg>
+                          Aprobar porque sí cumple la misión
+                        </>
+                      )}
                     </button>
-                  </div>
+                  )}
+
+                  {selectedPhoto.status !== 'rejected' && (
+                    <button
+                      type="button"
+                      onClick={rejectPhoto}
+                      disabled={actionBusy}
+                      className="nv-btn nv-btn-ghost nv-btn-block"
+                    >
+                      {actionBusy ? 'Procesando…' : (
+                        <>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M18 6 6 18M6 6l12 12" />
+                          </svg>
+                          Rechazar porque no cumple la misión
+                        </>
+                      )}
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={deletePhoto}
+                    disabled={actionBusy}
+                    className="nv-btn nv-btn-danger nv-btn-block"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                    </svg>
+                    Eliminar foto
+                  </button>
                 </div>
               </div>
             </div>
-          )}
-        </div>
-      </main>
+          </div>
+        )}
+      </div>
     </RequireClub>
   );
 }

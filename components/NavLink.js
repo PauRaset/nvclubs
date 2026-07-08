@@ -8,16 +8,16 @@ export default function NavLink({ href, children, style = {}, activeStyle = {}, 
   const base = {
     padding: '8px 10px',
     borderRadius: 8,
-    background: '#111827',
-    color: '#e5e7eb',
+    background: 'var(--nv-surface)',
+    color: 'var(--nv-text)',
     textDecoration: 'none',
     display: 'inline-block',
-    border: '1px solid #303848',
+    border: '1px solid var(--nv-border-strong)',
     ...style,
   };
 
   const active = isActive
-    ? { background: 'linear-gradient(90deg,#0ea5e9,#6366f1)', color: '#001018', fontWeight: 700, borderColor: '#0ea5e9', ...activeStyle }
+    ? { background: 'var(--nv-grad-accent)', color: 'var(--nv-accent-ink)', fontWeight: 700, borderColor: 'var(--nv-accent-border)', ...activeStyle }
     : {};
 
   return (

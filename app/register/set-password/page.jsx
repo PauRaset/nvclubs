@@ -11,7 +11,7 @@ function SetPasswordInner() {
     process.env.NEXT_PUBLIC_BACKEND_URL ||
     'https://api.nightvibe.life';
 
-  // ⚠️ ENDPOINT FIJO DEL FLUJO DE APROBACIÓN
+  // ENDPOINT FIJO DEL FLUJO DE APROBACIÓN
   const ENDPOINT = useMemo(() => `${API_BASE}/api/registration/set-password`, [API_BASE]);
 
   const sp = useSearchParams();
@@ -35,6 +35,11 @@ function SetPasswordInner() {
     if (score === 3) return 'media';
     return 'débil';
   }, [password]);
+
+  const strengthBadge =
+    strength === 'fuerte' ? 'nv-badge-success'
+    : strength === 'media' ? 'nv-badge-warn'
+    : 'nv-badge-danger';
 
   async function submit(e) {
     e.preventDefault();
@@ -69,55 +74,53 @@ function SetPasswordInner() {
     }
   }
 
-  const card = { maxWidth: 520, margin: '0 auto', background: 'rgba(11,15,25,.75)', border: '1px solid #1f2937', borderRadius: 14, padding: 20, color: '#e5e7eb' };
-  const input = { width: '100%', padding: '12px 14px', borderRadius: 10, border: '1px solid #1f2937', background: '#0b1220', color: '#e5e7eb' };
-  const btn = { width: '100%', padding: '12px 14px', borderRadius: 10, border: '1px solid #1f2937', background: 'linear-gradient(90deg,#0ea5e9,#22d3ee)', color: '#001018', fontWeight: 800 };
-
   return (
-    <main style={{ minHeight: '100vh', background: '#0b0f19', padding: 16 }}>
-      <div style={card}>
-        <h1 style={{ fontSize: 26, fontWeight: 900, marginBottom: 12 }}>Crea tu contraseña</h1>
+    <main className="nv-page">
+      <div className="nv-shell" style={{ placeItems: 'center' }}>
+        <div className="nv-card" style={{ width: '100%', maxWidth: 520 }}>
+          <h1 className="nv-h2" style={{ marginBottom: 16 }}>Crea tu contraseña</h1>
 
-        {/* pista de depuración (puedes quitarlo luego) */}
-        <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 8 }}>
-          Usando endpoint: <code>{ENDPOINT}</code>
+          <form onSubmit={submit} style={{ display: 'grid', gap: 14 }}>
+            <div className="nv-field">
+              <label className="nv-label">Nueva contraseña</label>
+              <input
+                type="password"
+                className="nv-input"
+                placeholder="Nueva contraseña"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+              />
+            </div>
+
+            <div className="nv-row" style={{ gap: 8 }}>
+              <span className="nv-small nv-muted">Fuerza:</span>
+              <span className={`nv-badge ${strengthBadge}`}>{strength}</span>
+            </div>
+
+            <div className="nv-field">
+              <label className="nv-label">Confirmar contraseña</label>
+              <input
+                type="password"
+                className="nv-input"
+                placeholder="Confirmar contraseña"
+                value={confirm}
+                onChange={e => setConfirm(e.target.value)}
+              />
+            </div>
+
+            {err && <p role="alert" aria-live="assertive" className="nv-notice nv-notice-error">{err}</p>}
+            {msg && <p role="status" aria-live="polite" className="nv-notice nv-notice-success">{msg}</p>}
+
+            <button disabled={loading || !token} className="nv-btn nv-btn-primary nv-btn-block">
+              {loading ? 'Guardando…' : 'Guardar'}
+            </button>
+
+            <p className="nv-small nv-muted">
+              ¿Listo?{' '}
+              <a href="/login" className="nv-link-accent">Inicia sesión</a>
+            </p>
+          </form>
         </div>
-
-        <form onSubmit={submit} style={{ display: 'grid', gap: 12 }}>
-          <div>
-            <input
-              type="password"
-              style={input}
-              placeholder="Nueva contraseña"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-            />
-          </div>
-          <div style={{ color: strength === 'fuerte' ? '#22c55e' : strength === 'media' ? '#f59e0b' : '#f43f5e', fontSize: 13 }}>
-            Fuerza: <b>{strength}</b>
-          </div>
-          <div>
-            <input
-              type="password"
-              style={input}
-              placeholder="Confirmar contraseña"
-              value={confirm}
-              onChange={e => setConfirm(e.target.value)}
-            />
-          </div>
-
-          {err && <p style={{ color: '#f43f5e' }}>{err}</p>}
-          {msg && <p style={{ color: '#22c55e' }}>{msg}</p>}
-
-          <button disabled={loading || !token} style={btn}>
-            {loading ? 'Guardando…' : 'Guardar'}
-          </button>
-
-          <p style={{ color: '#93a4b8', fontSize: 13 }}>
-            ¿Listo?{' '}
-            <a href="/login" style={{ color: '#0ea5e9', fontWeight: 700 }}>Inicia sesión</a>
-          </p>
-        </form>
       </div>
     </main>
   );
@@ -125,7 +128,15 @@ function SetPasswordInner() {
 
 export default function Page() {
   return (
-    <Suspense fallback={<div style={{ padding: 16, color: '#e5e7eb' }}>Cargando…</div>}>
+    <Suspense
+      fallback={
+        <main className="nv-page">
+          <div className="nv-shell" style={{ placeItems: 'center' }}>
+            <p className="nv-lead">Cargando…</p>
+          </div>
+        </main>
+      }
+    >
       <SetPasswordInner />
     </Suspense>
   );

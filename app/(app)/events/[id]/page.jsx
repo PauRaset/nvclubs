@@ -67,33 +67,11 @@ export default function EditEventPage() {
     return { attendeeCount, ticketsSold, promotionsEnabled };
   }, [initial]);
 
-  function getStatusStyles(key) {
-    if (key === 'live') {
-      return {
-        background: 'rgba(34,197,94,0.12)',
-        border: '1px solid rgba(34,197,94,0.24)',
-        color: '#86efac',
-      };
-    }
-    if (key === 'upcoming') {
-      return {
-        background: 'rgba(0,229,255,0.08)',
-        border: '1px solid rgba(0,229,255,0.18)',
-        color: '#67e8f9',
-      };
-    }
-    if (key === 'past') {
-      return {
-        background: 'rgba(148,163,184,0.08)',
-        border: '1px solid rgba(148,163,184,0.18)',
-        color: '#cbd5e1',
-      };
-    }
-    return {
-      background: 'rgba(250,204,21,0.08)',
-      border: '1px solid rgba(250,204,21,0.18)',
-      color: '#fde68a',
-    };
+  function statusBadgeClass(key) {
+    if (key === 'live') return 'nv-badge nv-badge-success';
+    if (key === 'upcoming') return 'nv-badge';
+    if (key === 'past') return 'nv-badge nv-badge-neutral';
+    return 'nv-badge nv-badge-warn';
   }
 
   function formatDateRange(ev) {
@@ -248,129 +226,38 @@ export default function EditEventPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showPhotos, photoTab, id]);
 
-  const pageStyle = {
-    padding: '28px 24px 44px',
-    color: '#e5e7eb',
-    background: 'radial-gradient(circle at top, rgba(0,229,255,0.08), transparent 0 24%), var(--nv-bg)',
-    minHeight: '100vh',
-  };
-
-  const shellStyle = {
-    width: '100%',
-    maxWidth: 1280,
-    margin: '0 auto',
-    display: 'grid',
-    gap: 22,
-  };
-
-  const heroStyle = {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
-    gap: 18,
-    alignItems: 'center',
-    padding: 26,
-    borderRadius: 24,
-    background: 'linear-gradient(135deg, rgba(0,229,255,0.12), rgba(15,22,41,0.96))',
-    border: '1px solid rgba(0,229,255,0.18)',
-    boxShadow: '0 18px 50px rgba(0,0,0,0.24)',
-  };
-
-  const panelStyle = {
-    background: 'var(--nv-surface)',
-    border: '1px solid rgba(255,255,255,0.06)',
-    borderRadius: 22,
-    padding: 20,
-    boxShadow: '0 14px 40px rgba(0,0,0,0.20)',
-  };
-
-  const primaryBtn = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 46,
-    padding: '0 16px',
-    borderRadius: 14,
-    background: '#00e5ff',
-    color: '#001018',
-    fontWeight: 800,
-    textDecoration: 'none',
-    border: '1px solid #00d4eb',
-    cursor: 'pointer',
-    boxShadow: '0 12px 32px rgba(0,229,255,0.22)',
-    whiteSpace: 'nowrap',
-  };
-
-  const ghostBtn = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 44,
-    padding: '0 14px',
-    borderRadius: 12,
-    border: '1px solid rgba(255,255,255,0.12)',
-    background: 'rgba(255,255,255,0.03)',
-    color: '#e5e7eb',
-    textDecoration: 'none',
-    cursor: 'pointer',
-    fontWeight: 700,
-  };
+  // Distingue carga inicial de un error real de fetch (msg arranca en 'Cargando...')
+  const errored = !initial && !!msg && msg !== 'Cargando...';
+  const loadingInitial = !initial && !errored;
 
   return (
     <RequireClub>
-      <main style={pageStyle}>
-        <div style={shellStyle}>
-          <section style={heroStyle}>
-            <div>
-              <div
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  padding: '8px 12px',
-                  borderRadius: 999,
-                  border: '1px solid rgba(0,229,255,0.2)',
-                  background: 'rgba(0,229,255,0.08)',
-                  color: '#7dd3fc',
-                  fontWeight: 800,
-                  fontSize: 13,
-                  marginBottom: 14,
-                }}
-              >
-                Edición del evento
-              </div>
-              <h1 style={{ margin: 0, fontSize: 'clamp(28px, 4vw, 42px)', lineHeight: 1.02, letterSpacing: '-0.03em', fontWeight: 900 }}>
+      <div className="nv-views">
+          <section className="nv-hero nv-hero-split nv-animate-in">
+            <div style={{ minWidth: 0 }}>
+              <span className="nv-eyebrow">Edición del evento</span>
+              <h1 className="nv-h1 nv-truncate" style={{ marginTop: 10 }}>
                 {initial?.title || 'Editar evento'}
               </h1>
-              <p style={{ color: '#cbd5e1', lineHeight: 1.65, fontSize: 15, margin: '12px 0 0', maxWidth: 760 }}>
+              <p className="nv-lead" style={{ marginTop: 12, maxWidth: 640 }}>
                 Gestiona el evento, revisa su QR y controla la validación de fotos desde una única vista del panel de clubs.
               </p>
             </div>
 
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-              <button type="button" onClick={() => router.push('/events')} style={ghostBtn}>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end' }}>
+              <button type="button" onClick={() => router.push('/events')} className="nv-btn nv-btn-ghost">
                 Volver
               </button>
               {initial && (
-                <span
-                  style={{
-                    ...getStatusStyles(statusInfo.key),
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    minHeight: 44,
-                    padding: '0 14px',
-                    borderRadius: 999,
-                    fontSize: 13,
-                    fontWeight: 800,
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {statusInfo.label}
-                </span>
+                <span className={statusBadgeClass(statusInfo.key)}>{statusInfo.label}</span>
               )}
             </div>
           </section>
 
-          {msg && !initial ? (
-            <section style={{ ...panelStyle, display: 'grid', gap: 12 }}>
+          {errored ? (
+            <div className="nv-notice nv-notice-error" role="alert">{msg}</div>
+          ) : loadingInitial ? (
+            <section className="nv-card" style={{ display: 'grid', gap: 12 }}>
               <div className="nv-skeleton nv-skeleton-line lg" style={{ width: '45%' }} />
               <div
                 style={{
@@ -394,20 +281,20 @@ export default function EditEventPage() {
                   gap: 14,
                 }}
               >
-                <article style={panelStyle}>
-                  <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 10 }}>Fecha</div>
+                <article className="nv-kpi">
+                  <div className="nv-kpi-label">Fecha</div>
                   <div style={{ fontSize: 16, fontWeight: 800, lineHeight: 1.45 }}>{formatDateRange(initial)}</div>
                 </article>
-                <article style={panelStyle}>
-                  <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 10 }}>Asistentes</div>
-                  <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.03em' }}>{stats.attendeeCount}</div>
+                <article className="nv-kpi">
+                  <div className="nv-kpi-label">Asistentes</div>
+                  <div className="nv-kpi-value">{stats.attendeeCount}</div>
                 </article>
-                <article style={panelStyle}>
-                  <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 10 }}>Entradas vendidas</div>
-                  <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.03em' }}>{stats.ticketsSold}</div>
+                <article className="nv-kpi">
+                  <div className="nv-kpi-label">Entradas vendidas</div>
+                  <div className="nv-kpi-value">{stats.ticketsSold}</div>
                 </article>
-                <article style={panelStyle}>
-                  <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 10 }}>Promociones</div>
+                <article className="nv-kpi">
+                  <div className="nv-kpi-label">Promociones</div>
                   <div style={{ fontSize: 18, fontWeight: 900 }}>{stats.promotionsEnabled ? 'Activadas' : 'No activadas'}</div>
                 </article>
               </section>
@@ -420,12 +307,12 @@ export default function EditEventPage() {
                   alignItems: 'start',
                 }}
               >
-                <section style={panelStyle}>
+                <section className="nv-card">
                   <div style={{ marginBottom: 18 }}>
-                    <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: '-0.02em' }}>Formulario del evento</div>
-                    <div style={{ color: '#94a3b8', fontSize: 14, marginTop: 8, lineHeight: 1.6 }}>
+                    <h2 className="nv-h3">Formulario del evento</h2>
+                    <p className="nv-small nv-muted" style={{ marginTop: 8 }}>
                       Edita los campos principales del evento y guarda cambios cuando termines.
-                    </div>
+                    </p>
                   </div>
 
                   <EventForm
@@ -436,31 +323,20 @@ export default function EditEventPage() {
                 </section>
 
                 <aside style={{ display: 'grid', gap: 20 }}>
-                  <section style={panelStyle}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', marginBottom: 14 }}>
-                      <div>
-                        <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: '-0.02em' }}>QR del evento</div>
-                        <div style={{ color: '#94a3b8', fontSize: 14, marginTop: 6, lineHeight: 1.6 }}>
-                          Este QR ya queda preparado para descargar, imprimir o usarlo como base en misiones y accesos.
-                        </div>
-                      </div>
+                  <section className="nv-card">
+                    <div style={{ marginBottom: 14 }}>
+                      <h2 className="nv-h3">QR del evento</h2>
+                      <p className="nv-small nv-muted" style={{ marginTop: 6 }}>
+                        Descárgalo o imprímelo para el control de accesos del evento.
+                      </p>
                     </div>
 
-                    <div
-                      style={{
-                        padding: 16,
-                        borderRadius: 18,
-                        background: 'linear-gradient(135deg, rgba(255,255,255,0.03), rgba(0,229,255,0.05))',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        display: 'grid',
-                        gap: 14,
-                      }}
-                    >
+                    <div className="nv-card-soft" style={{ display: 'grid', gap: 14 }}>
                       <div
                         style={{
                           width: '100%',
                           aspectRatio: '1 / 1',
-                          borderRadius: 18,
+                          borderRadius: 'var(--nv-r)',
                           background: '#fff',
                           overflow: 'hidden',
                           display: 'grid',
@@ -470,26 +346,26 @@ export default function EditEventPage() {
                         {qrImageUrl ? (
                           <img src={qrImageUrl} alt="QR evento" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                         ) : (
-                          <div style={{ color: '#111827', fontWeight: 700 }}>QR pendiente</div>
+                          <div style={{ color: 'var(--nv-ink)', fontWeight: 700 }}>QR pendiente</div>
                         )}
                       </div>
 
                       <div>
-                        <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 700, marginBottom: 6 }}>Token QR</div>
-                        <div style={{ color: '#e5e7eb', fontSize: 13, lineHeight: 1.55, wordBreak: 'break-all' }}>
+                        <div className="nv-small" style={{ color: 'var(--nv-muted)', fontWeight: 700, marginBottom: 6 }}>Token QR</div>
+                        <div className="nv-small" style={{ wordBreak: 'break-all' }}>
                           {initial?.qrToken || 'Aún no disponible'}
                         </div>
                       </div>
 
                       <div>
-                        <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 700, marginBottom: 6 }}>Payload actual</div>
-                        <div style={{ color: '#cbd5e1', fontSize: 13, lineHeight: 1.55, wordBreak: 'break-all' }}>
+                        <div className="nv-small" style={{ color: 'var(--nv-muted)', fontWeight: 700, marginBottom: 6 }}>Payload actual</div>
+                        <div className="nv-small nv-muted" style={{ wordBreak: 'break-all' }}>
                           {qrPayload || 'Pendiente'}
                         </div>
                       </div>
 
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                        <button type="button" onClick={copyQrPayload} style={ghostBtn}>
+                        <button type="button" onClick={copyQrPayload} className="nv-btn nv-btn-ghost">
                           {copied ? 'Copiado' : 'Copiar payload'}
                         </button>
                         <a
@@ -497,8 +373,8 @@ export default function EditEventPage() {
                           download={`nightvibe-qr-${initial?._id || id}.png`}
                           target="_blank"
                           rel="noopener noreferrer"
+                          className="nv-btn nv-btn-primary"
                           style={{
-                            ...primaryBtn,
                             opacity: qrImageUrl ? 1 : 0.45,
                             pointerEvents: qrImageUrl ? 'auto' : 'none',
                           }}
@@ -506,37 +382,20 @@ export default function EditEventPage() {
                           Descargar QR
                         </a>
                       </div>
-
-                      <div
-                        style={{
-                          padding: 12,
-                          borderRadius: 14,
-                          background: 'rgba(0,229,255,0.06)',
-                          border: '1px solid rgba(0,229,255,0.12)',
-                          color: '#cbd5e1',
-                          fontSize: 13,
-                          lineHeight: 1.55,
-                        }}
-                      >
-                        Este QR se genera en frontend usando el <strong>qrToken</strong> del evento. Más adelante, si quieres, podemos mover la generación a backend o añadir impresión directa.
-                      </div>
                     </div>
                   </section>
 
-                  <section style={panelStyle}>
+                  <section className="nv-card">
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                       <div>
-                        <h2 style={{ fontSize: 18, margin: 0 }}>Validación de fotos</h2>
-                        <div style={{ color: '#94a3b8', fontSize: 14, marginTop: 6, lineHeight: 1.6 }}>
-                          Revisa el contenido subido por asistentes y modera según la misión o contexto del evento.
-                        </div>
+                        <h2 className="nv-h3">Validación de fotos</h2>
+                        <p className="nv-small nv-muted" style={{ marginTop: 6 }}>
+                          Revisa el contenido subido por asistentes y modéralo según el contexto del evento.
+                        </p>
                       </div>
                       <button
                         onClick={() => setShowPhotos((v) => !v)}
-                        style={{
-                          ...ghostBtn,
-                          background: showPhotos ? '#111827' : 'rgba(255,255,255,0.03)',
-                        }}
+                        className="nv-btn nv-btn-ghost"
                       >
                         {showPhotos ? 'Cerrar' : 'Abrir'}
                       </button>
@@ -544,43 +403,48 @@ export default function EditEventPage() {
 
                     {showPhotos && (
                       <div style={{ marginTop: 14 }}>
-                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                          {[
-                            { key: 'pending', label: 'Pendientes' },
-                            { key: 'approved', label: 'Aprobadas' },
-                            { key: 'rejected', label: 'Rechazadas' },
-                          ].map((t) => (
-                            <button
-                              key={t.key}
-                              onClick={() => setPhotoTab(t.key)}
-                              style={{
-                                ...ghostBtn,
-                                minHeight: 42,
-                                padding: '0 12px',
-                                background: photoTab === t.key ? '#111827' : 'rgba(255,255,255,0.03)',
-                              }}
-                            >
-                              {t.label}
-                            </button>
-                          ))}
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                          <div className="nv-seg" role="tablist" aria-label="Filtrar fotos por estado">
+                            {[
+                              { key: 'pending', label: 'Pendientes' },
+                              { key: 'approved', label: 'Aprobadas' },
+                              { key: 'rejected', label: 'Rechazadas' },
+                            ].map((t) => (
+                              <button
+                                key={t.key}
+                                type="button"
+                                role="tab"
+                                aria-selected={photoTab === t.key}
+                                onClick={() => setPhotoTab(t.key)}
+                                className={`nv-seg-btn ${photoTab === t.key ? 'is-active' : ''}`}
+                              >
+                                {t.label}
+                              </button>
+                            ))}
+                          </div>
 
                           <button
+                            type="button"
                             onClick={() => loadModerationPhotos(photoTab)}
-                            style={{
-                              ...ghostBtn,
-                              marginLeft: 'auto',
-                              minHeight: 42,
-                              padding: '0 12px',
-                            }}
+                            className="nv-btn nv-btn-ghost"
+                            style={{ marginLeft: 'auto' }}
                           >
-                            ↻ Recargar
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <path d="M21 12a9 9 0 1 1-2.64-6.36" /><path d="M21 3v6h-6" />
+                            </svg>
+                            Recargar
                           </button>
                         </div>
 
-                        {photosMsg && <p style={{ marginTop: 10, opacity: 0.85 }}>{photosMsg}</p>}
+                        {photosMsg && (
+                          <div className="nv-notice nv-notice-info" style={{ marginTop: 12 }}>{photosMsg}</div>
+                        )}
 
                         {!photosMsg && photos.length === 0 && (
-                          <p style={{ marginTop: 10, opacity: 0.75 }}>No hay fotos en esta pestaña.</p>
+                          <div className="nv-empty">
+                            <div className="nv-empty-title" style={{ fontSize: 'var(--nv-fs-md)' }}>No hay fotos en esta pestaña</div>
+                            <div className="nv-empty-text">Cambia de pestaña o recarga para ver contenido nuevo.</div>
+                          </div>
                         )}
 
                         {photos.length > 0 && (
@@ -595,34 +459,33 @@ export default function EditEventPage() {
                             {photos.map((p) => (
                               <button
                                 key={p.photoId}
+                                type="button"
                                 onClick={() => {
                                   setSelectedPhoto(p);
                                   setReviewNote(p.reviewNote || '');
                                 }}
+                                className="nv-item"
                                 style={{
                                   textAlign: 'left',
-                                  border: '1px solid rgba(255,255,255,0.10)',
-                                  borderRadius: 16,
+                                  padding: 0,
                                   overflow: 'hidden',
-                                  background: 'rgba(255,255,255,0.02)',
-                                  color: '#e5e7eb',
                                   cursor: 'pointer',
                                 }}
                               >
-                                <div style={{ width: '100%', height: 180, background: 'rgba(255,255,255,0.03)' }}>
+                                <div style={{ width: '100%', height: 180, background: 'var(--nv-bg-soft)' }}>
                                   <img
                                     src={p.url}
-                                    alt="user photo"
+                                    alt="Foto subida por asistente"
                                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                     loading="lazy"
                                   />
                                 </div>
                                 <div style={{ padding: 10 }}>
                                   <div style={{ fontWeight: 700, fontSize: 14 }}>@{p.byUsername || 'usuario'}</div>
-                                  <div style={{ fontSize: 12, opacity: 0.75, marginTop: 2 }}>
+                                  <div className="nv-small nv-muted" style={{ marginTop: 2 }}>
                                     {p.uploadedAt ? new Date(p.uploadedAt).toLocaleString() : ''}
                                   </div>
-                                  <div style={{ fontSize: 12, opacity: 0.75, marginTop: 6 }}>Estado: {p.status}</div>
+                                  <div className="nv-small nv-muted" style={{ marginTop: 6 }}>Estado: {p.status}</div>
                                 </div>
                               </button>
                             ))}
@@ -637,25 +500,18 @@ export default function EditEventPage() {
               {selectedPhoto && (
                 <div
                   onClick={() => setSelectedPhoto(null)}
-                  style={{
-                    position: 'fixed',
-                    inset: 0,
-                    background: 'rgba(0,0,0,0.65)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: 16,
-                    zIndex: 50,
-                  }}
+                  className="nv-confirm-overlay"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label="Moderación de foto"
                 >
                   <div
                     onClick={(e) => e.stopPropagation()}
+                    className="nv-card"
                     style={{
                       width: 'min(980px, 100%)',
                       maxHeight: '88vh',
-                      background: 'var(--nv-bg)',
-                      border: '1px solid rgba(255,255,255,0.12)',
-                      borderRadius: 18,
+                      padding: 0,
                       overflow: 'auto',
                       display: 'grid',
                       gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
@@ -664,75 +520,70 @@ export default function EditEventPage() {
                     <div style={{ background: 'var(--nv-ink)' }}>
                       <img
                         src={selectedPhoto.url}
-                        alt="selected"
+                        alt="Foto seleccionada"
                         style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                       />
                     </div>
-                    <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      <div style={{ fontSize: 16, fontWeight: 800 }}>@{selectedPhoto.byUsername || 'usuario'}</div>
+                    <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      <div className="nv-h4">@{selectedPhoto.byUsername || 'usuario'}</div>
 
-                      <label style={{ fontSize: 12, opacity: 0.75 }}>Nota (opcional)</label>
-                      <textarea
-                        value={reviewNote}
-                        onChange={(e) => setReviewNote(e.target.value)}
-                        rows={4}
-                        style={{
-                          width: '100%',
-                          border: '1px solid rgba(255,255,255,0.12)',
-                          borderRadius: 12,
-                          padding: 10,
-                          background: 'rgba(255,255,255,0.03)',
-                          color: '#e5e7eb',
-                        }}
-                      />
+                      <div>
+                        <label className="nv-label" htmlFor="nv-review-note">Nota (opcional)</label>
+                        <textarea
+                          id="nv-review-note"
+                          value={reviewNote}
+                          onChange={(e) => setReviewNote(e.target.value)}
+                          rows={4}
+                          className="nv-textarea"
+                        />
+                      </div>
 
-                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6, alignItems: 'center' }}>
                         {selectedPhoto.status !== 'approved' && (
                           <button
+                            type="button"
                             onClick={() => approvePhoto(selectedPhoto.photoId)}
-                            style={{
-                              ...ghostBtn,
-                              background: '#111827',
-                            }}
+                            className="nv-btn nv-btn-primary"
                           >
-                            ✅ Aprobar
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <path d="M20 6 9 17l-5-5" />
+                            </svg>
+                            Aprobar
                           </button>
                         )}
 
                         {selectedPhoto.status !== 'rejected' && (
                           <button
+                            type="button"
                             onClick={() => rejectPhoto(selectedPhoto.photoId)}
-                            style={ghostBtn}
+                            className="nv-btn nv-btn-ghost"
                           >
-                            ❌ Rechazar
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <path d="M18 6 6 18M6 6l12 12" />
+                            </svg>
+                            Rechazar
                           </button>
                         )}
 
                         <button
+                          type="button"
                           onClick={() => deletePhoto(selectedPhoto.photoId)}
-                          style={{
-                            marginLeft: 'auto',
-                            padding: '10px 12px',
-                            borderRadius: 12,
-                            border: '1px solid rgba(239,68,68,0.55)',
-                            background: 'transparent',
-                            color: '#fca5a5',
-                            cursor: 'pointer',
-                          }}
+                          className="nv-btn nv-btn-danger"
+                          style={{ marginLeft: 'auto' }}
                         >
-                          🗑 Eliminar
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
+                          </svg>
+                          Eliminar
                         </button>
                       </div>
-
-                      <div style={{ marginTop: 'auto', fontSize: 12, opacity: 0.65 }}>photoId: {selectedPhoto.photoId}</div>
                     </div>
                   </div>
                 </div>
               )}
             </>
           )}
-        </div>
-      </main>
+      </div>
     </RequireClub>
   );
 }

@@ -1,4 +1,3 @@
-// REPLACED WITH NEW IMPLEMENTATION
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
@@ -58,68 +57,24 @@ function extractClubId() {
   return user?._id || user?.id || user?.clubId || user?.club?._id || user?.club?.id || '';
 }
 
-function getStatusStyles(status) {
-  if (status === 'active') {
-    return {
-      background: 'rgba(34,197,94,0.12)',
-      border: '1px solid rgba(34,197,94,0.24)',
-      color: '#86efac',
-    };
-  }
-
-  if (status === 'paused') {
-    return {
-      background: 'rgba(250,204,21,0.10)',
-      border: '1px solid rgba(250,204,21,0.20)',
-      color: '#fde68a',
-    };
-  }
-
-  return {
-    background: 'rgba(148,163,184,0.10)',
-    border: '1px solid rgba(148,163,184,0.20)',
-    color: '#cbd5e1',
-  };
+function getStatusBadge(status) {
+  if (status === 'active') return 'nv-badge-success';
+  if (status === 'paused') return 'nv-badge-warn';
+  return 'nv-badge-neutral';
 }
 
-function getMissionTypeStyle(type) {
-  if (type === 'Contenido') {
-    return {
-      background: 'rgba(0,229,255,0.08)',
-      border: '1px solid rgba(0,229,255,0.18)',
-      color: '#8be9f7',
-    };
-  }
+function getStatusLabel(status) {
+  if (status === 'active') return 'Activo';
+  if (status === 'paused') return 'Pausado';
+  return 'Borrador';
+}
 
-  if (type === 'Difusión') {
-    return {
-      background: 'rgba(168,85,247,0.12)',
-      border: '1px solid rgba(168,85,247,0.20)',
-      color: '#d8b4fe',
-    };
-  }
-
-  if (type === 'Asistencia') {
-    return {
-      background: 'rgba(34,197,94,0.10)',
-      border: '1px solid rgba(34,197,94,0.18)',
-      color: '#86efac',
-    };
-  }
-
-  if (type === 'QR') {
-    return {
-      background: 'rgba(249,115,22,0.10)',
-      border: '1px solid rgba(249,115,22,0.18)',
-      color: '#fdba74',
-    };
-  }
-
-  return {
-    background: 'rgba(255,255,255,0.04)',
-    border: '1px solid rgba(255,255,255,0.08)',
-    color: '#cbd5e1',
-  };
+function getMissionTypeBadge(typeLabel) {
+  if (typeLabel === 'Contenido') return 'nv-badge';
+  if (typeLabel === 'Difusión') return 'nv-badge-indigo';
+  if (typeLabel === 'Asistencia') return 'nv-badge-success';
+  if (typeLabel === 'QR') return 'nv-badge-warn';
+  return 'nv-badge-neutral';
 }
 
 function getMissionTypeLabel(type) {
@@ -228,7 +183,13 @@ export default function PromotionDetailPage() {
   const [levels, setLevels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState('');
+  const [noticeKind, setNoticeKind] = useState('info');
   const [saved, setSaved] = useState(false);
+
+  function flash(message, kind = 'info') {
+    setNotice(message);
+    setNoticeKind(kind);
+  }
 
   const level = useMemo(() => {
     if (!id) return null;
@@ -253,7 +214,7 @@ export default function PromotionDetailPage() {
 
       if (!resolvedClubId) {
         if (!cancelled) {
-          setNotice('No se ha podido resolver el club actual para cargar este nivel.');
+          flash('No se ha podido resolver el club actual para cargar este nivel.', 'error');
           setLoading(false);
         }
         return;
@@ -269,7 +230,7 @@ export default function PromotionDetailPage() {
         }
       } catch (e) {
         if (!cancelled) {
-          setNotice(e?.message || 'No se pudo cargar la configuración del nivel.');
+          flash(e?.message || 'No se pudo cargar la configuración del nivel.', 'error');
           setLevels([]);
         }
       } finally {
@@ -295,138 +256,11 @@ export default function PromotionDetailPage() {
     setEditingMissionId(level.missions?.[0]?.id || '');
   }, [level]);
 
-  const pageStyle = {
-    padding: '28px 24px 44px',
-    color: '#e5e7eb',
-    background: 'radial-gradient(circle at top, rgba(0,229,255,0.08), transparent 0 24%), var(--nv-bg)',
-    minHeight: '100vh',
-  };
-
-  const shellStyle = {
-    width: '100%',
-    maxWidth: 1280,
-    margin: '0 auto',
-    display: 'grid',
-    gap: 22,
-  };
-
-  const heroStyle = {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
-    gap: 18,
-    alignItems: 'center',
-    padding: 26,
-    borderRadius: 24,
-    background: 'linear-gradient(135deg, rgba(0,229,255,0.12), rgba(15,22,41,0.96))',
-    border: '1px solid rgba(0,229,255,0.18)',
-    boxShadow: '0 18px 50px rgba(0,0,0,0.24)',
-  };
-
-  const titleStyle = {
-    margin: 0,
-    fontSize: 'clamp(28px, 4vw, 42px)',
-    lineHeight: 1.02,
-    letterSpacing: '-0.03em',
-    fontWeight: 900,
-  };
-
-  const mutedStyle = {
-    color: '#cbd5e1',
-    lineHeight: 1.65,
-    fontSize: 15,
-  };
-
-  const panelStyle = {
-    background: 'var(--nv-surface)',
-    border: '1px solid rgba(255,255,255,0.06)',
-    borderRadius: 22,
-    padding: 20,
-    boxShadow: '0 14px 40px rgba(0,0,0,0.20)',
-  };
-
-  const buttonPrimary = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 46,
-    padding: '0 16px',
-    borderRadius: 14,
-    background: '#00e5ff',
-    color: '#001018',
-    fontWeight: 800,
-    border: '1px solid #00d4eb',
-    cursor: 'pointer',
-    boxShadow: '0 12px 32px rgba(0,229,255,0.22)',
-    whiteSpace: 'nowrap',
-  };
-
-  const buttonGhost = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 46,
-    padding: '0 16px',
-    borderRadius: 14,
-    border: '1px solid rgba(255,255,255,0.10)',
-    background: 'rgba(255,255,255,0.03)',
-    color: '#e5e7eb',
-    fontWeight: 800,
-    cursor: 'pointer',
-    whiteSpace: 'nowrap',
-  };
-
-  const inputStyle = {
-    width: '100%',
-    minHeight: 48,
-    borderRadius: 12,
-    border: '1px solid rgba(255,255,255,0.08)',
-    background: 'rgba(255,255,255,0.03)',
-    color: '#e5e7eb',
-    padding: '0 14px',
-    outline: 'none',
-    fontSize: 14,
-  };
-
-  const textareaStyle = {
-    width: '100%',
-    minHeight: 132,
-    borderRadius: 12,
-    border: '1px solid rgba(255,255,255,0.08)',
-    background: 'rgba(255,255,255,0.03)',
-    color: '#e5e7eb',
-    padding: '12px 14px',
-    outline: 'none',
-    fontSize: 14,
-    resize: 'vertical',
-  };
-
-  const labelStyle = {
-    display: 'grid',
-    gap: 8,
-    color: '#cbd5e1',
-    fontSize: 14,
-    fontWeight: 700,
-  };
-
-  const smallLabelStyle = {
-    display: 'grid',
-    gap: 8,
-    color: '#cbd5e1',
-    fontSize: 13,
-    fontWeight: 700,
-  };
-
-  const helperStyle = {
-    color: '#94a3b8',
-    fontSize: 13,
-    lineHeight: 1.55,
-  };
-
   async function handleSave() {
     if (!clubId || !level) return;
 
     try {
-      setNotice('Guardando cambios del nivel...');
+      flash('Guardando cambios del nivel...', 'info');
       const nextLevels = levels.map((item) => {
         if (String(item.levelNumber) !== String(id)) return item;
         return serializeLevelForSave(item, {
@@ -447,26 +281,24 @@ export default function PromotionDetailPage() {
       const savedLevels = Array.isArray(data?.levels) ? data.levels : [];
       setLevels(savedLevels);
       setSaved(true);
-      setNotice('Cambios guardados correctamente en la configuración del club.');
+      flash('Cambios guardados correctamente en la configuración del club.', 'success');
       router.replace(`/promotions/${levelNumber}`);
       setTimeout(() => setSaved(false), 2000);
     } catch (e) {
-      setNotice(e?.message || 'No se pudieron guardar los cambios del nivel.');
+      flash(e?.message || 'No se pudieron guardar los cambios del nivel.', 'error');
     }
   }
 
   if (loading) {
     return (
       <RequireClub>
-        <main style={pageStyle}>
-          <div style={shellStyle}>
-            <section style={{ ...panelStyle, display: 'grid', gap: 12 }}>
-              <div className="nv-skeleton nv-skeleton-line lg" style={{ width: '40%' }} />
-              <div className="nv-skeleton" style={{ height: 56, borderRadius: 14 }} />
-              <div className="nv-skeleton" style={{ height: 120, borderRadius: 14 }} />
-            </section>
-          </div>
-        </main>
+        <div className="nv-views">
+          <section className="nv-card" style={{ display: 'grid', gap: 12 }}>
+            <div className="nv-skeleton nv-skeleton-line lg" style={{ width: '40%', marginTop: 0 }} />
+            <div className="nv-skeleton" style={{ height: 56, borderRadius: 14 }} />
+            <div className="nv-skeleton" style={{ height: 120, borderRadius: 14 }} />
+          </section>
+        </div>
       </RequireClub>
     );
   }
@@ -474,265 +306,190 @@ export default function PromotionDetailPage() {
   if (!level) {
     return (
       <RequireClub>
-        <main style={pageStyle}>
-          <div style={shellStyle}>
-            <section style={panelStyle}>
-              <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 10 }}>Nivel no encontrado</div>
-              <div style={{ ...mutedStyle, maxWidth: 680 }}>
+        <div className="nv-views">
+          <section className="nv-card">
+            <div className="nv-empty">
+              <div className="nv-empty-icon is-error" aria-hidden="true">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="9" /><path d="M12 8v4M12 16h.01" />
+                </svg>
+              </div>
+              <div className="nv-empty-title">Nivel no encontrado</div>
+              <div className="nv-empty-text">
                 No existe configuración para este nivel dentro del sistema real del club.
               </div>
-              <div style={{ marginTop: 18 }}>
-                <button type="button" onClick={() => router.push('/promotions')} style={buttonGhost}>
-                  Volver a promociones
-                </button>
-              </div>
-            </section>
-          </div>
-        </main>
+              <button type="button" onClick={() => router.push('/promotions')} className="nv-btn nv-btn-secondary" style={{ marginTop: 6 }}>
+                Volver a promociones
+              </button>
+            </div>
+          </section>
+        </div>
       </RequireClub>
     );
   }
 
-  const statusStyle = getStatusStyles(status);
   const missionCount = missions.length;
   const manualCount = missions.filter((mission) => getValidationLabel(mission).toLowerCase().includes('manual')).length;
   const editingMission = missions.find((mission) => mission.id === editingMissionId) || missions[0] || null;
 
   return (
     <RequireClub>
-      <main style={pageStyle}>
-        <div style={shellStyle}>
-          <section style={heroStyle}>
-            <div>
-              <div
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  padding: '8px 12px',
-                  borderRadius: 999,
-                  border: '1px solid rgba(0,229,255,0.2)',
-                  background: 'rgba(0,229,255,0.08)',
-                  color: '#7dd3fc',
-                  fontWeight: 800,
-                  fontSize: 13,
-                  marginBottom: 14,
-                }}
-              >
-                Edición de nivel
+      <div className="nv-views">
+        <section className="nv-hero nv-hero-split nv-animate-in">
+          <div>
+            <span className="nv-eyebrow">Edición de nivel</span>
+            <h1 className="nv-h1 nv-truncate" style={{ marginTop: 10 }}>{title || level.title}</h1>
+            <p className="nv-lead" style={{ marginTop: 10, maxWidth: 620 }}>
+              Edita la recompensa final, el estado del nivel y revisa las misiones que lo componen.
+              Los cambios se guardan en la configuración del club.
+            </p>
+          </div>
+
+          <div className="nv-row" style={{ justifyContent: 'flex-end' }}>
+            <button type="button" onClick={() => router.push('/promotions')} className="nv-btn nv-btn-secondary">
+              Volver
+            </button>
+            <button type="button" onClick={handleSave} className="nv-btn nv-btn-primary">
+              Guardar cambios
+            </button>
+          </div>
+        </section>
+
+        {notice && (
+          <div className={`nv-notice nv-notice-${noticeKind}`} role={noticeKind === 'error' ? 'alert' : 'status'}>
+            {notice}
+          </div>
+        )}
+
+        <section className="nv-grid-auto">
+          <article className="nv-kpi">
+            <div className="nv-kpi-label">Nivel</div>
+            <div className="nv-kpi-value">{levelNumber}</div>
+            <div className="nv-kpi-help">Posición actual en el sistema</div>
+          </article>
+          <article className="nv-kpi">
+            <div className="nv-kpi-label">Misiones</div>
+            <div className="nv-kpi-value">{missionCount}</div>
+            <div className="nv-kpi-help">Tareas necesarias para completar el nivel</div>
+          </article>
+          <article className="nv-kpi">
+            <div className="nv-kpi-label">Revisión manual</div>
+            <div className="nv-kpi-value">{manualCount}</div>
+            <div className="nv-kpi-help">Misiones que requerirán validar contenido</div>
+          </article>
+          <article className="nv-kpi">
+            <div className="nv-kpi-label">Estado</div>
+            <div style={{ marginTop: 4 }}>
+              <span className={getStatusBadge(status)}>{getStatusLabel(status)}</span>
+            </div>
+            <div className="nv-kpi-help">Visibilidad actual del nivel</div>
+          </article>
+        </section>
+
+        <section className="nv-grid-auto" style={{ alignItems: 'start' }}>
+          <article className="nv-card">
+            <h2 className="nv-h3" style={{ marginBottom: 16 }}>Configuración general del nivel</h2>
+
+            <div style={{ display: 'grid', gap: 14 }}>
+              <div className="nv-field">
+                <label className="nv-label">Nombre del nivel</label>
+                <input className="nv-input" value={title} onChange={(e) => setTitle(e.target.value)} />
               </div>
-              <h1 style={titleStyle}>{title || level.title}</h1>
-              <p style={{ ...mutedStyle, margin: '12px 0 0', maxWidth: 760 }}>
-                Edita la recompensa final, el estado del nivel y revisa las misiones que lo componen. Esta pantalla ya guarda cambios reales en backend para el club actual.
+
+              <div className="nv-field">
+                <label className="nv-label">Recompensa final</label>
+                <input className="nv-input" value={reward} onChange={(e) => setReward(e.target.value)} />
+              </div>
+
+              <div className="nv-field">
+                <label className="nv-label">Estado del nivel</label>
+                <select className="nv-select" value={status} onChange={(e) => setStatus(e.target.value)}>
+                  <option value="active">Activo</option>
+                  <option value="draft">Borrador</option>
+                  <option value="paused">Pausado</option>
+                </select>
+              </div>
+
+              <div className="nv-field">
+                <label className="nv-label">Descripción</label>
+                <textarea className="nv-textarea" value={description} onChange={(e) => setDescription(e.target.value)} />
+              </div>
+            </div>
+          </article>
+
+          <article className="nv-card">
+            <h2 className="nv-h3" style={{ marginBottom: 16 }}>Vista rápida del nivel</h2>
+
+            <div className="nv-card-soft">
+              <div className="nv-eyebrow">Resumen para el club</div>
+              <div className="nv-h3" style={{ fontSize: 24, marginTop: 10 }}>
+                {title || 'Nivel sin título'}
+              </div>
+              <p className="nv-lead" style={{ marginTop: 8 }}>
+                {description || 'Añade una descripción para entender mejor qué representa este nivel.'}
+              </p>
+              <div style={{ display: 'grid', gap: 8, marginTop: 14 }}>
+                <div className="nv-small nv-muted">Recompensa final</div>
+                <div className="nv-h4" style={{ fontSize: 15 }}>{reward || 'Pendiente de definir'}</div>
+                <div style={{ marginTop: 4 }}>
+                  <span className={getStatusBadge(status)}>{getStatusLabel(status)}</span>
+                </div>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <section className="nv-card">
+          <div className="nv-row" style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div style={{ minWidth: 0 }}>
+              <h2 className="nv-h3">Misiones del nivel</h2>
+              <p className="nv-small nv-muted" style={{ marginTop: 8, maxWidth: 620 }}>
+                Cada misión representa una condición parcial. El premio solo se entrega cuando el usuario completa todo el nivel.
               </p>
             </div>
-
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-              <button type="button" onClick={() => router.push('/promotions')} style={buttonGhost}>
-                Volver
-              </button>
-              <button type="button" onClick={handleSave} style={buttonPrimary}>
-                Guardar cambios
-              </button>
-            </div>
-          </section>
-
-          {notice && (
-            <section
-              style={{
-                ...panelStyle,
-                border: saved ? '1px solid rgba(34,197,94,0.26)' : '1px solid rgba(0,229,255,0.14)',
-                background: saved ? 'rgba(34,197,94,0.08)' : 'rgba(0,229,255,0.05)',
-                color: saved ? '#dcfce7' : '#dff9ff',
+            <button
+              type="button"
+              onClick={() => {
+                const nextId = `mission-${Date.now()}`;
+                const nextMission = {
+                  id: nextId,
+                  title: 'Nueva misión',
+                  type: 'stamps_competition',
+                  typeLabel: 'Misión especial',
+                  validationType: 'automatic',
+                  validation: 'Automática',
+                  details: 'Define aquí la condición concreta de esta misión.',
+                  description: 'Define aquí la condición concreta de esta misión.',
+                  target: 1,
+                  unit: '',
+                  params: {},
+                  order: missions.length + 1,
+                  active: true,
+                };
+                setMissions((prev) => [...prev, nextMission]);
+                setEditingMissionId(nextId);
               }}
+              className="nv-btn nv-btn-secondary"
             >
-              {notice}
-            </section>
-          )}
+              + Añadir misión
+            </button>
+          </div>
+        </section>
 
-          <section
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-              gap: 14,
-            }}
-          >
-            <article style={panelStyle}>
-              <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 10 }}>Nivel</div>
-              <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.03em' }}>{levelNumber}</div>
-              <div style={{ color: '#cbd5e1', fontSize: 13, marginTop: 10 }}>Posición actual en el sistema</div>
-            </article>
-            <article style={panelStyle}>
-              <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 10 }}>Misiones</div>
-              <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.03em' }}>{missionCount}</div>
-              <div style={{ color: '#cbd5e1', fontSize: 13, marginTop: 10 }}>Tareas necesarias para completar el nivel</div>
-            </article>
-            <article style={panelStyle}>
-              <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 10 }}>Revisión manual</div>
-              <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.03em' }}>{manualCount}</div>
-              <div style={{ color: '#cbd5e1', fontSize: 13, marginTop: 10 }}>Misiones que requerirán validar contenido</div>
-            </article>
-            <article style={panelStyle}>
-              <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 10 }}>Estado</div>
-              <div
-                style={{
-                  ...statusStyle,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  minHeight: 34,
-                  padding: '0 12px',
-                  borderRadius: 999,
-                  fontSize: 12,
-                  fontWeight: 800,
-                }}
-              >
-                {status === 'active' ? 'Activo' : status === 'paused' ? 'Pausado' : 'Borrador'}
-              </div>
-              <div style={{ color: '#cbd5e1', fontSize: 13, marginTop: 10 }}>Visibilidad actual del nivel</div>
-            </article>
-          </section>
-
-          <section
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
-              gap: 20,
-              alignItems: 'start',
-            }}
-          >
-            <article style={panelStyle}>
-              <div style={{ fontWeight: 900, fontSize: 22, letterSpacing: '-0.02em', marginBottom: 14 }}>
-                Configuración general del nivel
-              </div>
-
-              <div style={{ display: 'grid', gap: 14 }}>
-                <label style={labelStyle}>
-                  Nombre del nivel
-                  <input value={title} onChange={(e) => setTitle(e.target.value)} style={inputStyle} />
-                </label>
-
-                <label style={labelStyle}>
-                  Recompensa final
-                  <input value={reward} onChange={(e) => setReward(e.target.value)} style={inputStyle} />
-                </label>
-
-                <label style={labelStyle}>
-                  Estado del nivel
-                  <select value={status} onChange={(e) => setStatus(e.target.value)} style={inputStyle}>
-                    <option value="active">Activo</option>
-                    <option value="draft">Borrador</option>
-                    <option value="paused">Pausado</option>
-                  </select>
-                </label>
-
-                <label style={labelStyle}>
-                  Descripción
-                  <textarea value={description} onChange={(e) => setDescription(e.target.value)} style={textareaStyle} />
-                </label>
-              </div>
-            </article>
-
-            <article style={panelStyle}>
-              <div style={{ fontWeight: 900, fontSize: 22, letterSpacing: '-0.02em', marginBottom: 12 }}>
-                Vista rápida del nivel
-              </div>
-
-              <div
-                style={{
-                  padding: 16,
-                  borderRadius: 18,
-                  background: 'linear-gradient(135deg, rgba(255,255,255,0.03), rgba(0,229,255,0.05))',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                }}
-              >
-                <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 700, marginBottom: 10 }}>
-                  Resumen para el club
-                </div>
-                <div style={{ fontSize: 28, fontWeight: 900, letterSpacing: '-0.03em', marginBottom: 8 }}>
-                  {title || 'Nivel sin título'}
-                </div>
-                <div style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.65, marginBottom: 14 }}>
-                  {description || 'Añade una descripción para entender mejor qué representa este nivel.'}
-                </div>
-                <div style={{ display: 'grid', gap: 10 }}>
-                  <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 700 }}>Recompensa final</div>
-                  <div style={{ color: '#e5e7eb', fontSize: 15, fontWeight: 800 }}>{reward || 'Pendiente de definir'}</div>
-                  <div
-                    style={{
-                      ...statusStyle,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      width: 'fit-content',
-                      minHeight: 32,
-                      padding: '0 12px',
-                      borderRadius: 999,
-                      fontSize: 12,
-                      fontWeight: 800,
-                      marginTop: 6,
-                    }}
-                  >
-                    {status === 'active' ? 'Activo' : status === 'paused' ? 'Pausado' : 'Borrador'}
-                  </div>
-                </div>
-              </div>
-            </article>
-          </section>
-
-          <section style={panelStyle}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-              <div>
-                <div style={{ fontWeight: 900, fontSize: 22, letterSpacing: '-0.02em' }}>Misiones del nivel</div>
-                <div style={{ color: '#94a3b8', fontSize: 14, marginTop: 8, lineHeight: 1.6 }}>
-                  Cada misión representa una condición parcial. El premio solo se entrega cuando el usuario completa todo el nivel.
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  const nextId = `mission-${Date.now()}`;
-                  const nextMission = {
-                    id: nextId,
-                    title: 'Nueva misión',
-                    type: 'stamps_competition',
-                    typeLabel: 'Misión especial',
-                    validationType: 'automatic',
-                    validation: 'Automática',
-                    details: 'Define aquí la condición concreta de esta misión.',
-                    description: 'Define aquí la condición concreta de esta misión.',
-                    target: 1,
-                    unit: '',
-                    params: {},
-                    order: missions.length + 1,
-                    active: true,
-                  };
-                  setMissions((prev) => [...prev, nextMission]);
-                  setEditingMissionId(nextId);
-                }}
-                style={buttonGhost}
-              >
-                + Añadir misión
-              </button>
-            </div>
-          </section>
-
-          {editingMission && (
-            <section
-              style={{
-                ...panelStyle,
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
-                gap: 20,
-                alignItems: 'start',
-              }}
-            >
+        {editingMission && (
+          <section className="nv-card nv-grid-auto" style={{ alignItems: 'start' }}>
               <article style={{ display: 'grid', gap: 14 }}>
-                <div style={{ fontWeight: 900, fontSize: 22, letterSpacing: '-0.02em' }}>Editor de misión</div>
-                <div style={{ color: '#94a3b8', fontSize: 14, lineHeight: 1.6 }}>
-                  Aquí ya puedes editar visualmente cada misión del nivel y guardarla en el backend del club.
+                <div>
+                  <h2 className="nv-h3">Editor de misión</h2>
+                  <p className="nv-small nv-muted" style={{ marginTop: 8 }}>
+                    Edita cada misión del nivel y guárdala en la configuración del club.
+                  </p>
                 </div>
 
-                <label style={smallLabelStyle}>
-                  Título de la misión
+                <div className="nv-field">
+                  <label className="nv-label">Título de la misión</label>
                   <input
+                    className="nv-input"
                     value={editingMission.title}
                     onChange={(e) => {
                       const value = e.target.value;
@@ -742,14 +499,14 @@ export default function PromotionDetailPage() {
                         )
                       );
                     }}
-                    style={inputStyle}
                   />
-                </label>
+                </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
-                  <label style={smallLabelStyle}>
-                    Tipo de misión
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
+                  <div className="nv-field">
+                    <label className="nv-label">Tipo de misión</label>
                     <select
+                      className="nv-select"
                       value={editingMission.typeLabel}
                       onChange={(e) => {
                         const label = e.target.value;
@@ -762,7 +519,6 @@ export default function PromotionDetailPage() {
                           )
                         );
                       }}
-                      style={inputStyle}
                     >
                       <option value="Asistencia">Asistencia</option>
                       <option value="Contenido">Contenido</option>
@@ -770,11 +526,12 @@ export default function PromotionDetailPage() {
                       <option value="QR">QR</option>
                       <option value="Misión especial">Misión especial</option>
                     </select>
-                  </label>
+                  </div>
 
-                  <label style={smallLabelStyle}>
-                    Validación
+                  <div className="nv-field">
+                    <label className="nv-label">Validación</label>
                     <select
+                      className="nv-select"
                       value={editingMission.validation}
                       onChange={(e) => {
                         const label = e.target.value;
@@ -792,20 +549,20 @@ export default function PromotionDetailPage() {
                           )
                         );
                       }}
-                      style={inputStyle}
                     >
                       <option value="Automática">Automática</option>
                       <option value="Manual por el club">Manual por el club</option>
                       <option value="Tracking de enlace">Tracking de enlace</option>
                       <option value="Híbrida">Híbrida</option>
                     </select>
-                  </label>
+                  </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
-                  <label style={smallLabelStyle}>
-                    Objetivo
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
+                  <div className="nv-field">
+                    <label className="nv-label">Objetivo</label>
                     <input
+                      className="nv-input"
                       type="number"
                       min="1"
                       value={editingMission.target || 1}
@@ -817,13 +574,13 @@ export default function PromotionDetailPage() {
                           )
                         );
                       }}
-                      style={inputStyle}
                     />
-                  </label>
+                  </div>
 
-                  <label style={smallLabelStyle}>
-                    Unidad
+                  <div className="nv-field">
+                    <label className="nv-label">Unidad</label>
                     <input
+                      className="nv-input"
                       value={editingMission.unit || ''}
                       onChange={(e) => {
                         const value = e.target.value;
@@ -833,14 +590,14 @@ export default function PromotionDetailPage() {
                           )
                         );
                       }}
-                      style={inputStyle}
                     />
-                  </label>
+                  </div>
                 </div>
 
-                <label style={smallLabelStyle}>
-                  Detalles de la misión
+                <div className="nv-field">
+                  <label className="nv-label">Detalles de la misión</label>
                   <textarea
+                    className="nv-textarea"
                     value={editingMission.details}
                     onChange={(e) => {
                       const value = e.target.value;
@@ -852,71 +609,40 @@ export default function PromotionDetailPage() {
                         )
                       );
                     }}
-                    style={textareaStyle}
                   />
-                </label>
+                </div>
               </article>
 
               <article style={{ display: 'grid', gap: 14 }}>
-                <div style={{ fontWeight: 900, fontSize: 22, letterSpacing: '-0.02em' }}>Vista rápida de la misión</div>
-                <div
-                  style={{
-                    padding: 16,
-                    borderRadius: 18,
-                    background: 'linear-gradient(135deg, rgba(255,255,255,0.03), rgba(0,229,255,0.05))',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    display: 'grid',
-                    gap: 12,
-                  }}
-                >
-                  <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 700 }}>Misión seleccionada</div>
-                  <div style={{ fontSize: 24, fontWeight: 900, letterSpacing: '-0.03em' }}>
+                <h2 className="nv-h3">Vista rápida de la misión</h2>
+                <div className="nv-card-soft" style={{ display: 'grid', gap: 12 }}>
+                  <div className="nv-small nv-muted">Misión seleccionada</div>
+                  <div className="nv-h3" style={{ fontSize: 22 }}>
                     {editingMission.title || 'Misión sin título'}
                   </div>
                   <div>
-                    <span
-                      style={{
-                        ...getMissionTypeStyle(editingMission.typeLabel),
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        minHeight: 28,
-                        padding: '0 10px',
-                        borderRadius: 999,
-                        fontSize: 11.5,
-                        fontWeight: 800,
-                      }}
-                    >
+                    <span className={getMissionTypeBadge(editingMission.typeLabel)}>
                       {editingMission.typeLabel}
                     </span>
                   </div>
-                  <div style={helperStyle}>{editingMission.details || 'Añade una explicación para esta misión.'}</div>
-                  <div
-                    style={{
-                      padding: '12px 14px',
-                      borderRadius: 14,
-                      background: 'rgba(255,255,255,0.03)',
-                      border: '1px solid rgba(255,255,255,0.06)',
-                    }}
-                  >
-                    <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 700, marginBottom: 6 }}>Validación actual</div>
-                    <div style={{ color: '#e5e7eb', fontSize: 14, lineHeight: 1.55 }}>
-                      {editingMission.validation || 'Pendiente de definir'}
-                    </div>
+                  <div className="nv-small nv-muted">{editingMission.details || 'Añade una explicación para esta misión.'}</div>
+                  <div className="nv-notice nv-notice-info">
+                    <div className="nv-small nv-muted" style={{ marginBottom: 6 }}>Validación actual</div>
+                    <div className="nv-small">{editingMission.validation || 'Pendiente de definir'}</div>
                   </div>
                 </div>
               </article>
-            </section>
-          )}
+          </section>
+        )}
 
-          <section style={{ display: 'grid', gap: 16 }}>
+        <section className="nv-stagger" style={{ display: 'grid', gap: 16 }}>
             {missions.map((mission, index) => {
-              const missionTypeStyle = getMissionTypeStyle(mission.typeLabel || getMissionTypeLabel(mission.type));
+              const typeLabel = mission.typeLabel || getMissionTypeLabel(mission.type);
               return (
                 <article
                   key={mission.id}
+                  className="nv-card"
                   style={{
-                    ...panelStyle,
-                    padding: 18,
                     display: 'grid',
                     gridTemplateColumns: 'minmax(0, 1fr) auto',
                     gap: 18,
@@ -924,78 +650,31 @@ export default function PromotionDetailPage() {
                   }}
                 >
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
-                      <div
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          minWidth: 34,
-                          height: 34,
-                          borderRadius: 999,
-                          background: 'rgba(255,255,255,0.05)',
-                          border: '1px solid rgba(255,255,255,0.08)',
-                          fontWeight: 900,
-                          fontSize: 13,
-                          color: '#cbd5e1',
-                        }}
-                      >
-                        {index + 1}
-                      </div>
-                      <h2 style={{ margin: 0, fontSize: 22, fontWeight: 900, letterSpacing: '-0.03em' }}>
+                    <div className="nv-row" style={{ gap: 12 }}>
+                      <span className="nv-index">{index + 1}</span>
+                      <h2 className="nv-h3 nv-truncate" style={{ fontSize: 20, minWidth: 0 }}>
                         {mission.title}
                       </h2>
-                      <span
-                        style={{
-                          ...missionTypeStyle,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          minHeight: 28,
-                          padding: '0 10px',
-                          borderRadius: 999,
-                          fontSize: 11.5,
-                          fontWeight: 800,
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {mission.typeLabel || getMissionTypeLabel(mission.type)}
+                      <span className={getMissionTypeBadge(typeLabel)}>
+                        {typeLabel}
                       </span>
                     </div>
 
-                    <div style={{ marginTop: 12, color: '#cbd5e1', fontSize: 14, lineHeight: 1.65 }}>
+                    <div className="nv-small nv-muted" style={{ marginTop: 12 }}>
                       {mission.details || mission.description}
                     </div>
 
-                    <div
-                      style={{
-                        marginTop: 14,
-                        padding: '12px 14px',
-                        borderRadius: 14,
-                        background: 'rgba(255,255,255,0.03)',
-                        border: '1px solid rgba(255,255,255,0.06)',
-                      }}
-                    >
-                      <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 700, marginBottom: 6 }}>Validación</div>
-                      <div style={{ color: '#e5e7eb', fontSize: 14, lineHeight: 1.55 }}>{mission.validation}</div>
+                    <div className="nv-notice nv-notice-info" style={{ marginTop: 14 }}>
+                      <div className="nv-small nv-muted" style={{ marginBottom: 6 }}>Validación</div>
+                      <div className="nv-small">{mission.validation}</div>
                     </div>
                   </div>
 
-                  <div style={{ display: 'grid', gap: 10, minWidth: 180 }}>
+                  <div style={{ display: 'grid', gap: 10, minWidth: 160 }}>
                     <button
                       type="button"
                       onClick={() => setEditingMissionId(mission.id)}
-                      style={{
-                        ...buttonGhost,
-                        border:
-                          editingMissionId === mission.id
-                            ? '1px solid rgba(0,229,255,0.26)'
-                            : buttonGhost.border,
-                        background:
-                          editingMissionId === mission.id
-                            ? 'rgba(0,229,255,0.08)'
-                            : buttonGhost.background,
-                        color: editingMissionId === mission.id ? '#7dd3fc' : buttonGhost.color,
-                      }}
+                      className={`nv-btn ${editingMissionId === mission.id ? 'nv-btn-primary' : 'nv-btn-secondary'}`}
                     >
                       {editingMissionId === mission.id ? 'Editando' : 'Editar misión'}
                     </button>
@@ -1012,12 +691,7 @@ export default function PromotionDetailPage() {
                           return next;
                         });
                       }}
-                      style={{
-                        ...buttonGhost,
-                        color: '#fda4af',
-                        border: '1px solid rgba(244,63,94,0.18)',
-                        background: 'rgba(244,63,94,0.06)',
-                      }}
+                      className="nv-btn nv-btn-danger"
                     >
                       Eliminar misión
                     </button>
@@ -1025,9 +699,8 @@ export default function PromotionDetailPage() {
                 </article>
               );
             })}
-          </section>
-        </div>
-      </main>
+        </section>
+      </div>
     </RequireClub>
   );
 }

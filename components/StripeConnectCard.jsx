@@ -63,7 +63,7 @@ export default function StripeConnectCard({ clubId }) {
 
           {connected && (
             <p className="nv-small nv-muted">
-              Payouts: {status.payouts_enabled ? 'habilitados ✅' : 'pendientes ⏳'}
+              Payouts: <span className={status.payouts_enabled ? 'nv-badge nv-badge-success' : 'nv-badge nv-badge-warn'}>{status.payouts_enabled ? 'Habilitados' : 'Pendientes'}</span>
             </p>
           )}
         </>

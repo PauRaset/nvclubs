@@ -32,62 +32,46 @@ export default function SuccessClient() {
 
   if (state.loading) {
     return (
-      <main style={styles.main}>
-        <div style={styles.centerBox}>
-          <h1 style={styles.title}>Procesando pago…</h1>
-          <p style={styles.subtitle}>Confirmando tu compra.</p>
+      <div className="nv-views">
+        <div className="nv-card" style={{ textAlign: 'center' }}>
+          <h1 className="nv-h2">Procesando pago…</h1>
+          <p className="nv-lead" style={{ marginTop: 8 }}>Confirmando tu compra.</p>
         </div>
-      </main>
+      </div>
     );
   }
 
   if (state.err) {
     return (
-      <main style={styles.main}>
-        <div style={styles.centerBox}>
-          <div style={styles.iconCircleError}>!</div>
-          <h1 style={styles.title}>Pago recibido, pero hubo un problema</h1>
-          <p style={styles.subtitle}>
+      <div className="nv-views">
+        <div className="nv-empty">
+          <div className="nv-empty-icon is-error" aria-hidden="true">!</div>
+          <h1 className="nv-empty-title">Pago recibido, pero hubo un problema</h1>
+          <p className="nv-empty-text">
             {state.err}
             <br />
             Si pagaste con éxito, revisa tu correo: te hemos enviado las entradas.
           </p>
         </div>
-      </main>
+      </div>
     );
   }
 
   if (state.order) {
     return (
-      <main style={styles.main}>
-        <div style={styles.centerBox}>
-          <div style={styles.iconCircleOk}>✓</div>
-          <h1 style={styles.title}>Pago efectuado</h1>
-          <p style={styles.subtitle}>Te hemos enviado tus entradas por email.</p>
+      <div className="nv-views">
+        <div className="nv-empty">
+          <div className="nv-empty-icon" aria-hidden="true">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 6 9 17l-5-5" />
+            </svg>
+          </div>
+          <h1 className="nv-empty-title">Pago efectuado</h1>
+          <p className="nv-empty-text">Te hemos enviado tus entradas por email.</p>
         </div>
-      </main>
+      </div>
     );
   }
 
   return null;
 }
-
-const styles = {
-  main: {
-    position: 'fixed',
-    inset: 0, // top:0, right:0, bottom:0, left:0
-    background: '#020617',
-    color: '#e5e7eb',
-    padding: '32px 16px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    textAlign: 'center',
-    zIndex: 50,
-  },
-  centerBox: { maxWidth:420, margin:'0 auto', display:'flex', flexDirection:'column', alignItems:'center', gap:16 },
-  iconCircleOk: { width:80, height:80, borderRadius:'50%', background:'#00e5ff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:42, fontWeight:900, color:'#0b0f19', boxShadow:'0 0 40px rgba(0,229,255,0.5)' },
-  iconCircleError: { width:80, height:80, borderRadius:'50%', background:'#ef4444', display:'flex', alignItems:'center', justifyContent:'center', fontSize:42, fontWeight:900, color:'#0b0f19', boxShadow:'0 0 40px rgba(239,68,68,0.5)' },
-  title: { fontSize:24, fontWeight:800 },
-  subtitle: { fontSize:15, opacity:.8 },
-};

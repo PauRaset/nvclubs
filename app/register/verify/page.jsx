@@ -48,67 +48,42 @@ function VerifyInner() {
     })();
   }, [token, BACKEND]);
 
-  const card = {
-    width: '100%',
-    maxWidth: 520,
-    margin: '0 auto',
-    background: 'rgba(11,15,25,.75)',
-    border: '1px solid #1f2937',
-    borderRadius: 16,
-    padding: 24,
-    textAlign: 'center',
-  };
-
-  const title = { fontSize: 20, fontWeight: 800, color: '#e5e7eb', marginBottom: 8 };
-  const p = { color: '#93a4b8', margin: '8px 0' };
-  const btn = {
-    display: 'inline-block',
-    marginTop: 14,
-    padding: '10px 14px',
-    borderRadius: 10,
-    background: 'linear-gradient(90deg,#0ea5e9,#22d3ee)',
-    color: '#001018',
-    fontWeight: 800,
-    textDecoration: 'none',
-  };
-
   return (
-    <main
-      style={{
-        minHeight: '100vh',
-        display: 'grid',
-        placeItems: 'center',
-        padding: 16,
-        background:
-          'radial-gradient(60% 60% at 10% 0%, rgba(14,165,233,.15) 0, transparent 60%), radial-gradient(60% 60% at 100% 100%, rgba(99,102,241,.15) 0, transparent 60%), #0b0f19',
-      }}
-    >
-      <div style={card}>
-        {loading && (
-          <>
-            <h1 style={title}>Verificando…</h1>
-            <p style={p}>Un momento, estamos validando tu enlace.</p>
-          </>
-        )}
+    <main className="nv-page">
+      <div className="nv-shell" style={{ placeItems: 'center' }}>
+        <div className="nv-card" style={{ width: '100%', maxWidth: 520, textAlign: 'center' }}>
+          {loading && (
+            <>
+              <h1 className="nv-h2">Verificando…</h1>
+              <p className="nv-lead" style={{ marginTop: 8 }}>
+                Un momento, estamos validando tu enlace.
+              </p>
+            </>
+          )}
 
-        {!loading && ok && (
-          <>
-            <h1 style={title}>¡Correo verificado! 🎉</h1>
-            <p style={p}>
-              Tu solicitud ha sido verificada. Cuando aprobemos tu cuenta, podrás iniciar
-              sesión en el panel.
-            </p>
-            <a href="/login" style={btn}>Ir a iniciar sesión</a>
-          </>
-        )}
+          {!loading && ok && (
+            <>
+              <h1 className="nv-h2">¡Correo verificado!</h1>
+              <p className="nv-notice nv-notice-success" style={{ marginTop: 14 }}>
+                Tu solicitud ha sido verificada. Cuando aprobemos tu cuenta, podrás
+                iniciar sesión en el panel.
+              </p>
+              <a href="/login" className="nv-btn nv-btn-primary" style={{ marginTop: 16 }}>
+                Ir a iniciar sesión
+              </a>
+            </>
+          )}
 
-        {!loading && !ok && (
-          <>
-            <h1 style={{ ...title, color: '#fecaca' }}>No se pudo verificar</h1>
-            <p style={{ ...p, color: '#fca5a5' }}>{err}</p>
-            <a href="/login" style={btn}>Volver al inicio de sesión</a>
-          </>
-        )}
+          {!loading && !ok && (
+            <>
+              <h1 className="nv-h2">No se pudo verificar</h1>
+              <p className="nv-notice nv-notice-error" style={{ marginTop: 14 }}>{err}</p>
+              <a href="/login" className="nv-btn nv-btn-secondary" style={{ marginTop: 16 }}>
+                Volver al inicio de sesión
+              </a>
+            </>
+          )}
+        </div>
       </div>
     </main>
   );
@@ -118,17 +93,10 @@ export default function VerifyPage() {
   return (
     <Suspense
       fallback={
-        <main
-          style={{
-            minHeight: '100vh',
-            display: 'grid',
-            placeItems: 'center',
-            color: '#e5e7eb',
-            background:
-              'radial-gradient(60% 60% at 10% 0%, rgba(14,165,233,.15) 0, transparent 60%), radial-gradient(60% 60% at 100% 100%, rgba(99,102,241,.15) 0, transparent 60%), #0b0f19',
-          }}
-        >
-          Cargando…
+        <main className="nv-page">
+          <div className="nv-shell" style={{ placeItems: 'center' }}>
+            <p className="nv-lead">Cargando…</p>
+          </div>
         </main>
       }
     >

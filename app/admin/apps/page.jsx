@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { toast, confirmDialog } from '@/components/Toast';
 
 export default function AdminAppsPage() {
   const API =
@@ -31,7 +32,12 @@ export default function AdminAppsPage() {
   useEffect(() => { load(); }, [status]);
 
   async function approve(id) {
-    if (!confirm('¿Aprobar esta solicitud?')) return;
+    const ok = await confirmDialog({
+      title: 'Aprobar solicitud',
+      message: '¿Aprobar esta solicitud de club?',
+      confirmText: 'Aprobar',
+    });
+    if (!ok) return;
     setMsg('');
     const res = await fetch(`${API}/api/registration/applications/${id}/approve`, { method: 'POST' });
     const data = await res.json().catch(() => ({}));
@@ -39,12 +45,13 @@ export default function AdminAppsPage() {
       setMsg(data?.error || 'No se pudo aprobar');
       return;
     }
-    setMsg('✅ Aprobada');
+    toast.success('Solicitud aprobada');
     load();
   }
 
   async function reject(id) {
-    const reason = prompt('Motivo de rechazo (opcional):') || '';
+    const reason = window.prompt('Motivo del rechazo (opcional). Deja el campo vacío y acepta para rechazar sin motivo:');
+    if (reason === null) return; // cancelado
     const res = await fetch(`${API}/api/registration/applications/${id}/reject`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -55,86 +62,85 @@ export default function AdminAppsPage() {
       setMsg(data?.error || 'No se pudo rechazar');
       return;
     }
-    setMsg('🚫 Rechazada');
+    toast.success('Solicitud rechazada');
     load();
   }
 
-  const tab = (key, label) => (
+  const seg = (key, label) => (
     <button
+      type="button"
       onClick={() => setStatus(key)}
-      style={{
-        padding: '8px 10px',
-        borderRadius: 8,
-        border: '1px solid #1f2937',
-        background: status === key ? 'linear-gradient(90deg,#0ea5e9,#6366f1)' : '#0b0f19',
-        color: status === key ? '#001018' : '#e5e7eb',
-        fontWeight: 700,
-        cursor: 'pointer',
-      }}
+      className={`nv-seg-btn ${status === key ? 'is-active' : ''}`}
     >
       {label}
     </button>
   );
 
-  return (
-    <main style={{
-      minHeight: '100vh',
-      background: 'radial-gradient(60% 60% at 10% 0%, rgba(14,165,233,.15) 0, transparent 60%), radial-gradient(60% 60% at 100% 100%, rgba(99,102,241,.15) 0, transparent 60%), #0b0f19',
-      padding: 16, color: '#e5e7eb'
-    }}>
-      <div style={{ maxWidth: 900, margin: '0 auto' }}>
-        <h1 style={{ fontSize: 22, fontWeight: 800, marginBottom: 12 }}>Solicitudes de clubs</h1>
+  const statusBadge = (s) => {
+    const cls =
+      s === 'approved' ? 'nv-badge-success'
+      : s === 'rejected' ? 'nv-badge-danger'
+      : s === 'pending' ? 'nv-badge-warn'
+      : 'nv-badge-neutral';
+    return <span className={`nv-badge ${cls}`}>{s}</span>;
+  };
 
-        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-          {tab('pending', 'Pendientes')}
-          {tab('email_verified', 'Email verificado')}
-          {tab('approved', 'Aprobados')}
-          {tab('rejected', 'Rechazados')}
+  return (
+    <main className="nv-page">
+      <div className="nv-shell">
+        <section className="nv-hero">
+          <div className="nv-badge">Administración</div>
+          <h1 className="nv-h1" style={{ marginTop: 16 }}>Solicitudes de clubs</h1>
+        </section>
+
+        <div className="nv-seg" role="tablist">
+          {seg('pending', 'Pendientes')}
+          {seg('email_verified', 'Email verificado')}
+          {seg('approved', 'Aprobados')}
+          {seg('rejected', 'Rechazados')}
         </div>
 
-        {msg && <p style={{ marginBottom: 8 }}>{msg}</p>}
-        {loading ? <p>Cargando…</p> : (
-          <div style={{
-            border: '1px solid #1f2937', borderRadius: 12, overflow: 'hidden',
-            background: 'rgba(11,15,25,.6)'
-          }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ background: '#0b1220' }}>
-                  <th style={{ textAlign: 'left', padding: 10, borderBottom: '1px solid #1f2937' }}>Club</th>
-                  <th style={{ textAlign: 'left', padding: 10, borderBottom: '1px solid #1f2937' }}>Email</th>
-                  <th style={{ textAlign: 'left', padding: 10, borderBottom: '1px solid #1f2937' }}>Estado</th>
-                  <th style={{ textAlign: 'right', padding: 10, borderBottom: '1px solid #1f2937' }}>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(items || []).map(it => (
-                  <tr key={it._id}>
-                    <td style={{ padding: 10, borderTop: '1px solid #1f2937' }}>{it.clubName}</td>
-                    <td style={{ padding: 10, borderTop: '1px solid #1f2937' }}>{it.email}</td>
-                    <td style={{ padding: 10, borderTop: '1px solid #1f2937' }}>{it.status}</td>
-                    <td style={{ padding: 10, borderTop: '1px solid #1f2937', textAlign: 'right' }}>
-                      {status !== 'approved' && (
-                        <button
-                          onClick={() => approve(it._id)}
-                          style={{ marginRight: 8, padding: '6px 10px', borderRadius: 8, border: '1px solid #1f2937', background: '#10b981', color: '#001015', fontWeight: 700 }}
-                        >Aprobar</button>
-                      )}
-                      {status !== 'rejected' && (
-                        <button
-                          onClick={() => reject(it._id)}
-                          style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #1f2937', background: '#ef4444', color: '#fff', fontWeight: 700 }}
-                        >Rechazar</button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-                {!items?.length && (
-                  <tr><td colSpan={4} style={{ padding: 16, textAlign: 'center', color: '#93a4b8' }}>No hay solicitudes</td></tr>
-                )}
-              </tbody>
-            </table>
+        {msg && <p role="alert" className="nv-notice nv-notice-error">{msg}</p>}
+
+        {loading ? (
+          <div className="nv-card">
+            <div className="nv-skeleton nv-skeleton-line lg" />
+            <div className="nv-skeleton nv-skeleton-line" />
+            <div className="nv-skeleton nv-skeleton-line" />
           </div>
+        ) : !items?.length ? (
+          <div className="nv-empty">
+            <h2 className="nv-empty-title">No hay solicitudes</h2>
+            <p className="nv-empty-text">No hay solicitudes con este estado.</p>
+          </div>
+        ) : (
+          <ul className="nv-list">
+            {items.map(it => (
+              <li key={it._id} className="nv-item">
+                <div style={{ display: 'grid', gap: 4, minWidth: 0 }}>
+                  <strong className="nv-truncate">{it.clubName}</strong>
+                  <span className="nv-small nv-muted nv-truncate">{it.email}</span>
+                </div>
+                <div className="nv-row" style={{ marginLeft: 'auto', gap: 8 }}>
+                  {statusBadge(it.status)}
+                  {status !== 'approved' && (
+                    <button
+                      type="button"
+                      onClick={() => approve(it._id)}
+                      className="nv-btn nv-btn-primary"
+                    >Aprobar</button>
+                  )}
+                  {status !== 'rejected' && (
+                    <button
+                      type="button"
+                      onClick={() => reject(it._id)}
+                      className="nv-btn nv-btn-danger"
+                    >Rechazar</button>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
     </main>
