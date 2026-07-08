@@ -219,19 +219,9 @@ export default function TopNav({ active, clubName, logoSrc = '/logo.png' }) {
         </nav>
       </aside>
 
-      {/* Un SOLO bloque styled-jsx */}
+      {/* Un SOLO bloque styled-jsx. Los tokens (--nv-*) los define globals.css:
+          NO los redefinimos aquí para que exista una única fuente de verdad. */}
       <style jsx>{`
-        :global(:root) {
-          --nv-bg: #0b1220;
-          --nv-panel: #0f172a;
-          --nv-border: #233146;
-          --nv-text: #e7efff;
-          --nv-muted: #a7b3c8;
-          --nv-accent: #00e5ff;
-          --nv-accent-2: #7cf7ff;
-          --nv-glow: 0 0 22px rgba(0,229,255,.45);
-        }
-
         /* Header */
         .nv-nav {
           position: sticky;

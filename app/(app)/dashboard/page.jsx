@@ -328,6 +328,8 @@ function DashboardInner() {
     activeClub?.username ||
     'Tu club';
 
+  const hasClub = Boolean(effectiveClubId || inferredClub?._id);
+
   const upcomingEventsData = useMemo(() => {
     return [...events].filter(isFutureEvent).sort(sortByDateAsc).slice(0, 4);
   }, [events]);
@@ -343,6 +345,7 @@ function DashboardInner() {
   const totalRevenueCents = Number(ordersSummary?.totalCents || 0);
   const totalRevenueEUR = totalRevenueCents / 100;
   const stripeNet = Number(stripeSummary?.net || 0);
+  const stripeGross = Number(stripeSummary?.gross || 0);
   const referralClicks = Number(referralsSummary?.totalClicks || 0);
   const referralUniqueClicks = Number(referralsSummary?.totalUniqueClicks || 0);
   const topReferralEvent = referralsSummary?.topEvents?.[0] || null;
@@ -351,32 +354,32 @@ function DashboardInner() {
   const kpis = [
     {
       label: 'Eventos activos',
-      value: metricsLoading ? '...' : String(totalUpcomingEvents),
-      helper: `${totalEvents} eventos totales del club`,
+      value: String(totalUpcomingEvents),
+      helper: `${totalEvents} eventos en total`,
     },
     {
       label: 'Entradas vendidas',
-      value: metricsLoading ? '...' : String(totalTickets),
+      value: String(totalTickets),
       helper: `${totalOrders} pedidos registrados`,
     },
     {
       label: 'Ingresos',
-      value: metricsLoading ? '...' : formatEUR(totalRevenueEUR),
+      value: formatEUR(totalRevenueEUR),
       helper: 'Volumen bruto de pedidos',
     },
     {
       label: 'Asistencias',
-      value: metricsLoading ? '...' : String(totalAttendees),
+      value: String(totalAttendees),
       helper: 'Usuarios marcados como asistentes',
     },
     {
       label: 'Usuarios alcanzados',
-      value: metricsLoading ? '...' : String(referralUniqueClicks),
+      value: String(referralUniqueClicks),
       helper: 'Clicks únicos en difusión',
     },
     {
       label: 'Clicks compartidos',
-      value: metricsLoading ? '...' : String(referralClicks),
+      value: String(referralClicks),
       helper: 'Total de clicks en links compartidos',
     },
   ];
@@ -386,53 +389,31 @@ function DashboardInner() {
       title: 'Crear evento',
       description: 'Publica un nuevo evento para tu club.',
       href: '/events/new',
+      icon: 'plus',
     },
     {
       title: 'Gestionar eventos',
       description: 'Edita, revisa y organiza tus eventos.',
       href: '/events',
+      icon: 'calendar',
     },
     {
-      title: 'Abrir Stripe',
-      description: 'Consulta cobros, pagos y transferencias.',
-      action: openStripeDashboard,
+      title: 'Promociones',
+      description: 'Configura niveles, misiones y recompensas.',
+      href: '/promotions',
+      icon: 'gift',
     },
     {
       title: 'Escáner',
       description: 'Valida entradas y registra accesos.',
       href: '/scanner',
+      icon: 'scan',
     },
-  ];
-
-  const upcomingEvents = upcomingEventsData.length
-    ? upcomingEventsData.map((event) => ({
-        title: event?.title || event?.name || 'Evento',
-        meta: `${formatDate(resolveEventDate(event))} · ${(event?.city || 'Ubicación por confirmar')}${Array.isArray(event?.categories) && event.categories.length ? ` · ${event.categories.slice(0, 2).join(', ')}` : ''}`,
-        status: `${Array.isArray(event?.attendees) ? event.attendees.length : 0} asistentes`,
-      }))
-    : [
-        {
-          title: 'Sin próximos eventos',
-          meta: 'Crea un nuevo evento para empezar a ver actividad aquí.',
-          status: 'Vacío',
-        },
-      ];
-
-  const recentActivity = [
-    totalOrders > 0
-      ? `${totalOrders} pedidos registrados en el club.`
-      : 'Todavía no hay pedidos registrados.',
-    totalTickets > 0
-      ? `${totalTickets} entradas vendidas en total.`
-      : 'Aún no se han vendido entradas.',
-    referralClicks > 0
-      ? `${referralClicks} clicks generados desde links compartidos.`
-      : 'Aún no hay tráfico registrado desde difusión.',
   ];
 
   const referralInsights = [
     topReferralEvent
-      ? `Evento top por difusión: ${topReferralEvent.eventTitle || topReferralEvent.title || 'Evento'} · ${topReferralEvent.clicks || 0} clicks`
+      ? `Evento top: ${topReferralEvent.eventTitle || topReferralEvent.title || 'Evento'} · ${topReferralEvent.clicks || 0} clicks`
       : 'Todavía no hay un evento destacado por difusión.',
     topReferralUser
       ? `Usuario top: ${(topReferralUser.user?.username || topReferralUser.username || 'Usuario')} · ${topReferralUser.clicks || 0} clicks`
@@ -440,487 +421,197 @@ function DashboardInner() {
     `Clicks únicos acumulados: ${referralUniqueClicks}`,
   ];
 
-  const container = {
-    minHeight: '100vh',
-    background:
-      'radial-gradient(circle at top, rgba(0,229,255,0.12), transparent 0 28%), var(--nv-bg)',
-    color: '#e5e7eb',
-    padding: '32px 24px 48px',
-  };
-
-  const shell = {
-    width: '100%',
-    maxWidth: 1280,
-    margin: '0 auto',
-    display: 'grid',
-    gap: 24,
-  };
-
-  const hero = {
-    background: 'linear-gradient(135deg, rgba(0,229,255,0.14), rgba(15,22,41,0.96))',
-    border: '1px solid rgba(0,229,255,0.18)',
-    borderRadius: 24,
-    padding: 28,
-    boxShadow: '0 20px 50px rgba(0,0,0,0.28)',
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
-    gap: 20,
-  };
-
-  const heroTitle = {
-    margin: 0,
-    fontSize: 'clamp(30px, 4vw, 42px)',
-    lineHeight: 1.05,
-    fontWeight: 900,
-    letterSpacing: '-0.03em',
-  };
-
-  const heroText = {
-    margin: '10px 0 0',
-    color: '#cbd5e1',
-    maxWidth: 640,
-    fontSize: 15,
-    lineHeight: 1.6,
-  };
-
-  const heroPanel = {
-    background: 'rgba(11,15,25,0.72)',
-    border: '1px solid rgba(255,255,255,0.06)',
-    borderRadius: 20,
-    padding: 18,
-    display: 'grid',
-    gap: 12,
-    alignContent: 'space-between',
-  };
-
-  const badge = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 8,
-    borderRadius: 999,
-    padding: '8px 12px',
-    border: '1px solid rgba(0,229,255,0.25)',
-    background: 'rgba(0,229,255,0.08)',
-    color: '#7dd3fc',
-    fontSize: 13,
-    fontWeight: 700,
-    width: 'fit-content',
-  };
-
-  const primaryBtn = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    minHeight: 46,
-    borderRadius: 14,
-    padding: '0 16px',
-    fontWeight: 800,
-    border: '1px solid #00c2ff',
-    background: '#00e5ff',
-    color: 'var(--nv-bg)',
-    cursor: 'pointer',
-    textDecoration: 'none',
-    whiteSpace: 'nowrap',
-  };
-
-  const secondaryBtn = {
-    ...primaryBtn,
-    background: 'transparent',
-    color: '#e5e7eb',
-    border: '1px solid rgba(255,255,255,0.12)',
-  };
-
-  const buttonRow = {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginTop: 22,
-  };
-
-  const kpiGrid = {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-    gap: 16,
-  };
-
-  const kpiCard = {
-    background: 'rgba(15,22,41,0.94)',
-    border: '1px solid rgba(255,255,255,0.06)',
-    borderRadius: 18,
-    padding: 18,
-    boxShadow: '0 10px 30px rgba(0,0,0,0.16)',
-  };
-
-  const sectionGrid = {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
-    gap: 24,
-    alignItems: 'start',
-  };
-
-  const sectionCard = {
-    background: 'var(--nv-surface)',
-    border: '1px solid rgba(255,255,255,0.06)',
-    borderRadius: 22,
-    padding: 22,
-    boxShadow: '0 14px 40px rgba(0,0,0,0.22)',
-  };
-
-  const sectionTitle = {
-    margin: 0,
-    fontSize: 18,
-    fontWeight: 800,
-    letterSpacing: '-0.02em',
-  };
-
-  const sectionSubtitle = {
-    margin: '8px 0 0',
-    color: '#94a3b8',
-    fontSize: 14,
-    lineHeight: 1.6,
-  };
-
-  const infoBox = {
-    marginTop: 16,
-    padding: 14,
-    borderRadius: 14,
-    background: 'rgba(0,229,255,0.06)',
-    border: '1px solid rgba(0,229,255,0.12)',
-    color: '#cbd5e1',
-    fontSize: 14,
-  };
-
-  const warningBox = {
-    padding: 14,
-    border: '1px solid #3b2f14',
-    background: '#1a1408',
-    borderRadius: 14,
-    color: '#fbbf24',
-    fontSize: 14,
-  };
-
-  const errorBox = {
-    padding: 14,
-    border: '1px solid rgba(248,113,113,0.28)',
-    background: 'rgba(127,29,29,0.24)',
-    borderRadius: 14,
-    color: '#fca5a5',
-    fontSize: 14,
-  };
-
-  const list = {
-    listStyle: 'none',
-    padding: 0,
-    margin: 0,
-    display: 'grid',
-    gap: 12,
-  };
-
-  const listItem = {
-    display: 'grid',
-    gap: 6,
-    padding: 14,
-    borderRadius: 16,
-    border: '1px solid rgba(255,255,255,0.06)',
-    background: 'rgba(255,255,255,0.02)',
-  };
-
-  const actionGrid = {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-    gap: 16,
-  };
+  const stripeConnected = Boolean(status?.connected);
 
   return (
-    <main style={container}>
-      <div style={shell}>
-        <section style={hero}>
-          <div>
-            <div style={badge}>Dashboard del club</div>
-            <h1 style={heroTitle}>Bienvenido, {clubName}</h1>
-            <p style={heroText}>
-              Desde aquí podrás controlar el rendimiento de tus eventos, ventas,
-              actividad del club, promociones y difusión. Hemos preparado una base
-              visual más potente para convertir este panel en un centro de control real.
-            </p>
+    <div className="nv-views">
+      <section className="nv-hero nv-hero-split nv-animate-in">
+        <div>
+          <span className="nv-eyebrow">Panel del club</span>
+          <h1 className="nv-h1" style={{ marginTop: 10 }}>Hola, {clubName}</h1>
+          <p className="nv-lead" style={{ marginTop: 10, maxWidth: 560 }}>
+            Controla ventas, eventos y difusión de tu club desde un único lugar.
+          </p>
+          <div className="nv-row" style={{ marginTop: 18 }}>
+            <a href="/events/new" className="nv-btn nv-btn-primary">+ Crear evento</a>
+            <button
+              type="button"
+              onClick={openStripeDashboard}
+              className="nv-btn nv-btn-ghost"
+              disabled={!hasClub || busy}
+            >
+              {busy ? 'Abriendo…' : 'Abrir Stripe'}
+            </button>
+          </div>
+        </div>
 
-            <div style={buttonRow}>
-              <a href="/events/new" style={primaryBtn}>
-                + Crear evento
-              </a>
-              <button
-                onClick={openStripeDashboard}
-                style={secondaryBtn}
-                disabled={!effectiveClubId || busy}
-              >
-                {busy ? 'Abriendo…' : 'Abrir Stripe'}
-              </button>
+        <div style={{ display: 'grid', gap: 10, alignContent: 'start', minWidth: 220 }}>
+          <span className={`nv-badge ${stripeConnected ? 'nv-badge-success' : 'nv-badge-warn'}`}>
+            {stripeConnected ? 'Cobros conectados' : 'Cobros pendientes'}
+          </span>
+          <div className="nv-card-soft" style={{ display: 'grid', gap: 8 }}>
+            <div className="nv-small nv-muted">Neto últimos 30 días</div>
+            <div className="nv-kpi-value" style={{ fontSize: 26 }}>
+              {metricsLoading ? '…' : formatEUR(stripeNet)}
             </div>
+            <div className="nv-small nv-muted">Bruto {metricsLoading ? '…' : formatEUR(stripeGross)}</div>
+          </div>
+        </div>
+      </section>
+
+      {error && (
+        <div className="nv-notice nv-notice-error" role="alert" aria-live="assertive">{error}</div>
+      )}
+      {!loading && !hasClub && (
+        <div className="nv-notice nv-notice-warn" role="status">
+          No se ha detectado ningún club asociado a esta cuenta. Comprueba tu sesión o vuelve a iniciar sesión.
+        </div>
+      )}
+      {!loading && !clubs.length && inferredClub && (
+        <div className="nv-notice nv-notice-info">
+          Mostrando datos del club inferido a partir de tus eventos.
+        </div>
+      )}
+
+      <section className="nv-grid-auto nv-stagger">
+        {kpis.map((item) => (
+          <article key={item.label} className="nv-kpi">
+            <div className="nv-kpi-label">{item.label}</div>
+            {metricsLoading ? (
+              <div className="nv-skeleton nv-skeleton-line lg" style={{ width: '55%', marginTop: 0 }} />
+            ) : (
+              <div className="nv-kpi-value">{item.value}</div>
+            )}
+            <div className="nv-kpi-help">{item.helper}</div>
+          </article>
+        ))}
+      </section>
+
+      <section className="nv-grid-cards">
+        {quickActions.map((item) => (
+          <a key={item.title} href={item.href} className="nv-card nv-card-interactive" style={{ display: 'grid', gap: 10, textDecoration: 'none' }}>
+            <span className="nv-empty-icon" aria-hidden="true" style={{ width: 42, height: 42, borderRadius: 13, marginBottom: 0 }}>
+              <QuickIcon name={item.icon} />
+            </span>
+            <div className="nv-h4">{item.title}</div>
+            <div className="nv-small nv-muted">{item.description}</div>
+          </a>
+        ))}
+      </section>
+
+      <section style={{ display: 'grid', gap: 22, gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', alignItems: 'start' }}>
+        <article className="nv-card">
+          <div className="nv-section-head" style={{ marginBottom: 16 }}>
+            <h2 className="nv-h3">Próximos eventos</h2>
+            <a href="/events" className="nv-link-accent">Ver todos</a>
           </div>
 
-          <div style={heroPanel}>
-            <div>
-              <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 8 }}>Estado de la cuenta</div>
-              <div style={{ fontSize: 22, fontWeight: 900, letterSpacing: '-0.02em' }}>{clubName}</div>
-              <div style={{ marginTop: 8, color: '#cbd5e1', fontSize: 14 }}>
-                {(effectiveClubId || inferredClub?._id)
-                  ? `Club detectado y listo para conectar más métricas.`
-                  : 'No se ha detectado ningún club asociado a esta cuenta.'}
-              </div>
+          {metricsLoading ? (
+            <div className="nv-list">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="nv-item"><div className="nv-skeleton nv-skeleton-line lg" style={{ width: '60%', marginTop: 0 }} /></div>
+              ))}
             </div>
-
-            <div style={{ display: 'grid', gap: 10 }}>
-              <div style={infoBox}>
-                <div style={{ fontWeight: 800, marginBottom: 4 }}>Stripe</div>
-                <div>
-                  {status?.connected
-                    ? 'Cuenta conectada correctamente.'
-                    : 'Cuenta todavía no conectada o pendiente de onboarding.'}
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gap: 8, color: '#cbd5e1', fontSize: 14 }}>
-                <div>• Payouts enabled: {status?.payouts_enabled ? 'Sí' : 'No'}</div>
-                <div>• Datos enviados: {status?.details_submitted ? 'Sí' : 'No'}</div>
-                <div>• Neto 30 días: {metricsLoading ? '...' : formatEUR(stripeNet)}</div>
-              </div>
+          ) : upcomingEventsData.length === 0 ? (
+            <div className="nv-empty" style={{ padding: '28px 12px' }}>
+              <div className="nv-empty-title" style={{ fontSize: 18 }}>Sin próximos eventos</div>
+              <div className="nv-empty-text">Crea un evento para empezar a ver actividad aquí.</div>
+              <a href="/events/new" className="nv-btn nv-btn-primary" style={{ marginTop: 6 }}>+ Crear evento</a>
             </div>
-          </div>
-        </section>
-
-        {loading && <div style={warningBox} role="status" aria-live="polite">Cargando tu club…</div>}
-        {error && <div style={errorBox} role="alert" aria-live="assertive">{error}</div>}
-        {!loading && !(effectiveClubId || inferredClub?._id) && (
-          <div style={warningBox}>
-            No se encontró ningún club asociado a tu cuenta. Si en otras pantallas sí ves datos,
-            revisa en red la respuesta de <code>/api/events/mine</code> y <code>/api/clubs/mine</code>.
-          </div>
-        )}
-        {!loading && !clubs.length && inferredClub && (
-          <div style={infoBox}>
-            No se encontró el club en <code>/api/clubs/mine</code>, pero el dashboard ha inferido el club desde tus eventos para no dejar la pantalla vacía.
-          </div>
-        )}
-
-        <section className="nv-stagger" style={kpiGrid}>
-          {kpis.map((item) => (
-            <article key={item.label} style={kpiCard}>
-              <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 12 }}>{item.label}</div>
-              {item.value === '...' ? (
-                <div className="nv-skeleton nv-skeleton-line lg" style={{ width: '60%', height: 28, marginTop: 0 }} />
-              ) : (
-                <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.03em' }}>{item.value}</div>
-              )}
-              <div style={{ marginTop: 10, color: '#cbd5e1', fontSize: 13, lineHeight: 1.5 }}>{item.helper}</div>
-            </article>
-          ))}
-        </section>
-
-        <section style={sectionGrid}>
-          <article style={sectionCard}>
-            <h2 style={sectionTitle}>Accesos rápidos</h2>
-            <p style={sectionSubtitle}>
-              Acciones principales del club para gestionar el día a día desde el panel.
-            </p>
-
-            <div style={{ height: 18 }} />
-
-            <div style={actionGrid}>
-              {quickActions.map((item) => {
-                const content = (
-                  <>
-                    <div style={{ fontWeight: 800, fontSize: 16 }}>{item.title}</div>
-                    <div style={{ color: '#94a3b8', fontSize: 14, lineHeight: 1.5, marginTop: 6 }}>
-                      {item.description}
-                    </div>
-                  </>
-                );
-
-                if (item.action) {
-                  return (
-                    <button
-                      key={item.title}
-                      onClick={item.action}
-                      style={{
-                        ...listItem,
-                        cursor: !effectiveClubId || busy ? 'not-allowed' : 'pointer',
-                        textAlign: 'left',
-                        color: '#e5e7eb',
-                      }}
-                      disabled={!effectiveClubId || busy}
-                    >
-                      {content}
-                    </button>
-                  );
-                }
-
+          ) : (
+            <ul className="nv-list">
+              {upcomingEventsData.map((event) => {
+                const id = event?._id || event?.id;
+                const title = event?.title || event?.name || 'Evento';
+                const attendees = Array.isArray(event?.attendees) ? event.attendees.length : 0;
+                const place = event?.city || 'Ubicación por confirmar';
                 return (
-                  <a
-                    key={item.title}
-                    href={item.href}
-                    style={{
-                      ...listItem,
-                      textDecoration: 'none',
-                      color: '#e5e7eb',
-                    }}
-                  >
-                    {content}
-                  </a>
+                  <li key={id || title}>
+                    <a href={id ? `/events/${id}` : '/events'} className="nv-item" style={{ textDecoration: 'none' }}>
+                      <div className="nv-row" style={{ justifyContent: 'space-between', gap: 12 }}>
+                        <span className="nv-h4 nv-truncate">{title}</span>
+                        <span className="nv-badge">{attendees} asist.</span>
+                      </div>
+                      <div className="nv-small nv-muted">{formatDate(resolveEventDate(event))} · {place}</div>
+                    </a>
+                  </li>
                 );
               })}
-            </div>
-          </article>
-
-          <article style={sectionCard}>
-            <h2 style={sectionTitle}>Stripe y cobros</h2>
-            <p style={sectionSubtitle}>
-              Consulta el estado de tu cuenta y accede al panel de pagos cuando lo necesites.
-            </p>
-
-            <div style={{ height: 18 }} />
-
-            <div style={{ display: 'grid', gap: 12 }}>
-              <div style={infoBox}>
-                <div style={{ fontWeight: 800, marginBottom: 6 }}>
-                  {status?.connected ? 'Cuenta conectada' : 'Onboarding pendiente'}
-                </div>
-                <div>
-                  {status?.connected
-                    ? 'Ya puedes consultar ventas, pagos y transferencias desde Stripe.'
-                    : 'Completa la configuración para empezar a cobrar correctamente tus eventos.'}
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gap: 8, color: '#cbd5e1', fontSize: 14 }}>
-                <div>• Conectada: {status?.connected ? 'Sí' : 'No'}</div>
-                <div>• Payouts: {status?.payouts_enabled ? 'Activos' : 'Pendientes'}</div>
-                <div>• Datos enviados: {status?.details_submitted ? 'Sí' : 'No'}</div>
-                <div>• Bruto 30 días: {metricsLoading ? '...' : formatEUR(Number(stripeSummary?.gross || 0))}</div>
-                <div>• Neto 30 días: {metricsLoading ? '...' : formatEUR(stripeNet)}</div>
-              </div>
-
-              <button onClick={openStripeDashboard} style={primaryBtn} disabled={!effectiveClubId || busy}>
-                {busy ? 'Abriendo…' : 'Abrir panel de Stripe'}
-              </button>
-
-              {status && !status.connected && (
-                <button onClick={openStripeDashboard} style={secondaryBtn} disabled={!effectiveClubId || busy}>
-                  {busy ? 'Abriendo…' : 'Completar onboarding'}
-                </button>
-              )}
-            </div>
-          </article>
-        </section>
-
-        <section style={sectionGrid}>
-          <article style={sectionCard}>
-            <h2 style={sectionTitle}>Próximos eventos y rendimiento</h2>
-            <p style={sectionSubtitle}>
-              Aquí mostraremos los eventos del club con sus métricas y accesos directos.
-            </p>
-
-            <div style={{ height: 18 }} />
-
-            <ul style={list}>
-              {upcomingEvents.map((item) => (
-                <li key={item.title} style={listItem}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
-                    <div style={{ fontWeight: 800 }}>{item.title}</div>
-                    <span
-                      style={{
-                        borderRadius: 999,
-                        padding: '6px 10px',
-                        fontSize: 12,
-                        fontWeight: 800,
-                        background: 'rgba(0,229,255,0.08)',
-                        color: '#67e8f9',
-                        border: '1px solid rgba(0,229,255,0.14)',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {item.status}
-                    </span>
-                  </div>
-                  <div style={{ color: '#94a3b8', fontSize: 14, lineHeight: 1.5 }}>{item.meta}</div>
-                </li>
-              ))}
             </ul>
-          </article>
+          )}
+        </article>
 
-          <article style={sectionCard}>
-            <h2 style={sectionTitle}>Actividad reciente</h2>
-            <p style={sectionSubtitle}>
-              Compras, check-ins, fotos verificadas y movimiento general del club.
-            </p>
+        <article className="nv-card">
+          <div className="nv-section-head" style={{ marginBottom: 16 }}>
+            <h2 className="nv-h3">Cobros con Stripe</h2>
+            <span className={`nv-badge ${stripeConnected ? 'nv-badge-success' : 'nv-badge-warn'}`}>
+              {stripeConnected ? 'Conectado' : 'Pendiente'}
+            </span>
+          </div>
 
-            <div style={{ height: 18 }} />
+          <div className={`nv-notice ${stripeConnected ? 'nv-notice-success' : 'nv-notice-warn'}`} style={{ marginBottom: 14 }}>
+            {stripeConnected
+              ? 'Tu cuenta puede recibir cobros. Consulta ventas y transferencias en Stripe.'
+              : 'Completa el onboarding de Stripe para empezar a cobrar tus eventos.'}
+          </div>
 
-            <ul style={list}>
-              {recentActivity.map((item) => (
-                <li key={item} style={listItem}>
-                  <div style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.6 }}>{item}</div>
-                </li>
-              ))}
-            </ul>
-          </article>
-        </section>
+          <ul className="nv-list" style={{ marginBottom: 16 }}>
+            <li className="nv-item nv-row" style={{ justifyContent: 'space-between' }}>
+              <span className="nv-small nv-muted">Pagos habilitados</span>
+              <strong className="nv-small">{status?.payouts_enabled ? 'Sí' : 'No'}</strong>
+            </li>
+            <li className="nv-item nv-row" style={{ justifyContent: 'space-between' }}>
+              <span className="nv-small nv-muted">Datos enviados</span>
+              <strong className="nv-small">{status?.details_submitted ? 'Sí' : 'No'}</strong>
+            </li>
+            <li className="nv-item nv-row" style={{ justifyContent: 'space-between' }}>
+              <span className="nv-small nv-muted">Neto 30 días</span>
+              <strong className="nv-small">{metricsLoading ? '…' : formatEUR(stripeNet)}</strong>
+            </li>
+          </ul>
 
-        <section style={sectionGrid}>
-          <article style={sectionCard}>
-            <h2 style={sectionTitle}>Difusión y compartidos</h2>
-            <p style={sectionSubtitle}>
-              Resumen real de tráfico compartido, usuarios alcanzados y rendimiento de difusión del club.
-            </p>
+          <button
+            type="button"
+            onClick={openStripeDashboard}
+            className="nv-btn nv-btn-primary nv-btn-block"
+            disabled={!hasClub || busy}
+          >
+            {busy ? 'Abriendo…' : stripeConnected ? 'Abrir panel de Stripe' : 'Completar onboarding'}
+          </button>
+        </article>
+      </section>
 
-            <div style={{ height: 18 }} />
-
-            <ul style={list}>
-              {referralInsights.map((item) => (
-                <li key={item} style={listItem}>
-                  <div style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.6 }}>{item}</div>
-                </li>
-              ))}
-            </ul>
-
-            <div style={{ height: 16 }} />
-            <a href="/referrals" style={secondaryBtn}>
-              Ver analítica completa de difusión
-            </a>
-          </article>
-
-          <article style={sectionCard}>
-            <h2 style={sectionTitle}>Estado del dashboard</h2>
-            <p style={sectionSubtitle}>
-              Esta primera versión ya transforma la pantalla de cobros en un dashboard visual real.
-            </p>
-
-            <div style={{ height: 18 }} />
-
-            <div style={{ display: 'grid', gap: 12 }}>
-              <div style={infoBox}>
-                La base visual ya está lista para conectar estadísticas reales, eventos del club,
-                promociones, verificación de fotos y analítica de difusión.
-              </div>
-
-              <div style={listItem}>
-                <div style={{ fontWeight: 800, marginBottom: 6 }}>Resumen conectado</div>
-                <div style={{ color: '#94a3b8', fontSize: 14, lineHeight: 1.6 }}>
-                  Este dashboard ya está leyendo ventas, Stripe, eventos del club y difusión.
-                  El siguiente paso natural sería pulir la actividad reciente y añadir más detalle visual por evento.
-                </div>
-              </div>
-            </div>
-          </article>
-        </section>
-      </div>
-    </main>
+      <section className="nv-card">
+        <div className="nv-section-head" style={{ marginBottom: 16 }}>
+          <div>
+            <h2 className="nv-h3">Difusión y compartidos</h2>
+            <p className="nv-small nv-muted" style={{ marginTop: 6 }}>Rendimiento de los enlaces que comparten tus usuarios.</p>
+          </div>
+          <a href="/referrals" className="nv-btn nv-btn-secondary">Ver analítica completa</a>
+        </div>
+        <ul className="nv-list">
+          {referralInsights.map((item) => (
+            <li key={item} className="nv-item">
+              <span className="nv-small" style={{ color: 'var(--nv-text-soft)' }}>{item}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </div>
   );
+}
+
+function QuickIcon({ name }) {
+  const c = { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' };
+  if (name === 'plus') return (<svg {...c}><path d="M12 5v14M5 12h14" /></svg>);
+  if (name === 'gift') return (<svg {...c}><rect x="3" y="8" width="18" height="4" rx="1" /><path d="M12 8v13M5 12v9h14v-9M12 8S10 3 7.5 4.5 12 8 12 8Zm0 0s2-5 4.5-3.5S12 8 12 8Z" /></svg>);
+  if (name === 'scan') return (<svg {...c}><path d="M7 4H5a1 1 0 0 0-1 1v2M17 4h2a1 1 0 0 1 1 1v2M7 20H5a1 1 0 0 1-1-1v-2M17 20h2a1 1 0 0 0 1-1v-2M8 12h8" /></svg>);
+  return (<svg {...c}><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M3 9h18M8 3v4M16 3v4" /></svg>);
 }
 
 export default function Page() {
   return (
-    <Suspense fallback={<div style={{ padding: 16, color: '#e5e7eb' }}>Cargando…</div>}>
+    <Suspense fallback={<div className="nv-skeleton nv-skeleton-card" style={{ height: 200 }} />}>
       <DashboardInner />
     </Suspense>
   );

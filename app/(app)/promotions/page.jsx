@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import RequireClub from '@/components/RequireClub';
 import { getUser } from '@/lib/apiClient';
 import { confirmDialog } from '@/components/Toast';
@@ -9,29 +9,6 @@ const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE ||
   process.env.NEXT_PUBLIC_BACKEND_URL ||
   'https://api.nightvibe.life';
-
-const roadmap = [
-  {
-    title: '10 niveles por defecto',
-    description:
-      'Cada club parte de una estructura inicial y luego puede personalizar nombre, dificultad, recompensa, orden y misiones.',
-  },
-  {
-    title: 'Premio al completar el nivel',
-    description:
-      'La recompensa se desbloquea cuando el usuario completa todo el nivel, no al terminar una misión suelta.',
-  },
-  {
-    title: 'Misiones con validación distinta',
-    description:
-      'Habrá misiones automáticas, manuales y ligadas a tracking, para que el sistema sea entendible tanto en panel como en app.',
-  },
-  {
-    title: 'Sistema editable por club',
-    description:
-      'El club podrá ajustar su propio sistema de promociones y la app leerá esa configuración real desde backend.',
-  },
-];
 
 function getAuthHeaders() {
   if (typeof window === 'undefined') return {};
@@ -78,28 +55,10 @@ async function apiJson(url, opts = {}) {
   return data;
 }
 
-function getStatusStyles(status) {
-  if (status === 'active') {
-    return {
-      background: 'rgba(34,197,94,0.12)',
-      border: '1px solid rgba(34,197,94,0.24)',
-      color: '#86efac',
-    };
-  }
-
-  if (status === 'paused') {
-    return {
-      background: 'rgba(250,204,21,0.10)',
-      border: '1px solid rgba(250,204,21,0.20)',
-      color: '#fde68a',
-    };
-  }
-
-  return {
-    background: 'rgba(148,163,184,0.10)',
-    border: '1px solid rgba(148,163,184,0.20)',
-    color: '#cbd5e1',
-  };
+function getStatusBadge(status) {
+  if (status === 'active') return 'nv-badge-success';
+  if (status === 'paused') return 'nv-badge-warn';
+  return 'nv-badge-neutral';
 }
 
 function getStatusLabel(status) {
@@ -143,44 +102,12 @@ function getMissionValidationLabel(mission) {
   return 'Automática';
 }
 
-function getMissionTypeStyle(type) {
-  if (type === 'Contenido') {
-    return {
-      background: 'rgba(0,229,255,0.08)',
-      border: '1px solid rgba(0,229,255,0.18)',
-      color: '#8be9f7',
-    };
-  }
-
-  if (type === 'Difusión') {
-    return {
-      background: 'rgba(168,85,247,0.12)',
-      border: '1px solid rgba(168,85,247,0.20)',
-      color: '#d8b4fe',
-    };
-  }
-
-  if (type === 'Asistencia') {
-    return {
-      background: 'rgba(34,197,94,0.10)',
-      border: '1px solid rgba(34,197,94,0.18)',
-      color: '#86efac',
-    };
-  }
-
-  if (type === 'QR') {
-    return {
-      background: 'rgba(249,115,22,0.10)',
-      border: '1px solid rgba(249,115,22,0.18)',
-      color: '#fdba74',
-    };
-  }
-
-  return {
-    background: 'rgba(255,255,255,0.04)',
-    border: '1px solid rgba(255,255,255,0.08)',
-    color: '#cbd5e1',
-  };
+function getMissionTypeBadge(typeLabel) {
+  if (typeLabel === 'Contenido') return 'nv-badge';
+  if (typeLabel === 'Difusión') return 'nv-badge-indigo';
+  if (typeLabel === 'Asistencia') return 'nv-badge-success';
+  if (typeLabel === 'QR') return 'nv-badge-warn';
+  return 'nv-badge-neutral';
 }
 
 function extractClubId() {
@@ -200,8 +127,14 @@ export default function PromotionsPage() {
   const [levels, setLevels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState('');
+  const [noticeKind, setNoticeKind] = useState('info');
   const [deletingLevelNumber, setDeletingLevelNumber] = useState('');
   const [reorderingLevelNumber, setReorderingLevelNumber] = useState('');
+
+  function flash(message, kind = 'info') {
+    setNotice(message);
+    setNoticeKind(kind);
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -213,7 +146,7 @@ export default function PromotionsPage() {
       if (!resolvedClubId) {
         if (!cancelled) {
           setLoading(false);
-          setNotice('No se ha podido resolver el club actual para cargar promociones.');
+          flash('No se ha podido resolver el club actual para cargar promociones.', 'error');
         }
         return;
       }
@@ -229,7 +162,7 @@ export default function PromotionsPage() {
       } catch (e) {
         if (!cancelled) {
           setLevels([]);
-          setNotice(e?.message || 'No se pudo cargar la configuración de promociones.');
+          flash(e?.message || 'No se pudo cargar la configuración de promociones.', 'error');
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -245,7 +178,7 @@ export default function PromotionsPage() {
 
   async function handleDeleteLevel(levelNumber) {
     if (!clubId) {
-      setNotice('No se ha podido resolver el club actual.');
+      flash('No se ha podido resolver el club actual.', 'error');
       return;
     }
 
@@ -259,7 +192,7 @@ export default function PromotionsPage() {
 
     try {
       setDeletingLevelNumber(String(levelNumber));
-      setNotice('Eliminando nivel...');
+      flash('Eliminando nivel...', 'info');
 
       const nextLevels = levels
         .filter((level) => Number(level.levelNumber) !== Number(levelNumber))
@@ -312,18 +245,18 @@ export default function PromotionsPage() {
       });
 
       setLevels(Array.isArray(data?.levels) ? data.levels : []);
-      setNotice('Nivel eliminado correctamente.');
+      flash('Nivel eliminado correctamente.', 'success');
     } catch (e) {
-      setNotice(e?.message || 'No se pudo eliminar el nivel.');
+      flash(e?.message || 'No se pudo eliminar el nivel.', 'error');
     } finally {
       setDeletingLevelNumber('');
     }
   }
 
-  
+
   async function handleMoveLevel(levelNumber, direction) {
     if (!clubId) {
-      setNotice('No se ha podido resolver el club actual.');
+      flash('No se ha podido resolver el club actual.', 'error');
       return;
     }
 
@@ -390,7 +323,7 @@ export default function PromotionsPage() {
 
     try {
       setReorderingLevelNumber(String(levelNumber));
-      setNotice(direction === 'up' ? 'Subiendo nivel...' : 'Bajando nivel...');
+      flash(direction === 'up' ? 'Subiendo nivel...' : 'Bajando nivel...', 'info');
 
       const data = await apiJson(`${API_BASE}/api/promotions/clubs/${clubId}/levels`, {
         method: 'PUT',
@@ -398,9 +331,9 @@ export default function PromotionsPage() {
       });
 
       setLevels(Array.isArray(data?.levels) ? data.levels : []);
-      setNotice('Orden de niveles actualizado correctamente.');
+      flash('Orden de niveles actualizado correctamente.', 'success');
     } catch (e) {
-      setNotice(e?.message || 'No se pudo reordenar el nivel.');
+      flash(e?.message || 'No se pudo reordenar el nivel.', 'error');
     } finally {
       setReorderingLevelNumber('');
     }
@@ -417,477 +350,158 @@ export default function PromotionsPage() {
     0
   );
 
-  const pageStyle = {
-    padding: '28px 24px 44px',
-    color: '#e5e7eb',
-    background:
-      'radial-gradient(circle at top, rgba(0,229,255,0.08), transparent 0 24%), var(--nv-bg)',
-    minHeight: '100vh',
-  };
+  const kpis = [
+    { label: 'Niveles', value: levels.length, help: 'Configuración cargada del club' },
+    { label: 'Activos', value: activeLevels, help: 'Visibles en la app' },
+    { label: 'Misiones', value: totalMissions, help: 'Repartidas entre los niveles' },
+    { label: 'Revisión manual', value: manualReviewMissions, help: 'Misiones que valida el club' },
+  ];
 
-  const shellStyle = {
-    width: '100%',
-    maxWidth: 1280,
-    margin: '0 auto',
-    display: 'grid',
-    gap: 22,
-  };
-
-  const heroStyle = {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
-    gap: 18,
-    alignItems: 'center',
-    padding: 26,
-    borderRadius: 24,
-    background: 'linear-gradient(135deg, rgba(0,229,255,0.12), rgba(15,22,41,0.96))',
-    border: '1px solid rgba(0,229,255,0.18)',
-    boxShadow: '0 18px 50px rgba(0,0,0,0.24)',
-  };
-
-  const titleStyle = {
-    margin: 0,
-    fontSize: 'clamp(28px, 4vw, 42px)',
-    lineHeight: 1.02,
-    letterSpacing: '-0.03em',
-    fontWeight: 900,
-  };
-
-  const mutedStyle = {
-    color: '#cbd5e1',
-    lineHeight: 1.65,
-    fontSize: 15,
-  };
-
-  const primaryBtn = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 48,
-    padding: '0 18px',
-    borderRadius: 14,
-    background: '#00e5ff',
-    color: '#001018',
-    fontWeight: 800,
-    textDecoration: 'none',
-    border: '1px solid #00d4eb',
-    boxShadow: '0 12px 32px rgba(0,229,255,0.22)',
-    whiteSpace: 'nowrap',
-  };
-
-  const panelStyle = {
-    background: 'var(--nv-surface)',
-    border: '1px solid rgba(255,255,255,0.06)',
-    borderRadius: 22,
-    padding: 20,
-    boxShadow: '0 14px 40px rgba(0,0,0,0.20)',
-  };
-
-  const statGridStyle = {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-    gap: 14,
-  };
-
-  const statCardStyle = {
-    padding: 16,
-    borderRadius: 18,
-    border: '1px solid rgba(255,255,255,0.06)',
-    background: 'rgba(255,255,255,0.02)',
-  };
-
-  const listStyle = {
-    display: 'grid',
-    gap: 16,
-  };
+  const orderedLevels = [...levels].sort(
+    (a, b) => Number(a.order || a.levelNumber || 0) - Number(b.order || b.levelNumber || 0)
+  );
 
   return (
     <RequireClub>
-      <main style={pageStyle}>
-        <div style={shellStyle}>
-          <section style={heroStyle}>
-            <div>
-              <div
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  padding: '8px 12px',
-                  borderRadius: 999,
-                  border: '1px solid rgba(0,229,255,0.2)',
-                  background: 'rgba(0,229,255,0.08)',
-                  color: '#7dd3fc',
-                  fontWeight: 800,
-                  fontSize: 13,
-                  marginBottom: 14,
-                }}
-              >
-                Sistema de niveles del club
-              </div>
-              <h1 style={titleStyle}>Promociones</h1>
-              <p style={{ ...mutedStyle, margin: '12px 0 0', maxWidth: 760 }}>
-                En NightVibe cada promoción es un nivel. Cada nivel tiene sus misiones y una recompensa final
-                que el usuario desbloquea al completarlo. Esta vista ya carga la configuración real del club desde backend.
-              </p>
-            </div>
+      <div className="nv-views">
+        <section className="nv-hero nv-hero-split nv-animate-in">
+          <div>
+            <span className="nv-eyebrow">Sistema de niveles</span>
+            <h1 className="nv-h1" style={{ marginTop: 10 }}>Promociones</h1>
+            <p className="nv-lead" style={{ marginTop: 10, maxWidth: 620 }}>
+              Cada promoción es un nivel con sus misiones y una recompensa que el usuario
+              desbloquea al completarlo.
+            </p>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <a href="/promotions/new" className="nv-btn nv-btn-primary">+ Crear nivel</a>
+          </div>
+        </section>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <a href="/promotions/new" style={primaryBtn}>
-                + Crear nivel
-              </a>
-            </div>
+        {notice && (
+          <div className={`nv-notice nv-notice-${noticeKind}`} role={noticeKind === 'error' ? 'alert' : 'status'}>
+            {notice}
+          </div>
+        )}
+
+        <section className="nv-grid-auto nv-stagger">
+          {kpis.map((item) => (
+            <article key={item.label} className="nv-kpi">
+              <div className="nv-kpi-label">{item.label}</div>
+              {loading ? (
+                <div className="nv-skeleton nv-skeleton-line lg" style={{ width: '40%', marginTop: 0 }} />
+              ) : (
+                <div className="nv-kpi-value">{item.value}</div>
+              )}
+              <div className="nv-kpi-help">{item.help}</div>
+            </article>
+          ))}
+        </section>
+
+        {loading ? (
+          <section className="nv-card" style={{ display: 'grid', gap: 12 }}>
+            <div className="nv-skeleton nv-skeleton-line lg" style={{ width: '30%', marginTop: 0 }} />
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="nv-skeleton" style={{ height: 72, borderRadius: 16 }} />
+            ))}
           </section>
-
-          {notice && (
-            <section
-              style={{
-                ...panelStyle,
-                border: '1px solid rgba(0,229,255,0.14)',
-                background: 'rgba(0,229,255,0.05)',
-                color: '#dff9ff',
-              }}
-            >
-              {notice}
-            </section>
-          )}
-
-          <section style={statGridStyle}>
-            <article style={statCardStyle}>
-              <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 10 }}>Niveles visibles</div>
-              <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.03em' }}>{levels.length}</div>
-              <div style={{ color: '#cbd5e1', fontSize: 13, marginTop: 10 }}>Configuración real cargada para este club</div>
-            </article>
-            <article style={statCardStyle}>
-              <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 10 }}>Niveles activos</div>
-              <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.03em' }}>{activeLevels}</div>
-              <div style={{ color: '#cbd5e1', fontSize: 13, marginTop: 10 }}>Listos para estar visibles en la app</div>
-            </article>
-            <article style={statCardStyle}>
-              <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 10 }}>Misiones</div>
-              <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.03em' }}>{totalMissions}</div>
-              <div style={{ color: '#cbd5e1', fontSize: 13, marginTop: 10 }}>Tareas repartidas dentro de los niveles</div>
-            </article>
-            <article style={statCardStyle}>
-              <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 10 }}>Revisión manual</div>
-              <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.03em' }}>{manualReviewMissions}</div>
-              <div style={{ color: '#cbd5e1', fontSize: 13, marginTop: 10 }}>Misiones que requieren validación manual</div>
-            </article>
-          </section>
-
-          <section style={panelStyle}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-              <div>
-                <div style={{ fontWeight: 900, fontSize: 22, letterSpacing: '-0.02em' }}>Niveles del club</div>
-                <div style={{ color: '#94a3b8', fontSize: 14, marginTop: 8, lineHeight: 1.6 }}>
-                  Cada tarjeta representa un nivel-promoción real del club. Desde aquí puedes revisar recompensa, dificultad y misiones antes de editarlo.
-                </div>
+        ) : orderedLevels.length === 0 ? (
+          <section className="nv-card">
+            <div className="nv-empty">
+              <div className="nv-empty-icon" aria-hidden="true">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="5" y="8" width="14" height="12" rx="2" /><path d="M9 8V6a3 3 0 0 1 6 0v2M12 12v4" />
+                </svg>
               </div>
-              <div style={{ color: '#94a3b8', fontSize: 14 }}>
-                {clubId ? `Club actual: ${clubId}` : 'Club no resuelto'}
+              <div className="nv-empty-title">Aún no hay niveles</div>
+              <div className="nv-empty-text">
+                Crea tu primer nivel para empezar a construir el sistema de promociones del club.
               </div>
+              <a href="/promotions/new" className="nv-btn nv-btn-primary" style={{ marginTop: 6 }}>+ Crear nivel</a>
             </div>
           </section>
+        ) : (
+          <section className="nv-stagger" style={{ display: 'grid', gap: 16 }}>
+            {orderedLevels.map((level, index) => {
+              const levelKey = String(level.levelNumber);
+              const busy = deletingLevelNumber === levelKey || reorderingLevelNumber === levelKey;
 
-          <section style={listStyle}>
-            {loading ? (
-              <section style={{ ...panelStyle, display: 'grid', gap: 12 }}>
-                <div className="nv-skeleton nv-skeleton-line lg" style={{ width: '30%' }} />
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="nv-skeleton" style={{ height: 64, borderRadius: 14 }} />
-                ))}
-              </section>
-            ) : levels.length === 0 ? (
-              <section style={panelStyle}>
-                <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 8 }}>No hay niveles disponibles</div>
-                <div style={{ color: '#94a3b8', fontSize: 14, lineHeight: 1.6 }}>
-                  Cuando el backend genere o guarde la configuración del club, aparecerá aquí el sistema completo de promociones por niveles.
-                </div>
-              </section>
-            ) : (
-              [...levels]
-                .sort((a, b) => Number(a.order || a.levelNumber || 0) - Number(b.order || b.levelNumber || 0))
-                .map((level, index, orderedLevels) => {
-                const statusStyle = getStatusStyles(level.status);
-
-                return (
-                  <article
-                    key={level.id || `${level.levelNumber}`}
-                    style={{
-                      ...panelStyle,
-                      padding: 18,
-                      display: 'grid',
-                      gridTemplateColumns: 'minmax(0, 1fr) auto',
-                      gap: 18,
-                      alignItems: 'start',
-                    }}
-                  >
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
-                        <h2
-                          style={{
-                            margin: 0,
-                            fontSize: 24,
-                            fontWeight: 900,
-                            letterSpacing: '-0.03em',
-                          }}
-                        >
-                          {level.title}
-                        </h2>
-                        <span
-                          style={{
-                            ...statusStyle,
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            minHeight: 32,
-                            padding: '0 12px',
-                            borderRadius: 999,
-                            fontSize: 12,
-                            fontWeight: 800,
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {getStatusLabel(level.status)}
-                        </span>
-                        <span
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            minHeight: 32,
-                            padding: '0 12px',
-                            borderRadius: 999,
-                            fontSize: 12,
-                            fontWeight: 800,
-                            whiteSpace: 'nowrap',
-                            background: 'rgba(255,255,255,0.04)',
-                            border: '1px solid rgba(255,255,255,0.08)',
-                            color: '#cbd5e1',
-                          }}
-                        >
-                          {getDifficultyLabel(level.difficulty)}
-                        </span>
+              return (
+                <article key={level.id || levelKey} className="nv-card" style={{ display: 'grid', gap: 18, gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'start' }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="nv-row" style={{ gap: 12 }}>
+                      <span className="nv-index">{index + 1}</span>
+                      <div style={{ minWidth: 0 }}>
+                        <div className="nv-row" style={{ gap: 8 }}>
+                          <h2 className="nv-h3 nv-truncate" style={{ fontSize: 20, minWidth: 0 }}>{level.title || `Nivel ${index + 1}`}</h2>
+                          <span className={getStatusBadge(level.status)}>{getStatusLabel(level.status)}</span>
+                          <span className="nv-badge-neutral nv-badge">{getDifficultyLabel(level.difficulty)}</span>
+                        </div>
+                        <div className="nv-small nv-muted" style={{ marginTop: 6 }}>
+                          Visible en app: {level.visibleInApp ? 'Sí' : 'No'}
+                        </div>
                       </div>
+                    </div>
 
-                      <div style={{ marginTop: 12, color: '#cbd5e1', fontSize: 15, lineHeight: 1.6 }}>
-                        Recompensa final: <strong>{level.reward?.title || 'Sin recompensa definida'}</strong>
-                      </div>
+                    <div className="nv-notice nv-notice-info" style={{ marginTop: 14 }}>
+                      <strong>Recompensa:</strong> {level.reward?.title || 'Sin recompensa definida'}
+                    </div>
 
-                      <div style={{ marginTop: 8, color: '#94a3b8', fontSize: 13.5, lineHeight: 1.55 }}>
-                        Orden: {index + 1} · Nivel: {level.levelNumber} · Visible en app: {level.visibleInApp ? 'Sí' : 'No'}
-                      </div>
-
-                      <div
-                        style={{
-                          marginTop: 14,
-                          display: 'grid',
-                          gap: 10,
-                        }}
-                      >
-                        {(level.missions || []).map((mission) => {
-                          const missionTypeLabel = getMissionTypeLabel(mission.type);
-                          const missionTypeStyle = getMissionTypeStyle(missionTypeLabel);
+                    {Array.isArray(level.missions) && level.missions.length > 0 && (
+                      <ul className="nv-list" style={{ marginTop: 14 }}>
+                        {level.missions.map((mission) => {
+                          const typeLabel = getMissionTypeLabel(mission.type);
                           return (
-                            <div
-                              key={mission.id || `${mission.type}-${mission.order}`}
-                              style={{
-                                padding: '14px 14px',
-                                borderRadius: 16,
-                                background: 'rgba(255,255,255,0.03)',
-                                border: '1px solid rgba(255,255,255,0.06)',
-                                display: 'grid',
-                                gap: 10,
-                              }}
-                            >
-                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
-                                <div style={{ fontWeight: 800, fontSize: 15 }}>{mission.title}</div>
-                                <span
-                                  style={{
-                                    ...missionTypeStyle,
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    minHeight: 28,
-                                    padding: '0 10px',
-                                    borderRadius: 999,
-                                    fontSize: 11.5,
-                                    fontWeight: 800,
-                                    whiteSpace: 'nowrap',
-                                  }}
-                                >
-                                  {missionTypeLabel}
-                                </span>
+                            <li key={mission.id || `${mission.type}-${mission.order}`} className="nv-item">
+                              <div className="nv-row" style={{ gap: 10 }}>
+                                <span className="nv-h4" style={{ fontSize: 15 }}>{mission.title}</span>
+                                <span className={getMissionTypeBadge(typeLabel)}>{typeLabel}</span>
                               </div>
-                              <div style={{ color: '#94a3b8', fontSize: 13.5, lineHeight: 1.55 }}>
+                              <div className="nv-small nv-muted">
                                 Validación: {getMissionValidationLabel(mission)} · Objetivo: {mission.target || 1} {mission.unit || ''}
                               </div>
-                            </div>
+                            </li>
                           );
                         })}
-                      </div>
-                    </div>
+                      </ul>
+                    )}
+                  </div>
 
-                    <div
-                      style={{
-                        display: 'grid',
-                        gap: 10,
-                        justifyItems: 'stretch',
-                        minWidth: 180,
-                      }}
-                    >
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                        <button
-                          type="button"
-                          onClick={() => handleMoveLevel(level.levelNumber, 'up')}
-                          disabled={index === 0 || reorderingLevelNumber === String(level.levelNumber)}
-                          style={{
-                            minHeight: 40,
-                            padding: '0 12px',
-                            borderRadius: 12,
-                            border: '1px solid rgba(0,229,255,0.20)',
-                            background: 'rgba(0,229,255,0.06)',
-                            color: '#7dd3fc',
-                            fontWeight: 700,
-                            cursor:
-                              index === 0 || reorderingLevelNumber === String(level.levelNumber)
-                                ? 'not-allowed'
-                                : 'pointer',
-                            opacity:
-                              index === 0 || reorderingLevelNumber === String(level.levelNumber)
-                                ? 0.55
-                                : 1,
-                          }}
-                        >
-                          ↑ Subir
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleMoveLevel(level.levelNumber, 'down')}
-                          disabled={index === orderedLevels.length - 1 || reorderingLevelNumber === String(level.levelNumber)}
-                          style={{
-                            minHeight: 40,
-                            padding: '0 12px',
-                            borderRadius: 12,
-                            border: '1px solid rgba(0,229,255,0.20)',
-                            background: 'rgba(0,229,255,0.06)',
-                            color: '#7dd3fc',
-                            fontWeight: 700,
-                            cursor:
-                              index === orderedLevels.length - 1 || reorderingLevelNumber === String(level.levelNumber)
-                                ? 'not-allowed'
-                                : 'pointer',
-                            opacity:
-                              index === orderedLevels.length - 1 || reorderingLevelNumber === String(level.levelNumber)
-                                ? 0.55
-                                : 1,
-                          }}
-                        >
-                          ↓ Bajar
-                        </button>
-                      </div>
-                      <a
-                        href={`/promotions/${level.levelNumber}`}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          minHeight: 44,
-                          padding: '0 14px',
-                          borderRadius: 12,
-                          border: '1px solid rgba(255,255,255,0.1)',
-                          color: '#e5e7eb',
-                          textDecoration: 'none',
-                          fontWeight: 700,
-                          background: 'rgba(255,255,255,0.03)',
-                        }}
-                      >
-                        Ver / Editar
-                      </a>
+                  <div className="nv-event-actions" style={{ minWidth: 150 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                       <button
                         type="button"
-                        onClick={() => handleDeleteLevel(level.levelNumber)}
-                        disabled={deletingLevelNumber === String(level.levelNumber) || reorderingLevelNumber === String(level.levelNumber)}
-                        style={{
-                          minHeight: 44,
-                          padding: '0 14px',
-                          borderRadius: 12,
-                          border: '1px solid rgba(244,63,94,0.18)',
-                          background: 'rgba(244,63,94,0.06)',
-                          color: '#fda4af',
-                          fontWeight: 700,
-                          cursor:
-                            deletingLevelNumber === String(level.levelNumber) || reorderingLevelNumber === String(level.levelNumber)
-                              ? 'not-allowed'
-                              : 'pointer',
-                          opacity:
-                            deletingLevelNumber === String(level.levelNumber) || reorderingLevelNumber === String(level.levelNumber)
-                              ? 0.7
-                              : 1,
-                        }}
-                      >
-                        {deletingLevelNumber === String(level.levelNumber) ? 'Eliminando...' : 'Eliminar nivel'}
-                      </button>
+                        onClick={() => handleMoveLevel(level.levelNumber, 'up')}
+                        disabled={index === 0 || busy}
+                        className="nv-btn nv-btn-ghost nv-btn-icon"
+                        aria-label="Subir nivel"
+                        title="Subir"
+                      >↑</button>
+                      <button
+                        type="button"
+                        onClick={() => handleMoveLevel(level.levelNumber, 'down')}
+                        disabled={index === orderedLevels.length - 1 || busy}
+                        className="nv-btn nv-btn-ghost nv-btn-icon"
+                        aria-label="Bajar nivel"
+                        title="Bajar"
+                      >↓</button>
                     </div>
-                  </article>
-                );
-              })
-            )}
-          </section>
-
-          <section
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
-              gap: 20,
-            }}
-          >
-            <article style={panelStyle}>
-              <div style={{ fontWeight: 900, fontSize: 22, letterSpacing: '-0.02em' }}>Qué prepararemos aquí</div>
-              <div style={{ color: '#94a3b8', fontSize: 14, marginTop: 8, lineHeight: 1.6 }}>
-                Esta pantalla ya queda conectada a la lógica real del sistema de promociones por niveles del club.
-              </div>
-
-              <div style={{ display: 'grid', gap: 12, marginTop: 18 }}>
-                {roadmap.map((item) => (
-                  <div
-                    key={item.title}
-                    style={{
-                      padding: 14,
-                      borderRadius: 16,
-                      background: 'rgba(255,255,255,0.02)',
-                      border: '1px solid rgba(255,255,255,0.06)',
-                    }}
-                  >
-                    <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6 }}>{item.title}</div>
-                    <div style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.6 }}>{item.description}</div>
+                    <a href={`/promotions/${level.levelNumber}`} className="nv-btn nv-btn-secondary">Ver / Editar</a>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteLevel(level.levelNumber)}
+                      disabled={busy}
+                      className="nv-btn nv-btn-danger"
+                    >
+                      {deletingLevelNumber === levelKey ? 'Eliminando…' : 'Eliminar'}
+                    </button>
                   </div>
-                ))}
-              </div>
-            </article>
-
-            <article style={panelStyle}>
-              <div style={{ fontWeight: 900, fontSize: 22, letterSpacing: '-0.02em' }}>Sin promociones activas</div>
-              <div style={{ color: '#94a3b8', fontSize: 14, marginTop: 8, lineHeight: 1.6 }}>
-                El club podrá decidir no activar el sistema de niveles, pero en el evento seguirá apareciendo una referencia sutil para dejar preparada esa capa de engagement.
-              </div>
-
-              <div
-                style={{
-                  marginTop: 18,
-                  padding: 16,
-                  borderRadius: 18,
-                  background: 'linear-gradient(135deg, rgba(255,255,255,0.03), rgba(0,229,255,0.04))',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                }}
-              >
-                <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 700, marginBottom: 8 }}>Vista prevista en el evento</div>
-                <div style={{ fontSize: 18, fontWeight: 900, letterSpacing: '-0.02em', marginBottom: 8 }}>
-                  Promociones no activadas
-                </div>
-                <div style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.6 }}>
-                  Este evento no tiene niveles activos por el momento. El club puede activarlos más adelante para desbloquear recompensas, misiones y campañas de difusión.
-                </div>
-              </div>
-            </article>
+                </article>
+              );
+            })}
           </section>
-        </div>
-      </main>
+        )}
+      </div>
     </RequireClub>
   );
 }
