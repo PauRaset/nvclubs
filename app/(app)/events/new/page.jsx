@@ -25,16 +25,10 @@ export default function NewEventPage() {
           </div>
         </section>
 
-        <div className="nv-notice nv-notice-info">
-          Define título, fecha, ubicación e imagen principal. La portada se recorta automáticamente a 800×450.
-        </div>
-
-        <section className="nv-card">
-          <EventForm
-            mode="create"
-            onSaved={(ev) => router.push(`/events/${ev._id || ev.id}`)}
-          />
-        </section>
+        <EventForm
+          mode="create"
+          onSaved={(ev) => router.push(`/events/${ev._id || ev.id}`)}
+        />
       </div>
     </RequireClub>
   );

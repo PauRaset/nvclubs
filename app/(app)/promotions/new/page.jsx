@@ -145,9 +145,32 @@ export default function NewPromotionPage() {
     buildMissionFromTemplate('Asistencia', 1),
     buildMissionFromTemplate('Contenido', 2),
   ]);
-  const [editingMissionId, setEditingMissionId] = useState(missions[0]?.id || '');
+  const [expandedId, setExpandedId] = useState(missions[0]?.id || '');
 
-  const editingMission = missions.find((mission) => mission.id === editingMissionId) || missions[0] || null;
+  function toggleMission(id) {
+    setExpandedId((cur) => (cur === id ? '' : id));
+  }
+  function updateMission(id, patch) {
+    setMissions((prev) => prev.map((m) => (m.id === id ? { ...m, ...patch } : m)));
+  }
+  function removeMission(id) {
+    setMissions((prev) => prev.filter((m) => m.id !== id).map((m, idx) => ({ ...m, order: idx + 1 })));
+    setExpandedId((cur) => (cur === id ? '' : cur));
+  }
+  function addMission(typeLabel) {
+    const next = buildMissionFromTemplate(typeLabel, missions.length + 1);
+    setMissions((prev) => [...prev, next]);
+    setExpandedId(next.id);
+  }
+
+  const MISSION_TYPES = ['Asistencia', 'Contenido', 'Difusión', 'QR', 'Misión especial'];
+  function missionBadgeClass(label) {
+    if (label === 'Contenido') return 'nv-badge';
+    if (label === 'Difusión') return 'nv-badge-indigo';
+    if (label === 'Asistencia') return 'nv-badge-success';
+    if (label === 'QR') return 'nv-badge-warn';
+    return 'nv-badge-neutral';
+  }
 
   async function handleCreate() {
     const clubId = extractClubId();
@@ -311,148 +334,104 @@ export default function NewPromotionPage() {
         </section>
 
         <section className="nv-card">
-          <div className="nv-row" style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div className="nv-section-head" style={{ marginBottom: 14 }}>
             <div style={{ minWidth: 0 }}>
-              <h2 className="nv-h3">Misiones iniciales</h2>
-              <p className="nv-small nv-muted" style={{ marginTop: 8, maxWidth: 520 }}>
-                Puedes dejar unas misiones base ahora y luego afinarlas desde la edición del nivel.
+              <h2 className="nv-h3">Misiones del nivel</h2>
+              <p className="nv-small nv-muted" style={{ marginTop: 6, maxWidth: 560 }}>
+                Cada misión es una tarea que suma para completar el nivel. Toca una para editarla.
               </p>
             </div>
-            <div className="nv-row" style={{ justifyContent: 'flex-end' }}>
-              {['Asistencia', 'Contenido', 'Difusión', 'QR', 'Misión especial'].map((typeLabel) => (
-                <button
-                  key={typeLabel}
-                  type="button"
-                  onClick={() => {
-                    const next = buildMissionFromTemplate(typeLabel, missions.length + 1);
-                    setMissions((prev) => [...prev, next]);
-                    setEditingMissionId(next.id);
-                  }}
-                  className="nv-btn nv-btn-secondary"
-                >
-                  + {typeLabel}
-                </button>
-              ))}
-            </div>
+            <span className="nv-badge-neutral nv-badge">{missions.length} {missions.length === 1 ? 'misión' : 'misiones'}</span>
           </div>
-        </section>
 
-        <section className="nv-grid-auto" style={{ alignItems: 'start' }}>
-          <article className="nv-card">
-            <h2 className="nv-h3" style={{ marginBottom: 16 }}>Lista de misiones</h2>
-            <ul className="nv-list">
+          <div className="nv-chips" style={{ marginBottom: 16 }}>
+            <span className="nv-small nv-muted" style={{ alignSelf: 'center', marginRight: 4 }}>Añadir:</span>
+            {MISSION_TYPES.map((typeLabel) => (
+              <button
+                key={typeLabel}
+                type="button"
+                onClick={() => addMission(typeLabel)}
+                className="nv-chip"
+              >
+                + {typeLabel}
+              </button>
+            ))}
+          </div>
+
+          {missions.length === 0 ? (
+            <div className="nv-empty" style={{ padding: '28px 12px' }}>
+              <div className="nv-empty-title" style={{ fontSize: 18 }}>Sin misiones todavía</div>
+              <div className="nv-empty-text">Añade una misión con los botones de arriba para empezar a construir el nivel.</div>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gap: 10 }}>
               {missions.map((mission, index) => {
-                const isActive = editingMissionId === mission.id;
+                const open = expandedId === mission.id;
                 return (
-                  <li key={mission.id}>
-                    <button
-                      type="button"
-                      onClick={() => setEditingMissionId(mission.id)}
-                      className="nv-item"
-                      aria-pressed={isActive}
-                      style={{
-                        width: '100%',
-                        textAlign: 'left',
-                        cursor: 'pointer',
-                        borderColor: isActive ? 'var(--nv-accent-border)' : undefined,
-                        background: isActive ? 'var(--nv-accent-soft)' : undefined,
-                      }}
-                    >
-                      <div className="nv-h4" style={{ fontSize: 15 }}>{index + 1}. {mission.title}</div>
-                      <div className="nv-small nv-muted">
-                        {mission.typeLabel} · {mission.validation}
-                      </div>
+                  <div key={mission.id} className={`nv-acc ${open ? 'is-open' : ''}`}>
+                    <button type="button" className="nv-acc-head" onClick={() => toggleMission(mission.id)} aria-expanded={open}>
+                      <span className="nv-index" style={{ width: 34, height: 34, fontSize: 14 }}>{index + 1}</span>
+                      <span style={{ minWidth: 0, display: 'grid', gap: 4 }}>
+                        <span className="nv-row" style={{ gap: 8 }}>
+                          <span className="nv-h4 nv-truncate" style={{ fontSize: 15, minWidth: 0 }}>{mission.title || 'Misión sin título'}</span>
+                          <span className={missionBadgeClass(mission.typeLabel)}>{mission.typeLabel}</span>
+                        </span>
+                        <span className="nv-small nv-muted">{mission.validation} · Objetivo: {mission.target || 1} {mission.unit || ''}</span>
+                      </span>
+                      <svg className="nv-acc-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M9 6l6 6-6 6" />
+                      </svg>
                     </button>
-                  </li>
+
+                    {open && (
+                      <div className="nv-acc-body">
+                        <div className="nv-field">
+                          <label className="nv-label">Título</label>
+                          <input
+                            className="nv-input"
+                            value={mission.title}
+                            onChange={(e) => updateMission(mission.id, { title: e.target.value })}
+                          />
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14 }}>
+                          <div className="nv-field">
+                            <label className="nv-label">Objetivo</label>
+                            <input
+                              className="nv-input"
+                              type="number"
+                              min="1"
+                              value={mission.target || 1}
+                              onChange={(e) => updateMission(mission.id, { target: Number(e.target.value || 1) })}
+                            />
+                          </div>
+                          <div className="nv-field">
+                            <label className="nv-label">Unidad</label>
+                            <input
+                              className="nv-input"
+                              value={mission.unit || ''}
+                              onChange={(e) => updateMission(mission.id, { unit: e.target.value })}
+                            />
+                          </div>
+                        </div>
+                        <div className="nv-field">
+                          <label className="nv-label">Detalles</label>
+                          <textarea
+                            className="nv-textarea"
+                            value={mission.details}
+                            onChange={(e) => updateMission(mission.id, { details: e.target.value, description: e.target.value })}
+                          />
+                        </div>
+                        <div className="nv-row" style={{ justifyContent: 'flex-end' }}>
+                          <button type="button" onClick={() => removeMission(mission.id)} className="nv-btn nv-btn-danger">
+                            Eliminar misión
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 );
               })}
-            </ul>
-          </article>
-
-          {editingMission && (
-            <article className="nv-card">
-              <h2 className="nv-h3" style={{ marginBottom: 16 }}>Editar misión seleccionada</h2>
-              <div style={{ display: 'grid', gap: 14 }}>
-                <div className="nv-field">
-                  <label className="nv-label">Título</label>
-                  <input
-                    className="nv-input"
-                    value={editingMission.title}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setMissions((prev) => prev.map((mission) => (
-                        mission.id === editingMission.id ? { ...mission, title: value } : mission
-                      )));
-                    }}
-                  />
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
-                  <div className="nv-field">
-                    <label className="nv-label">Objetivo</label>
-                    <input
-                      className="nv-input"
-                      type="number"
-                      min="1"
-                      value={editingMission.target || 1}
-                      onChange={(e) => {
-                        const value = Number(e.target.value || 1);
-                        setMissions((prev) => prev.map((mission) => (
-                          mission.id === editingMission.id ? { ...mission, target: value } : mission
-                        )));
-                      }}
-                    />
-                  </div>
-
-                  <div className="nv-field">
-                    <label className="nv-label">Unidad</label>
-                    <input
-                      className="nv-input"
-                      value={editingMission.unit || ''}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setMissions((prev) => prev.map((mission) => (
-                          mission.id === editingMission.id ? { ...mission, unit: value } : mission
-                        )));
-                      }}
-                    />
-                  </div>
-                </div>
-
-                <div className="nv-field">
-                  <label className="nv-label">Detalles</label>
-                  <textarea
-                    className="nv-textarea"
-                    value={editingMission.details}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setMissions((prev) => prev.map((mission) => (
-                        mission.id === editingMission.id
-                          ? { ...mission, details: value, description: value }
-                          : mission
-                      )));
-                    }}
-                  />
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMissions((prev) => prev
-                      .filter((mission) => mission.id !== editingMission.id)
-                      .map((mission, idx) => ({ ...mission, order: idx + 1 }))
-                    );
-                    setEditingMissionId((prevId) => {
-                      const remaining = missions.filter((mission) => mission.id !== prevId);
-                      return remaining[0]?.id || '';
-                    });
-                  }}
-                  className="nv-btn nv-btn-danger"
-                >
-                  Eliminar misión
-                </button>
-              </div>
-            </article>
+            </div>
           )}
         </section>
       </div>

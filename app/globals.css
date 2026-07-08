@@ -708,3 +708,142 @@ a.nv-item:hover, button.nv-item:hover { border-color: var(--nv-accent-border); b
 
 /* Botón cuadrado para acciones-icono (reordenar, etc.) */
 .nv-btn-icon { min-width: 44px; padding: 0 10px; }
+
+/* ============================================================
+   Formularios ricos (evento, niveles/misiones)
+   ============================================================ */
+
+/* Layout de formulario con raíl lateral fijo (previsualización + acción) */
+.nv-form-grid {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 350px);
+  align-items: start;
+}
+.nv-form-rail {
+  position: sticky;
+  top: 84px;
+  display: grid;
+  gap: 14px;
+}
+@media (max-width: 960px) {
+  .nv-form-grid { grid-template-columns: 1fr; }
+  .nv-form-rail { position: static; top: auto; }
+}
+
+/* Cabecera de sección con número de paso */
+.nv-form-section-head {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+.nv-step {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--nv-accent-soft);
+  border: 1px solid var(--nv-accent-border);
+  color: var(--nv-accent-2);
+  font-weight: 800;
+  font-size: 14px;
+}
+
+/* Rejilla de campos responsiva */
+.nv-field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+/* Chips seleccionables (toggle) */
+.nv-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.nv-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 13px;
+  border-radius: var(--nv-r-pill);
+  border: 1px solid var(--nv-border-strong);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--nv-text-soft);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color .12s ease, background .12s ease, color .12s ease, transform .1s ease;
+}
+.nv-chip:hover { border-color: var(--nv-accent-border); color: var(--nv-text); }
+.nv-chip:active { transform: translateY(1px); }
+.nv-chip.is-on {
+  background: var(--nv-accent-soft);
+  border-color: var(--nv-accent-border);
+  color: var(--nv-accent-2);
+  font-weight: 800;
+}
+.nv-chip .nv-chip-x { opacity: 0.75; font-weight: 800; }
+
+/* Zona de arrastre / subida de imagen */
+.nv-dropzone {
+  display: grid;
+  place-items: center;
+  text-align: center;
+  gap: 10px;
+  padding: 26px 20px;
+  border: 1.5px dashed var(--nv-border-strong);
+  border-radius: var(--nv-r);
+  background: rgba(255, 255, 255, 0.02);
+  cursor: pointer;
+  transition: border-color .14s ease, background .14s ease;
+}
+.nv-dropzone:hover,
+.nv-dropzone.is-drag { border-color: var(--nv-accent-border); background: var(--nv-accent-soft); }
+.nv-dropzone-icon {
+  width: 44px; height: 44px;
+  display: grid; place-items: center;
+  border-radius: 13px;
+  background: var(--nv-accent-soft);
+  border: 1px solid var(--nv-accent-border);
+  color: var(--nv-accent-2);
+}
+
+/* Acordeón (misiones editables en el sitio) */
+.nv-acc {
+  border: 1px solid var(--nv-border);
+  border-radius: var(--nv-r);
+  background: rgba(255, 255, 255, 0.02);
+  overflow: hidden;
+  transition: border-color .14s ease;
+}
+.nv-acc.is-open { border-color: var(--nv-accent-border); }
+.nv-acc-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  padding: 14px 16px;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  color: var(--nv-text);
+  transition: background .14s ease;
+}
+.nv-acc-head:hover { background: rgba(255, 255, 255, 0.03); }
+.nv-acc.is-open .nv-acc-head { background: var(--nv-accent-soft); }
+.nv-acc-chev {
+  margin-left: auto;
+  flex: 0 0 auto;
+  color: var(--nv-muted);
+  transition: transform .18s ease;
+}
+.nv-acc.is-open .nv-acc-chev { transform: rotate(90deg); color: var(--nv-accent-2); }
+.nv-acc-body {
+  padding: 16px;
+  display: grid;
+  gap: 14px;
+  border-top: 1px solid var(--nv-border);
+}
