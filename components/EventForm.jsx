@@ -1,4 +1,3 @@
-
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -134,12 +133,13 @@ function formatSummaryDate(v) {
 }
 
 function formatMoneyPreview(v) {
-  const n = Number(v);
-  if (!Number.isFinite(n) || String(v).trim() === '') return 'Gratis o pendiente';
+  const n = Number(String(v ?? '').trim().replace(',', '.'));
+  if (!Number.isFinite(n) || String(v ?? '').trim() === '') return 'Gratis o pendiente';
   return new Intl.NumberFormat('es-ES', {
     style: 'currency',
     currency: 'EUR',
-    maximumFractionDigits: 0,
+    minimumFractionDigits: Number.isInteger(n) ? 0 : 2,
+    maximumFractionDigits: 2,
   }).format(n);
 }
 
@@ -275,8 +275,27 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
     }
 
     // Normaliza números
-    const priceNum = price === '' ? null : clamp(Math.round(Number(price)), 0, 999999);
+    // Precio con decimales: aceptamos coma o punto y redondeamos a
+    // céntimos, nunca a euros enteros.
+    const parsePriceInput = (v) => {
+      if (v === '' || v === null || v === undefined) return null;
+      const n = Number(String(v).trim().replace(',', '.'));
+      if (!Number.isFinite(n) || n < 0) return null;
+      return Math.round(n * 100) / 100;   // 2 decimales
+    };
+    const priceNum = parsePriceInput(price);
     const ageNum = age === '' ? null : clamp(Math.round(Number(age)), 0, 99);
+
+    if (price !== '' && priceNum === null) {
+      setSaving(false);
+      setMsg('');
+      return setFormError('El precio no es válido. Usa un número como 12,50.');
+    }
+    if (priceNum !== null && priceNum > 999999) {
+      setSaving(false);
+      setMsg('');
+      return setFormError('El precio es demasiado alto.');
+    }
 
     // Construye payload
     const payload = {
@@ -642,7 +661,8 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
             <input
               type="number"
               min="0"
-              step="1"
+              step="0.01"
+              inputMode="decimal"
               value={price}
               onChange={e=>setPrice(e.target.value)}
               placeholder="p.ej. 15"
