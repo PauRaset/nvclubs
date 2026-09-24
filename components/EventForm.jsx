@@ -9,6 +9,13 @@ import {
 } from '@/lib/eventsApi';
 import { getUser } from '@/lib/apiClient';
 import { toast } from '@/components/Toast';
+import TicketTiersEditor, {
+  validateTiers,
+  serializeTiers,
+  minTierPrice,
+  emptyTier,
+} from '@/components/TicketTiersEditor';
+import { parsePriceInput, formatEUR } from '@/lib/price';
 
 /* --- Recorte simple: centra y reescala a 800x450 --- */
 async function cropTo800x450(file) {
@@ -171,6 +178,13 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
   const [age, setAge] = useState(initial?.age ?? '');
   const [price, setPrice] = useState(initial?.price ?? '');
 
+  // Tipos de entrada / tandas
+  const hadTiers = Array.isArray(initial?.ticketTiers) && initial.ticketTiers.length > 0;
+  const [useTiers, setUseTiers] = useState(
+    Array.isArray(initial?.ticketTiers) && initial.ticketTiers.length > 0
+  );
+  const [tiers, setTiers] = useState(initial?.ticketTiers || []);
+
   // Imagen
   const [imageFile, setImageFile] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -274,27 +288,28 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
       return setFormError('El título es obligatorio.');
     }
 
-    // Normaliza números
-    // Precio con decimales: aceptamos coma o punto y redondeamos a
-    // céntimos, nunca a euros enteros.
-    const parsePriceInput = (v) => {
-      if (v === '' || v === null || v === undefined) return null;
-      const n = Number(String(v).trim().replace(',', '.'));
-      if (!Number.isFinite(n) || n < 0) return null;
-      return Math.round(n * 100) / 100;   // 2 decimales
-    };
+    // Normaliza números (parsePriceInput: ver lib/price.js)
     const priceNum = parsePriceInput(price);
     const ageNum = age === '' ? null : clamp(Math.round(Number(age)), 0, 99);
 
-    if (price !== '' && priceNum === null) {
-      setSaving(false);
-      setMsg('');
-      return setFormError('El precio no es válido. Usa un número como 12,50.');
-    }
-    if (priceNum !== null && priceNum > 999999) {
-      setSaving(false);
-      setMsg('');
-      return setFormError('El precio es demasiado alto.');
+    if (useTiers) {
+      const tiersError = validateTiers(tiers);
+      if (tiersError) {
+        setSaving(false);
+        setMsg('');
+        return setFormError(tiersError);
+      }
+    } else {
+      if (price !== '' && priceNum === null) {
+        setSaving(false);
+        setMsg('');
+        return setFormError('El precio no es válido. Usa un número como 12,50.');
+      }
+      if (priceNum !== null && priceNum > 999999) {
+        setSaving(false);
+        setMsg('');
+        return setFormError('El precio es demasiado alto.');
+      }
     }
 
     // Construye payload
@@ -311,6 +326,16 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
       age: ageNum,
       price: priceNum,
     };
+
+    if (useTiers) {
+      // Con tandas el precio lo calcula el servidor; sold/reserved no se envían.
+      delete payload.price;
+      payload.ticketTiers = serializeTiers(tiers);
+    } else if (hadTiers) {
+      // Desactiva las tandas. Si alguna tiene ventas, el backend responde 400
+      // y su mensaje se muestra abajo tal cual.
+      payload.ticketTiers = [];
+    }
 
     const res = mode === 'create'
       ? await createEvent(payload)
@@ -375,6 +400,7 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
   const previewCategories = mergedCategories();
   const previewLocation = [street, city, postalCode].filter(Boolean).join(' · ') || 'Ubicación pendiente';
   const previewImage = preview || initial?.imageUrl || initial?.image || null;
+  const previewMinTier = minTierPrice(tiers);
 
   // ====== UI ======
   return (
@@ -425,7 +451,11 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
               </div>
               <div style={sx.previewMetric}>
                 <span style={sx.previewMetricLabel}>Precio</span>
-                <span style={sx.previewMetricValue}>{formatMoneyPreview(price)}</span>
+                <span style={sx.previewMetricValue}>
+                  {useTiers
+                    ? (previewMinTier !== null ? `Desde ${formatEUR(previewMinTier)}` : 'Gratis o pendiente')
+                    : formatMoneyPreview(price)}
+                </span>
               </div>
             </div>
             <div style={sx.previewTagsWrap}>
@@ -655,20 +685,35 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
             <p style={sx.sectionText}>Información adicional para completar la ficha del evento.</p>
           </div>
         </div>
+        <label style={{...sx.genreItem(useTiers), width:'fit-content', marginBottom:12}}>
+          <input
+            type="checkbox"
+            checked={useTiers}
+            onChange={e => {
+              const on = e.target.checked;
+              setUseTiers(on);
+              // Al activar sin tandas, arranca con una fila con el precio actual
+              if (on && tiers.length === 0) setTiers([emptyTier({ priceEUR: price, order: 0 })]);
+            }}
+          />
+          Varios tipos de entrada o tandas
+        </label>
         <div style={sx.grid3}>
-          <label style={sx.label}>
-            Precio (€)
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              inputMode="decimal"
-              value={price}
-              onChange={e=>setPrice(e.target.value)}
-              placeholder="p.ej. 15"
-              style={sx.input}
-            />
-          </label>
+          {!useTiers && (
+            <label style={sx.label}>
+              Precio (€)
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                inputMode="decimal"
+                value={price}
+                onChange={e=>setPrice(e.target.value)}
+                placeholder="p.ej. 15"
+                style={sx.input}
+              />
+            </label>
+          )}
           <label style={sx.label}>
             Edad mínima
             <input
@@ -683,6 +728,16 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
           </label>
           <div />
         </div>
+        {useTiers && (
+          <div style={{marginTop:14}}>
+            <TicketTiersEditor
+              value={tiers}
+              onChange={setTiers}
+              capacity={initial?.capacity ?? null}
+              mode={mode}
+            />
+          </div>
+        )}
       </section>
 
       {/* Card: Imagen */}
