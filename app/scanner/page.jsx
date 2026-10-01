@@ -12,11 +12,29 @@ const lsGet = (k) => { try { return window.localStorage.getItem(k) || ''; } catc
 const lsSet = (k, v) => { try { window.localStorage.setItem(k, v); } catch {} };
 const lsDel = (k) => { try { window.localStorage.removeItem(k); } catch {} };
 
-const fmtDate = (d) => {
-  if (!d) return '';
+// "jue 1 oct · 12:00"
+const dayFmt = new Intl.DateTimeFormat('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
+const timeFmt = new Intl.DateTimeFormat('es-ES', { hour: '2-digit', minute: '2-digit' });
+const toDate = (d) => {
+  if (!d) return null;
   const dt = new Date(d);
-  if (Number.isNaN(dt.getTime())) return '';
-  return dt.toLocaleString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  return Number.isNaN(dt.getTime()) ? null : dt;
+};
+const fmtDay = (dt) => {
+  const p = Object.fromEntries(dayFmt.formatToParts(dt).map(({ type, value }) => [type, value.replace(/\.$/, '')]));
+  return `${p.weekday} ${p.day} ${p.month}`;
+};
+const fmtDate = (d) => {
+  const dt = toDate(d);
+  return dt ? `${fmtDay(dt)} · ${timeFmt.format(dt)}` : '';
+};
+// Si acaba el mismo día solo se muestra la hora de fin: "jue 1 oct · 12:00 – 19:00"
+const fmtRange = (start, end) => {
+  const s = toDate(start);
+  const e = toDate(end);
+  if (!s) return '';
+  if (!e) return fmtDate(s);
+  return `${fmtDate(s)} – ${s.toDateString() === e.toDateString() ? timeFmt.format(e) : fmtDate(e)}`;
 };
 
 export default function ScannerPage() {
@@ -41,7 +59,10 @@ export default function ScannerPage() {
       if (r.status === 401 || r.status === 403) { setEventsState('unauthorized'); return null; }
       if (!r.ok) { setEventsState('error'); return null; }
       const data = await r.json().catch(() => null);
-      const list = Array.isArray(data) ? data : [];
+      console.log('NVS eventos recibidos', data);
+      // Formato real: { ok: true, events: [...] }. Se acepta también un array directo.
+      const list = Array.isArray(data) ? data : Array.isArray(data?.events) ? data.events : null;
+      if (!list || data?.ok === false) { setEventsState('error'); return null; }
       setEvents(list);
       setEventsState('ok');
       return list;
@@ -205,7 +226,7 @@ export default function ScannerPage() {
                     <div style={{ fontWeight: 800 }}>{ev.title || 'Evento sin título'}</div>
                     {ev.startAt && (
                       <div style={{ fontSize: 13, opacity: 0.75, marginTop: 2 }}>
-                        {fmtDate(ev.startAt)}{ev.endAt ? ` – ${fmtDate(ev.endAt)}` : ''}
+                        {fmtRange(ev.startAt, ev.endAt)}
                       </div>
                     )}
                   </button>
