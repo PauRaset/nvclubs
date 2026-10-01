@@ -134,7 +134,7 @@ const Banner = ({ type='info', children }) => {
   );
 };
 
-export default function ScannerCheckin({ backendBase='https://api.nightvibe.life', scannerKey }) {
+export default function ScannerCheckin({ backendBase='https://api.nightvibe.life', scannerKey, eventId: fixedEventId = '' }) {
   const endpoint = `${(backendBase||'').replace(/\/+$/,'')}/api/checkin`;
   const apiBase = (backendBase || '').replace(/\/+$/, '');
 
@@ -145,7 +145,7 @@ export default function ScannerCheckin({ backendBase='https://api.nightvibe.life
 
   const [status, setStatus] = useState('scanning'); // scanning | posting | success | duplicate | invalid | badsig | error
   const [message, setMessage] = useState('Apunta el QR');
-  const [last, setLast] = useState(null); // { serial, status, checkedInAt, eventId, buyerName, buyerEmail }
+  const [last, setLast] = useState(null); // { serial, status, checkedInAt, eventId, buyerName, clubName }
 
   const setStatusSafe = (s) => { statusRef.current = s; setStatus(s); };
 
@@ -195,7 +195,8 @@ export default function ScannerCheckin({ backendBase='https://api.nightvibe.life
           const r = await fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-scanner-key': scannerKey || '' },
-            body: JSON.stringify(parsed),
+            // eventId = evento fijado por el portero (no el del QR). Sin evento fijado no se envía.
+            body: JSON.stringify({ ...parsed, eventId: fixedEventId || undefined }),
           });
           const data = await r.json().catch(() => ({}));
 
@@ -209,7 +210,6 @@ export default function ScannerCheckin({ backendBase='https://api.nightvibe.life
               checkedInAt: data.checkedInAt || new Date().toISOString(),
               eventId: parsed.eventId,
               buyerName: data.buyerName || '',
-              buyerEmail: data.buyerEmail || '',
               clubName: data.clubName || '',
             });
             // Resolver nombre del club en cliente si no vino del backend
@@ -231,7 +231,6 @@ export default function ScannerCheckin({ backendBase='https://api.nightvibe.life
               checkedInAt: data.checkedInAt,
               eventId: parsed.eventId,
               buyerName: data.buyerName || '',
-              buyerEmail: data.buyerEmail || '',
               clubName: data.clubName || '',
             });
             if (!data.clubName) {
@@ -264,7 +263,7 @@ export default function ScannerCheckin({ backendBase='https://api.nightvibe.life
       if (s && typeof s.getTracks === 'function') s.getTracks().forEach(t => t.stop());
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [backendBase, scannerKey]);
+  }, [backendBase, scannerKey, fixedEventId]);
 
   const resumeScan = () => {
     setLast(null);
@@ -306,15 +305,8 @@ export default function ScannerCheckin({ backendBase='https://api.nightvibe.life
           <div style={{padding:18,color:'#cbd5e1',lineHeight:1.35}}>
             {last?.serial && <div style={{marginBottom:8}}><b>Serial:</b> {last.serial}</div>}
             {last?.eventId && <div style={{marginBottom:8}}><b>Evento:</b> {last.eventId}</div>}
-            {(last?.buyerName || last?.buyerEmail) && (
-              <div style={{marginBottom:8}}>
-                <b>Comprador:</b> {last.buyerName || last.buyerEmail}
-                {last?.buyerName && last?.buyerEmail ? ` · ${last.buyerEmail}` : ''}
-              </div>
-            )}
-            <div style={{marginBottom:8}}>
-              <b>Organizador:</b> {last?.clubName || last?.buyerName || last?.buyerEmail || '—'}
-            </div>
+            {last?.buyerName && <div style={{marginBottom:8}}><b>Comprador:</b> {last.buyerName}</div>}
+            {last?.clubName && <div style={{marginBottom:8}}><b>Organizador:</b> {last.clubName}</div>}
             {last?.checkedInAt && status !== 'success' && (
               <div style={{marginBottom:8}}><b>Primer check-in:</b> {new Date(last.checkedInAt).toLocaleString()}</div>
             )}
