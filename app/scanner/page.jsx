@@ -291,7 +291,7 @@ export default function ScannerPage() {
             </div>
 
             <div className="nv-card" style={{ padding: 14 }}>
-              <ScannerCheckin backendBase={backend} scannerKey={key} eventId={event?._id || ''} />
+              <ScannerCheckin backendBase={backend} scannerKey={key} eventId={event?._id || ''} onChangeKey={changeKey} />
             </div>
 
             <div style={{ marginTop: 10, textAlign: 'right' }}>

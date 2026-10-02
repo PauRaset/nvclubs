@@ -82,48 +82,60 @@ const parseNV1 = (txt) => {
   return { token, eventId, hmac, serial };
 };
 
-// --- Helpers to resolve club name on the client if backend didn't send it ---
-const _safeBase = (b) => (b || '').replace(/\/+$/, '');
+// --- Resultado: el color es el mensaje ---
+const TONES = {
+  ok:    { bg: '#15803d', fg: '#ffffff', icon: 'check' }, // verde intenso
+  warn:  { bg: '#f59e0b', fg: '#1a1203', icon: 'clock' }, // ámbar
+  error: { bg: '#b91c1c', fg: '#ffffff', icon: 'cross' }, // rojo
+};
 
-async function fetchJson(url) {
-  try {
-    const r = await fetch(url, { credentials: 'include' });
-    if (!r.ok) return null;
-    return await r.json();
-  } catch {
-    return null;
-  }
-}
+// Vibración por tono: toque corto, dos toques, uno largo.
+const VIBRATION = { ok: 80, warn: [120, 100, 120], error: 600 };
 
-async function resolveClubNameClient(backendBase, eventId) {
-  if (!backendBase || !eventId) return '';
-  const base = _safeBase(backendBase);
+const AUTO_RESUME_MS = 2000;
 
-  // 1) Intenta obtener el propio evento
-  const evRes = await fetchJson(`${base}/api/events/${encodeURIComponent(eventId)}`);
-  // Formatos posibles según tu API: { event: { ... } } o el evento plano
-  const ev = evRes?.event || evRes;
+const timeFmt = new Intl.DateTimeFormat('es-ES', { hour: '2-digit', minute: '2-digit' });
+const dayFmt  = new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short' });
+const fmtCheckedIn = (iso) => {
+  const d = iso ? new Date(iso) : null;
+  if (!d || Number.isNaN(d.getTime())) return 'Ya se registró antes';
+  const sameDay = d.toDateString() === new Date().toDateString();
+  return sameDay
+    ? `Entró a las ${timeFmt.format(d)}`
+    : `Entró el ${dayFmt.format(d).replace(/\.$/, '')} a las ${timeFmt.format(d)}`;
+};
 
-  if (!ev || typeof ev !== 'object') return '';
+// reason del backend -> pantalla. Los tres últimos son casos del propio escáner.
+const REASONS = {
+  ok:            { tone: 'ok',    title: 'PUEDE PASAR',      detail: (d) => d.tierName || '' },
+  duplicate:     { tone: 'warn',  title: 'YA USADA',         detail: (d) => fmtCheckedIn(d.checkedInAt) },
+  wrong_event:   { tone: 'error', title: 'OTRO EVENTO',      detail: (d) => `Esta entrada es de: ${d.eventTitle || 'otro evento'}` },
+  wrong_club:    { tone: 'error', title: 'OTRO LOCAL',       detail: () => 'No es de este club' },
+  event_ended:   { tone: 'error', title: 'EVENTO TERMINADO', detail: () => 'Esta entrada ya no es válida' },
+  refunded:      { tone: 'error', title: 'REEMBOLSADA',      detail: () => 'Esta entrada fue devuelta' },
+  bad_signature: { tone: 'error', title: 'QR FALSO',         detail: () => 'No lo ha emitido NightVibe' },
+  invalid:       { tone: 'error', title: 'NO EXISTE',        detail: () => 'Esta entrada no está en el sistema' },
+  rate_limited:  { tone: 'error', title: 'DEMASIADO RÁPIDO', detail: () => 'Espera un momento' },
+  unauthorized:  { tone: 'error', title: 'CLAVE NO VÁLIDA',  detail: () => 'Pide una clave nueva al local' },
+  unreadable:    { tone: 'error', title: 'QR NO RECONOCIDO', detail: () => 'No es una entrada de NightVibe' },
+  network:       { tone: 'error', title: 'SIN CONEXIÓN',     detail: () => 'Comprueba la red y vuelve a intentar' },
+  unknown:       { tone: 'error', title: 'NO VÁLIDA',        detail: () => '' },
+};
 
-  // a) Si el endpoint del evento ya trae club.name:
-  if (ev.club?.name) return ev.club.name;
-
-  // b) Si trae clubId -> buscar el club por id
-  if (ev.clubId) {
-    const clubs = await fetchJson(`${base}/api/clubs?id=${encodeURIComponent(ev.clubId)}`);
-    if (Array.isArray(clubs) && clubs.length && clubs[0]?.name) return clubs[0].name;
-  }
-
-  // c) Si no, buscar por ownerUserId/createdBy
-  const createdBy = ev.createdBy?._id || ev.createdBy || '';
-  if (createdBy) {
-    const clubsByOwner = await fetchJson(`${base}/api/clubs?ownerUserId=${encodeURIComponent(createdBy)}`);
-    if (Array.isArray(clubsByOwner) && clubsByOwner.length && clubsByOwner[0]?.name) return clubsByOwner[0].name;
-  }
-
-  return '';
-}
+// Construye el resultado a mostrar. `debug` solo se rellena con motivos desconocidos.
+const buildResult = (reason, data = {}, parsed = {}, debug = '') => {
+  const known = Object.prototype.hasOwnProperty.call(REASONS, reason);
+  const def = known ? REASONS[reason] : REASONS.unknown;
+  return {
+    reason: known ? reason : 'unknown',
+    tone: def.tone,
+    title: def.title,
+    detail: def.detail(data),
+    serial: data.serial || parsed.serial || '',
+    buyerName: data.buyerName || '',
+    debug: known ? '' : (debug || reason || 'sin motivo'),
+  };
+};
 
 const Banner = ({ type='info', children }) => {
   const c = { success:'#22c55e', warn:'#f59e0b', error:'#ef4444', info:'#0ea5e9' }[type];
@@ -134,20 +146,38 @@ const Banner = ({ type='info', children }) => {
   );
 };
 
-export default function ScannerCheckin({ backendBase='https://api.nightvibe.life', scannerKey, eventId: fixedEventId = '' }) {
+const ResultIcon = ({ kind, color }) => {
+  const common = { fill: 'none', stroke: color, strokeWidth: 9, strokeLinecap: 'round', strokeLinejoin: 'round' };
+  return (
+    <svg viewBox="0 0 120 120" aria-hidden="true" style={{ width: 'min(42vw, 30vh, 200px)', height: 'auto', display: 'block' }}>
+      <circle cx="60" cy="60" r="52" {...common} strokeWidth={7} opacity={0.9} />
+      {kind === 'check' && <path d="M36 62 L53 79 L86 44" {...common} />}
+      {kind === 'clock' && <path d="M60 32 V60 L78 72" {...common} />}
+      {kind === 'cross' && <path d="M40 40 L80 80 M80 40 L40 80" {...common} />}
+    </svg>
+  );
+};
+
+export default function ScannerCheckin({ backendBase='https://api.nightvibe.life', scannerKey, eventId: fixedEventId = '', onChangeKey }) {
   const endpoint = `${(backendBase||'').replace(/\/+$/,'')}/api/checkin`;
-  const apiBase = (backendBase || '').replace(/\/+$/, '');
 
   const videoRef  = useRef(null);
   const readerRef = useRef(null);
   const loopRef   = useRef(null);
   const statusRef = useRef('scanning');
 
-  const [status, setStatus] = useState('scanning'); // scanning | posting | success | duplicate | invalid | badsig | error
+  const [status, setStatus] = useState('scanning'); // scanning | posting | result | camera_error
   const [message, setMessage] = useState('Apunta el QR');
-  const [last, setLast] = useState(null); // { serial, status, checkedInAt, eventId, buyerName, clubName }
+  const [result, setResult] = useState(null); // ver buildResult
 
   const setStatusSafe = (s) => { statusRef.current = s; setStatus(s); };
+
+  const showResult = (res) => {
+    setResult(res);
+    setStatusSafe('result');
+    setMessage(res.title);
+    navigator.vibrate?.(VIBRATION[res.tone]);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -166,7 +196,7 @@ export default function ScannerCheckin({ backendBase='https://api.nightvibe.life
         if (cancelled) return;
         if (videoRef.current) videoRef.current.srcObject = stream;
       } catch {
-        setStatusSafe('error'); setMessage('No se pudo iniciar la cámara');
+        setStatusSafe('camera_error'); setMessage('No se pudo iniciar la cámara');
         return;
       }
 
@@ -175,80 +205,47 @@ export default function ScannerCheckin({ backendBase='https://api.nightvibe.life
         if (cancelled) return;
         if (statusRef.current !== 'scanning') return; // <- clave: nunca seguimos si no estamos escaneando
 
+        let res;
         try {
-          const res = await reader.decodeOnceFromVideoDevice(undefined, videoRef.current);
-          if (!res?.getText) {
-            // Relanzamos solo si seguimos en modo scanning
-            if (statusRef.current === 'scanning') requestAnimationFrame(loop);
-            return;
-          }
+          res = await reader.decodeOnceFromVideoDevice(undefined, videoRef.current);
+        } catch {
+          // Reintenta solo si seguimos escaneando
+          if (statusRef.current === 'scanning') requestAnimationFrame(loop);
+          return;
+        }
+        if (cancelled) return;
+        if (!res?.getText) {
+          // Relanzamos solo si seguimos en modo scanning
+          if (statusRef.current === 'scanning') requestAnimationFrame(loop);
+          return;
+        }
 
-          const parsed = parseNV1(res.getText());
-          if (!parsed) {
-            setStatusSafe('error'); setMessage('Código no válido');
-            navigator.vibrate?.(150);
-            return; // NO reanudamos: el usuario decide cuándo con el botón
-          }
+        const parsed = parseNV1(res.getText());
+        if (!parsed) { showResult(buildResult('unreadable')); return; } // NO reanudamos: decide el portero
 
-          setStatusSafe('posting'); setMessage('Verificando…');
+        setStatusSafe('posting'); setMessage('Verificando…');
 
-          const r = await fetch(endpoint, {
+        let r, data;
+        try {
+          r = await fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-scanner-key': scannerKey || '' },
             // eventId = evento fijado por el portero (no el del QR). Sin evento fijado no se envía.
             body: JSON.stringify({ ...parsed, eventId: fixedEventId || undefined }),
           });
-          const data = await r.json().catch(() => ({}));
-
-          if (r.status === 401) { setStatusSafe('error'); setMessage('No autorizado (x-scanner-key)'); return; }
-
-          if (r.ok && data?.ok) {
-            setStatusSafe('success'); setMessage('Entrada válida');
-            setLast({
-              serial: data.serial,
-              status: data.status,
-              checkedInAt: data.checkedInAt || new Date().toISOString(),
-              eventId: parsed.eventId,
-              buyerName: data.buyerName || '',
-              clubName: data.clubName || '',
-            });
-            // Resolver nombre del club en cliente si no vino del backend
-            if (!data.clubName) {
-              resolveClubNameClient(apiBase, parsed.eventId).then((nm) => {
-                if (nm) setLast((prev) => prev ? { ...prev, clubName: nm } : prev);
-              });
-            }
-            navigator.vibrate?.([40,60,40]);
-            return; // se queda en tarjeta
-          }
-
-          const reason = (data?.reason || '').toLowerCase();
-          if (reason === 'duplicate') {
-            setStatusSafe('duplicate'); setMessage('Ya usado');
-            setLast({
-              serial: data.serial,
-              status: 'checked_in',
-              checkedInAt: data.checkedInAt,
-              eventId: parsed.eventId,
-              buyerName: data.buyerName || '',
-              clubName: data.clubName || '',
-            });
-            if (!data.clubName) {
-              resolveClubNameClient(apiBase, parsed.eventId).then((nm) => {
-                if (nm) setLast((prev) => prev ? { ...prev, clubName: nm } : prev);
-              });
-            }
-            navigator.vibrate?.([160,80,160]);
-            return;
-          }
-          if (reason === 'bad_signature') { setStatusSafe('badsig'); setMessage('Firma inválida'); navigator.vibrate?.(220); return; }
-          if (reason === 'invalid')      { setStatusSafe('invalid'); setMessage('No encontrada'); navigator.vibrate?.(180); return; }
-
-          setStatusSafe('error'); setMessage('Error de verificación'); navigator.vibrate?.(200);
+          data = await r.json().catch(() => ({}));
         } catch {
-          // Reintenta solo si seguimos escaneando
-          if (statusRef.current === 'scanning') requestAnimationFrame(loop);
+          if (!cancelled) showResult(buildResult('network', {}, parsed));
+          return;
         }
+        if (cancelled) return;
+
+        if (r.ok && data?.ok) { showResult(buildResult('ok', data, parsed)); return; }
+
+        let reason = String(data?.reason || '').toLowerCase();
+        if (!reason && r.status === 401) reason = 'unauthorized';
+        if (!reason && r.status === 429) reason = 'rate_limited';
+        showResult(buildResult(reason, data, parsed, reason || `HTTP ${r.status}`));
       };
 
       loopRef.current = loop;
@@ -266,7 +263,8 @@ export default function ScannerCheckin({ backendBase='https://api.nightvibe.life
   }, [backendBase, scannerKey, fixedEventId]);
 
   const resumeScan = () => {
-    setLast(null);
+    if (statusRef.current !== 'result') return;
+    setResult(null);
     setStatusSafe('scanning');
     setMessage('Apunta el QR');
     // reanuda explícitamente el loop
@@ -275,51 +273,81 @@ export default function ScannerCheckin({ backendBase='https://api.nightvibe.life
 
   useEffect(() => {
     const onKey = (e) => {
-      if (e.key === 'Enter' && statusRef.current !== 'scanning' && statusRef.current !== 'posting') resumeScan();
+      if (e.key === 'Enter' && statusRef.current === 'result') { e.preventDefault(); resumeScan(); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const colorBy = { scanning:'#1f2937', posting:'#0ea5e9', success:'#22c55e', duplicate:'#f59e0b', invalid:'#ef4444', badsig:'#ef4444', error:'#ef4444' };
-  const titleBy = { success:'Entrada válida', duplicate:'Entrada ya usada', invalid:'Entrada no encontrada', badsig:'QR no válido', error:'Error' };
-  const noteBy  = {
-    success:'¡Listo! Puedes pasar.',
-    duplicate:'No permitir acceso. Muestra al cliente la hora del primer check-in.',
-    invalid:'No se encontró este código para este evento.',
-    badsig:'Este QR no fue emitido por NightVibe (o la clave cambió).',
-    error:'Comprueba la red y vuelve a intentar.',
-  };
+  // Entrada válida: vuelve solo a escanear. El resto espera al portero.
+  useEffect(() => {
+    if (result?.tone !== 'ok') return;
+    const t = setTimeout(resumeScan, AUTO_RESUME_MS);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [result]);
 
-  const Card = () => {
-    if (!['success','duplicate','invalid','badsig','error'].includes(status)) return null;
-    const color = colorBy[status];
+  const renderResult = () => {
+    if (status !== 'result' || !result) return null;
+    const tone = TONES[result.tone];
+    const isOk = result.tone === 'ok';
     return (
-      <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(0,0,0,.45)',padding:16}}>
-        <div style={{width:'100%',maxWidth:520,background:'#0b0f19',borderRadius:16,border:`2px solid ${color}`,boxShadow:'0 10px 40px rgba(0,0,0,.45)'}}>
-          <div style={{padding:18,borderBottom:'1px solid #1e293b',display:'flex',gap:10,alignItems:'center'}}>
-            <div style={{width:10,height:10,borderRadius:999,background:color}} />
-            <div style={{fontWeight:900,color:'#e5e7eb'}}>{titleBy[status]}</div>
+      <div
+        role="alertdialog"
+        aria-live="assertive"
+        aria-label={`${result.title}${result.detail ? `. ${result.detail}` : ''}`}
+        onClick={isOk ? resumeScan : undefined}
+        style={{
+          position: 'fixed', inset: 0, zIndex: 1000,
+          background: tone.bg, color: tone.fg,
+          display: 'flex', flexDirection: 'column',
+          padding: 'max(20px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom))',
+          overflowY: 'auto',
+        }}
+      >
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: 18, minHeight: 0 }}>
+          <ResultIcon kind={tone.icon} color={tone.fg} />
+          <div style={{ fontSize: 'clamp(38px, 12vw, 76px)', fontWeight: 900, lineHeight: 1, letterSpacing: '-0.01em' }}>
+            {result.title}
           </div>
-
-          <div style={{padding:18,color:'#cbd5e1',lineHeight:1.35}}>
-            {last?.serial && <div style={{marginBottom:8}}><b>Serial:</b> {last.serial}</div>}
-            {last?.eventId && <div style={{marginBottom:8}}><b>Evento:</b> {last.eventId}</div>}
-            {last?.buyerName && <div style={{marginBottom:8}}><b>Comprador:</b> {last.buyerName}</div>}
-            {last?.clubName && <div style={{marginBottom:8}}><b>Organizador:</b> {last.clubName}</div>}
-            {last?.checkedInAt && status !== 'success' && (
-              <div style={{marginBottom:8}}><b>Primer check-in:</b> {new Date(last.checkedInAt).toLocaleString()}</div>
-            )}
-            <div style={{opacity:.9}}>{noteBy[status]}</div>
-          </div>
-
-          <div style={{padding:14,borderTop:'1px solid #1e293b',display:'flex',justifyContent:'flex-end',gap:10}}>
-            <button onClick={resumeScan}
-                    style={{padding:'10px 14px',borderRadius:10,background:'#0ea5e9',color:'#001015',border:0,fontWeight:900}}>
-              Escanear siguiente (↵)
-            </button>
-          </div>
+          {result.detail && (
+            <div style={{ fontSize: 'clamp(20px, 6vw, 30px)', fontWeight: isOk ? 900 : 700, lineHeight: 1.2, maxWidth: 560, overflowWrap: 'anywhere' }}>
+              {result.detail}
+            </div>
+          )}
+          {result.debug && (
+            <div className="nv-mono" style={{ fontSize: 13, opacity: 0.8 }}>{result.debug}</div>
+          )}
         </div>
+
+        <div style={{ display: 'grid', gap: 12, width: '100%', maxWidth: 560, margin: '0 auto' }}>
+          {(result.serial || result.buyerName) && (
+            <div style={{ fontSize: 14, opacity: 0.85, textAlign: 'center', lineHeight: 1.4, overflowWrap: 'anywhere' }}>
+              {result.buyerName && <div>{result.buyerName}</div>}
+              {result.serial && <div className="nv-mono">{result.serial}</div>}
+            </div>
+          )}
+
+          {isOk && (
+            <div style={{ height: 4, borderRadius: 999, background: 'rgba(255,255,255,.25)', overflow: 'hidden' }}>
+              <div style={{ height: '100%', background: tone.fg, transformOrigin: 'left', animation: `nvsCountdown ${AUTO_RESUME_MS}ms linear forwards` }} />
+            </div>
+          )}
+
+          {result.reason === 'unauthorized' && onChangeKey && (
+            <button type="button" className="nv-btn nv-btn-block" onClick={onChangeKey}
+                    style={{ background: 'transparent', color: tone.fg, borderColor: 'currentColor' }}>
+              Cambiar clave
+            </button>
+          )}
+
+          <button type="button" className="nv-btn nv-btn-block" onClick={resumeScan}
+                  style={{ minHeight: 64, fontSize: 20, background: 'rgba(0,0,0,.35)', color: '#ffffff', border: 0 }}>
+            Escanear siguiente (↵)
+          </button>
+        </div>
+        <style>{'@keyframes nvsCountdown{from{transform:scaleX(1)}to{transform:scaleX(0)}}'}</style>
       </div>
     );
   };
@@ -329,25 +357,13 @@ export default function ScannerCheckin({ backendBase='https://api.nightvibe.life
       <div style={{position:'relative',aspectRatio:'4 / 3',background:'#000'}}>
         {status==='scanning' && <Banner type="info">Escaneando…</Banner>}
         {status==='posting'  && <Banner type="info">Verificando…</Banner>}
-        {status==='success'  && <Banner type="success">OK</Banner>}
-        {status==='duplicate'&& <Banner type="warn">DUPLICADO</Banner>}
-        {['invalid','badsig','error'].includes(status) && <Banner type="error">ERROR</Banner>}
+        {status==='camera_error' && <Banner type="error">Sin cámara: revisa los permisos</Banner>}
         <video ref={videoRef} autoPlay muted playsInline style={{width:'100%',height:'100%',objectFit:'cover'}} />
-        <Card />
       </div>
+      {renderResult()}
 
       <div style={{padding:12,color:'#9ca3af',fontSize:14}}>
         <div style={{marginBottom:6}}><b>Estado:</b> {message}</div>
-        <div style={{display:'flex',gap:12}}>
-          <button
-            onClick={resumeScan}
-            disabled={status==='scanning'||status==='posting'}
-            style={{padding:'8px 12px',background:'#0ea5e9',color:'#001015',border:0,borderRadius:8,fontWeight:800,
-                    opacity:(status==='scanning'||status==='posting')?0.6:1}}
-          >
-            Escanear siguiente
-          </button>
-        </div>
         <div style={{marginTop:10,fontSize:12,opacity:.7}}>
           Endpoint: {endpoint}<br />
           Cabecera x-scanner-key: {scannerKey ? '(configurada)' : '(falta)'}
