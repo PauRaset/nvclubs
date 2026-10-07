@@ -5,6 +5,15 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import RequireClub from '@/components/RequireClub';
 import { getUser } from '@/lib/apiClient';
+import {
+  PHOTO_CRITERIA_MIN,
+  PHOTO_CRITERIA_MAX,
+  PHOTO_CRITERIA_EXCLUDE_MAX,
+  isPhotoMission,
+  photoCriteriaFields,
+  validatePhotoCriteria,
+  parsePhotoCriteriaError,
+} from '@/lib/photoCriteria';
 
 const API_BASE = 'https://api.nightvibe.life';
 
@@ -215,6 +224,7 @@ function serializeLevelForSave(level, form) {
       requiresApproval: (mission.validationType || getValidationTypeFromLabel(mission.validation)) === 'manual',
       order: Number.isFinite(Number(mission.order)) ? Number(mission.order) : idx + 1,
       active: typeof mission.active === 'boolean' ? mission.active : true,
+      ...photoCriteriaFields(mission),
     })),
   };
 }
@@ -229,6 +239,9 @@ export default function PromotionDetailPage() {
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState('');
   const [saved, setSaved] = useState(false);
+  const [noticeError, setNoticeError] = useState(false);
+  // { [missionId]: mensaje } — misiones de foto con criterios no válidos.
+  const [missionErrors, setMissionErrors] = useState({});
 
   const level = useMemo(() => {
     if (!id) return null;
@@ -293,7 +306,22 @@ export default function PromotionDetailPage() {
     setStatus(level.status || 'draft');
     setMissions(level.missions || []);
     setEditingMissionId(level.missions?.[0]?.id || '');
+    setMissionErrors({});
   }, [level]);
+
+  function updateMission(missionId, changes) {
+    setMissions((prev) => prev.map((mission) => (mission.id === missionId ? { ...mission, ...changes } : mission)));
+  }
+
+  function updateMissionCriteria(missionId, changes) {
+    updateMission(missionId, changes);
+    setMissionErrors((prev) => {
+      if (!prev[missionId]) return prev;
+      const next = { ...prev };
+      delete next[missionId];
+      return next;
+    });
+  }
 
   const pageStyle = {
     padding: '28px 24px 44px',
@@ -425,7 +453,29 @@ export default function PromotionDetailPage() {
   async function handleSave() {
     if (!clubId || !level) return;
 
+    // Validación previa: no enviar si alguna misión de foto no tiene un criterio válido.
+    const clientErrors = {};
+    missions.forEach((mission) => {
+      const problem = validatePhotoCriteria(mission);
+      if (problem) clientErrors[mission.id] = problem;
+    });
+    const failingIds = Object.keys(clientErrors);
+    if (failingIds.length) {
+      setMissionErrors(clientErrors);
+      setEditingMissionId(failingIds[0]);
+      setSaved(false);
+      setNoticeError(true);
+      setNotice(
+        failingIds.length === 1
+          ? 'Hay una misión de foto sin un criterio válido. Revísala antes de guardar.'
+          : `Hay ${failingIds.length} misiones de foto sin un criterio válido. Revísalas antes de guardar.`
+      );
+      return;
+    }
+    setMissionErrors({});
+
     try {
+      setNoticeError(false);
       setNotice('Guardando cambios del nivel...');
       const nextLevels = levels.map((item) => {
         if (String(item.levelNumber) !== String(id)) return item;
@@ -451,7 +501,30 @@ export default function PromotionDetailPage() {
       router.replace(`/promotions/${levelNumber}`);
       setTimeout(() => setSaved(false), 2000);
     } catch (e) {
-      setNotice(e?.message || 'No se pudieron guardar los cambios del nivel.');
+      setNoticeError(true);
+      const criteriaError = parsePhotoCriteriaError(e);
+      if (!criteriaError) {
+        setNotice(e?.message || 'No se pudieron guardar los cambios del nivel.');
+        return;
+      }
+      const isThisLevel = String(criteriaError.levelNumber) === String(level.levelNumber);
+      const target = isThisLevel
+        ? missions.find(
+            (mission) =>
+              (!criteriaError.type || mission.type === criteriaError.type) &&
+              (mission.title || '').trim() === criteriaError.title.trim()
+          )
+        : null;
+      if (target) {
+        setMissionErrors({ [target.id]: criteriaError.message });
+        setEditingMissionId(target.id);
+        setNotice(`No se han guardado los cambios. ${criteriaError.message}`);
+      } else {
+        setNotice(
+          `No se han guardado los cambios. ${criteriaError.message}` +
+            (isThisLevel ? '' : ' Corrígelo desde la edición de ese nivel y vuelve a guardar este.')
+        );
+      }
     }
   }
 
@@ -540,9 +613,13 @@ export default function PromotionDetailPage() {
             <section
               style={{
                 ...panelStyle,
-                border: saved ? '1px solid rgba(34,197,94,0.26)' : '1px solid rgba(0,229,255,0.14)',
-                background: saved ? 'rgba(34,197,94,0.08)' : 'rgba(0,229,255,0.05)',
-                color: saved ? '#dcfce7' : '#dff9ff',
+                border: saved
+                  ? '1px solid rgba(34,197,94,0.26)'
+                  : noticeError
+                    ? '1px solid rgba(244,63,94,0.32)'
+                    : '1px solid rgba(0,229,255,0.14)',
+                background: saved ? 'rgba(34,197,94,0.08)' : noticeError ? 'rgba(244,63,94,0.08)' : 'rgba(0,229,255,0.05)',
+                color: saved ? '#dcfce7' : noticeError ? '#ffe4e6' : '#dff9ff',
               }}
             >
               {notice}
@@ -757,7 +834,7 @@ export default function PromotionDetailPage() {
                         setMissions((prev) =>
                           prev.map((mission) =>
                             mission.id === editingMission.id
-                              ? { ...mission, typeLabel: label, type: value }
+                              ? { ...mission, typeLabel: label, type: value, isPhotoMission: undefined }
                               : mission
                           )
                         );
@@ -855,6 +932,76 @@ export default function PromotionDetailPage() {
                     style={textareaStyle}
                   />
                 </label>
+
+                {isPhotoMission(editingMission) && (() => {
+                  const criteria = editingMission.photoCriteria || '';
+                  const exclude = editingMission.photoCriteriaExclude || '';
+                  const criteriaLen = criteria.trim().length;
+                  const criteriaBad = criteriaLen < PHOTO_CRITERIA_MIN || criteriaLen > PHOTO_CRITERIA_MAX;
+                  const missionError = missionErrors[editingMission.id];
+                  const errorBorder = '1px solid rgba(244,63,94,0.55)';
+                  return (
+                    <div
+                      style={{
+                        display: 'grid',
+                        gap: 14,
+                        padding: 14,
+                        borderRadius: 14,
+                        border: missionError ? errorBorder : '1px solid rgba(0,229,255,0.14)',
+                        background: missionError ? 'rgba(244,63,94,0.06)' : 'rgba(0,229,255,0.04)',
+                      }}
+                    >
+                      {missionError && (
+                        <div role="alert" style={{ color: '#fda4af', fontSize: 13, fontWeight: 700, lineHeight: 1.5 }}>
+                          {missionError}
+                        </div>
+                      )}
+
+                      <label style={smallLabelStyle}>
+                        <span>
+                          Qué debe verse en la foto <span style={{ color: '#fda4af' }}>*</span>
+                        </span>
+                        <textarea
+                          value={criteria}
+                          maxLength={PHOTO_CRITERIA_MAX}
+                          required
+                          aria-invalid={!!missionError}
+                          onChange={(e) => updateMissionCriteria(editingMission.id, { photoCriteria: e.target.value })}
+                          style={{ ...textareaStyle, minHeight: 96, ...(missionError ? { border: errorBorder } : {}) }}
+                        />
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
+                          <span style={{ ...helperStyle, fontWeight: 400 }}>
+                            Descríbelo de forma que se pueda comprobar mirando la imagen. Sirve: &lsquo;al menos tres
+                            personas juntas dentro del local&rsquo;. No sirve: &lsquo;una foto guapa de la noche&rsquo;.
+                          </span>
+                          <span
+                            style={{
+                              ...helperStyle,
+                              whiteSpace: 'nowrap',
+                              color: criteriaBad ? '#fda4af' : '#94a3b8',
+                            }}
+                          >
+                            {criteriaLen}/{PHOTO_CRITERIA_MAX}
+                            {criteriaLen < PHOTO_CRITERIA_MIN ? ` · mín. ${PHOTO_CRITERIA_MIN}` : ''}
+                          </span>
+                        </div>
+                      </label>
+
+                      <label style={smallLabelStyle}>
+                        Qué no vale <span style={{ ...helperStyle, fontWeight: 400 }}>(opcional)</span>
+                        <textarea
+                          value={exclude}
+                          maxLength={PHOTO_CRITERIA_EXCLUDE_MAX}
+                          onChange={(e) => updateMissionCriteria(editingMission.id, { photoCriteriaExclude: e.target.value })}
+                          style={{ ...textareaStyle, minHeight: 72 }}
+                        />
+                        <div style={{ ...helperStyle, textAlign: 'right' }}>
+                          {exclude.trim().length}/{PHOTO_CRITERIA_EXCLUDE_MAX}
+                        </div>
+                      </label>
+                    </div>
+                  );
+                })()}
               </article>
 
               <article style={{ display: 'grid', gap: 14 }}>
@@ -911,11 +1058,13 @@ export default function PromotionDetailPage() {
           <section style={{ display: 'grid', gap: 16 }}>
             {missions.map((mission, index) => {
               const missionTypeStyle = getMissionTypeStyle(mission.typeLabel || getMissionTypeLabel(mission.type));
+              const missionError = missionErrors[mission.id];
               return (
                 <article
                   key={mission.id}
                   style={{
                     ...panelStyle,
+                    ...(missionError ? { border: '1px solid rgba(244,63,94,0.55)' } : {}),
                     padding: 18,
                     display: 'grid',
                     gridTemplateColumns: 'minmax(0, 1fr) auto',
@@ -965,6 +1114,12 @@ export default function PromotionDetailPage() {
                     <div style={{ marginTop: 12, color: '#cbd5e1', fontSize: 14, lineHeight: 1.65 }}>
                       {mission.details || mission.description}
                     </div>
+
+                    {missionError && (
+                      <div style={{ marginTop: 10, color: '#fda4af', fontSize: 13, fontWeight: 700, lineHeight: 1.5 }}>
+                        {missionError}
+                      </div>
+                    )}
 
                     <div
                       style={{

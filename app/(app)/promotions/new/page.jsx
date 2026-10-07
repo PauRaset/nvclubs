@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import RequireClub from '@/components/RequireClub';
 import { getUser } from '@/lib/apiClient';
+import { photoCriteriaFields, parsePhotoCriteriaError } from '@/lib/photoCriteria';
 
 const API_BASE = 'https://api.nightvibe.life';
 
@@ -78,6 +79,7 @@ function buildMissionFromTemplate(typeLabel, index = 1) {
       validation: 'Manual por el club',
       unit: 'photos',
       target: 1,
+      photoCriteria: 'Una foto hecha dentro del local durante el evento en la que se vea al menos a una persona.',
     },
     Difusión: {
       type: 'share_event',
@@ -123,6 +125,8 @@ function buildMissionFromTemplate(typeLabel, index = 1) {
     params: {},
     order: index,
     active: true,
+    photoCriteria: base.photoCriteria || '',
+    photoCriteriaExclude: base.photoCriteriaExclude || '',
   };
 }
 
@@ -314,6 +318,7 @@ export default function NewPromotionPage() {
           requiresApproval: mission.validationType === 'manual',
           order: idx + 1,
           active: mission.active !== false,
+          ...photoCriteriaFields(mission),
         })),
       };
 
@@ -329,7 +334,12 @@ export default function NewPromotionPage() {
       setNotice('Nivel creado correctamente.');
       router.push(`/promotions/${nextLevelNumber}`);
     } catch (e) {
-      setNotice(e?.message || 'No se pudo crear el nivel.');
+      const criteriaError = parsePhotoCriteriaError(e);
+      setNotice(
+        criteriaError
+          ? `No se pudo crear el nivel. ${criteriaError.message}`
+          : e?.message || 'No se pudo crear el nivel.'
+      );
     } finally {
       setSaving(false);
     }

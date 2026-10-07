@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import RequireClub from '@/components/RequireClub';
 import { getUser } from '@/lib/apiClient';
 import { confirmDialog } from '@/components/Toast';
+import { photoCriteriaFields, parsePhotoCriteriaError } from '@/lib/photoCriteria';
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE ||
@@ -302,6 +303,7 @@ export default function PromotionsPage() {
                     : mission.validationType === 'manual',
                 order: Number.isFinite(Number(mission.order)) ? Number(mission.order) : missionIdx + 1,
                 active: mission.active !== false,
+                ...photoCriteriaFields(mission),
               }))
             : [],
         }));
@@ -314,7 +316,12 @@ export default function PromotionsPage() {
       setLevels(Array.isArray(data?.levels) ? data.levels : []);
       setNotice('Nivel eliminado correctamente.');
     } catch (e) {
-      setNotice(e?.message || 'No se pudo eliminar el nivel.');
+      const criteriaError = parsePhotoCriteriaError(e);
+      setNotice(
+        criteriaError
+          ? `No se pudo eliminar el nivel. ${criteriaError.message} Corrígelo desde la edición de ese nivel.`
+          : e?.message || 'No se pudo eliminar el nivel.'
+      );
     } finally {
       setDeletingLevelNumber('');
     }
@@ -384,6 +391,7 @@ export default function PromotionsPage() {
                 : mission.validationType === 'manual',
             order: Number.isFinite(Number(mission.order)) ? Number(mission.order) : missionIdx + 1,
             active: mission.active !== false,
+            ...photoCriteriaFields(mission),
           }))
         : [],
     }));
@@ -400,7 +408,12 @@ export default function PromotionsPage() {
       setLevels(Array.isArray(data?.levels) ? data.levels : []);
       setNotice('Orden de niveles actualizado correctamente.');
     } catch (e) {
-      setNotice(e?.message || 'No se pudo reordenar el nivel.');
+      const criteriaError = parsePhotoCriteriaError(e);
+      setNotice(
+        criteriaError
+          ? `No se pudo reordenar. ${criteriaError.message} Corrígelo desde la edición de ese nivel.`
+          : e?.message || 'No se pudo reordenar el nivel.'
+      );
     } finally {
       setReorderingLevelNumber('');
     }
