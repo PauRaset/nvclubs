@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import QRCode from 'qrcode';
 import RequireClub from '@/components/RequireClub';
 import EventForm from '@/components/EventForm';
 import { fetchEvent } from '@/lib/eventsApi';
@@ -12,6 +13,11 @@ export default function EditEventPage() {
   const [initial, setInitial] = useState(null);
   const [msg, setMsg] = useState('Cargando...');
   const [copied, setCopied] = useState(false);
+
+  // QR del evento: llega de GET /api/events/:id/qr (solo dueño/manager) y se dibuja en local.
+  // status: loading | ok | forbidden | error
+  const [qr, setQr] = useState({ status: 'loading', qrToken: '', qrPayload: '', imageUrl: '', error: '' });
+  const [rotating, setRotating] = useState(false);
 
   // --- Photos moderation (club) ---
   const API_BASE =
@@ -48,17 +54,8 @@ export default function EditEventPage() {
     return { key: 'draft', label: 'Sin fecha' };
   }, [initial]);
 
-  const qrPayload = useMemo(() => {
-    if (!initial?._id && !id) return '';
-    const eventId = initial?._id || initial?.id || id;
-    const qrToken = initial?.qrToken || '';
-    return `NV_EVENT:${eventId}:${qrToken || 'pending'}`;
-  }, [initial, id]);
-
-  const qrImageUrl = useMemo(() => {
-    if (!qrPayload) return '';
-    return `https://api.qrserver.com/v1/create-qr-code/?size=420x420&data=${encodeURIComponent(qrPayload)}`;
-  }, [qrPayload]);
+  const qrPayload = qr.status === 'ok' ? qr.qrPayload : '';
+  const qrImageUrl = qr.status === 'ok' ? qr.imageUrl : '';
 
   const stats = useMemo(() => {
     const attendeeCount = Array.isArray(initial?.attendees) ? initial.attendees.length : 0;
@@ -168,6 +165,61 @@ export default function EditEventPage() {
     return data;
   }
 
+  // Sin payload no hay QR: nunca se dibuja uno de relleno.
+  async function qrStateFrom(data) {
+    const qrPayload = data?.qrPayload || '';
+    if (!qrPayload) throw new Error('El servidor no ha devuelto el QR del evento.');
+    // PNG generado en el navegador: el token no se envía a ningún servicio externo.
+    const imageUrl = await QRCode.toDataURL(qrPayload, { width: 840, margin: 2, errorCorrectionLevel: 'M' });
+    return { status: 'ok', qrToken: data?.qrToken || '', qrPayload, imageUrl, error: '' };
+  }
+
+  function qrErrorState(e) {
+    if (e?.status === 403) {
+      return { status: 'forbidden', qrToken: '', qrPayload: '', imageUrl: '', error: 'No tienes permiso para ver el QR de este evento.' };
+    }
+    return { status: 'error', qrToken: '', qrPayload: '', imageUrl: '', error: e?.message || 'No se pudo cargar el QR.' };
+  }
+
+  async function loadQr(isCancelled = () => false) {
+    if (!id) return;
+    setQr({ status: 'loading', qrToken: '', qrPayload: '', imageUrl: '', error: '' });
+    let next;
+    try {
+      const data = await apiJson(`${API_BASE}/api/events/${id}/qr`, { cache: 'no-store' });
+      next = await qrStateFrom(data);
+    } catch (e) {
+      next = qrErrorState(e);
+    }
+    if (!isCancelled()) setQr(next);
+  }
+
+  async function rotateQr() {
+    if (!id || rotating) return;
+    const ok = await confirmDialog({
+      title: 'Generar un QR nuevo',
+      message:
+        'El QR actual dejará de funcionar al instante. Si ya lo has impreso o compartido, tendrás que sustituirlo. ¿Seguro?',
+      confirmText: 'Generar QR nuevo',
+      danger: true,
+    });
+    if (!ok) return;
+    setRotating(true);
+    try {
+      const data = await apiJson(`${API_BASE}/api/events/${id}/qr/rotate`, { method: 'POST', cache: 'no-store' });
+      setQr(await qrStateFrom(data));
+      setCopied(false);
+      toast.success('QR nuevo generado. El anterior ya no funciona.');
+    } catch (e) {
+      if (e?.status === 403) toast.error('No tienes permiso para cambiar el QR de este evento.');
+      else toast.error(e?.message || 'No se pudo generar el QR nuevo.');
+      // Si la rotación llegó a aplicarse, el QR en pantalla podría ser el viejo: recargar.
+      loadQr();
+    } finally {
+      setRotating(false);
+    }
+  }
+
   async function loadModerationPhotos(tab = photoTab) {
     if (!id) return;
     setPhotosMsg('Cargando fotos...');
@@ -240,6 +292,13 @@ export default function EditEventPage() {
       setInitial(r.data);
       setMsg('');
     })();
+  }, [id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadQr(() => cancelled);
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   useEffect(() => {
@@ -469,34 +528,49 @@ export default function EditEventPage() {
                       >
                         {qrImageUrl ? (
                           <img src={qrImageUrl} alt="QR evento" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                        ) : qr.status === 'loading' ? (
+                          <div style={{ color: '#111827', fontWeight: 700 }}>Cargando QR…</div>
                         ) : (
-                          <div style={{ color: '#111827', fontWeight: 700 }}>QR pendiente</div>
+                          <div style={{ color: '#991b1b', fontWeight: 700, padding: 20, textAlign: 'center', lineHeight: 1.5 }}>
+                            {qr.error}
+                            {qr.status === 'error' && (
+                              <div style={{ marginTop: 12 }}>
+                                <button type="button" onClick={() => loadQr()} style={{ ...ghostBtn, color: '#111827', borderColor: 'rgba(0,0,0,0.2)' }}>
+                                  Reintentar
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         )}
                       </div>
 
                       <div>
                         <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 700, marginBottom: 6 }}>Token QR</div>
                         <div style={{ color: '#e5e7eb', fontSize: 13, lineHeight: 1.55, wordBreak: 'break-all' }}>
-                          {initial?.qrToken || 'Aún no disponible'}
+                          {qr.status === 'ok' ? qr.qrToken || '—' : qr.status === 'loading' ? 'Cargando…' : 'No disponible'}
                         </div>
                       </div>
 
                       <div>
                         <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 700, marginBottom: 6 }}>Payload actual</div>
                         <div style={{ color: '#cbd5e1', fontSize: 13, lineHeight: 1.55, wordBreak: 'break-all' }}>
-                          {qrPayload || 'Pendiente'}
+                          {qrPayload || (qr.status === 'loading' ? 'Cargando…' : 'No disponible')}
                         </div>
                       </div>
 
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                        <button type="button" onClick={copyQrPayload} style={ghostBtn}>
+                        <button
+                          type="button"
+                          onClick={copyQrPayload}
+                          disabled={!qrPayload}
+                          style={{ ...ghostBtn, opacity: qrPayload ? 1 : 0.45, cursor: qrPayload ? 'pointer' : 'not-allowed' }}
+                        >
                           {copied ? 'Copiado' : 'Copiar payload'}
                         </button>
                         <a
-                          href={qrImageUrl || '#'}
+                          href={qrImageUrl || undefined}
                           download={`nightvibe-qr-${initial?._id || id}.png`}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                          aria-disabled={!qrImageUrl}
                           style={{
                             ...primaryBtn,
                             opacity: qrImageUrl ? 1 : 0.45,
@@ -518,8 +592,28 @@ export default function EditEventPage() {
                           lineHeight: 1.55,
                         }}
                       >
-                        Este QR se genera en frontend usando el <strong>qrToken</strong> del evento. Más adelante, si quieres, podemos mover la generación a backend o añadir impresión directa.
+                        Este QR se dibuja en tu navegador: el <strong>qrToken</strong> no se envía a ningún servicio externo.
+                        Si el QR se ha compartido donde no debía, genera uno nuevo: el anterior dejará de funcionar al instante.
                       </div>
+
+                      {qr.status !== 'forbidden' && (
+                        <button
+                          type="button"
+                          onClick={rotateQr}
+                          disabled={rotating || qr.status === 'loading'}
+                          style={{
+                            ...ghostBtn,
+                            width: '100%',
+                            color: '#fda4af',
+                            borderColor: 'rgba(244,63,94,0.32)',
+                            background: 'rgba(244,63,94,0.08)',
+                            opacity: rotating || qr.status === 'loading' ? 0.55 : 1,
+                            cursor: rotating || qr.status === 'loading' ? 'not-allowed' : 'pointer',
+                          }}
+                        >
+                          {rotating ? 'Generando…' : 'Generar un QR nuevo'}
+                        </button>
+                      )}
                     </div>
                   </section>
 
