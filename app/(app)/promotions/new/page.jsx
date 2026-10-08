@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import RequireClub from '@/components/RequireClub';
 import { getUser } from '@/lib/apiClient';
-import { photoCriteriaFields, parsePhotoCriteriaError } from '@/lib/photoCriteria';
+import { photoCriteriaFields, parsePhotoCriteriaError, assertLevelsSaved } from '@/lib/photoCriteria';
 
 const API_BASE = 'https://api.nightvibe.life';
 
@@ -326,10 +326,11 @@ export default function NewPromotionPage() {
         levels: [...currentLevels, nextLevel],
       };
 
-      await apiJson(`${API_BASE}/api/promotions/clubs/${clubId}/levels`, {
+      const saved = await apiJson(`${API_BASE}/api/promotions/clubs/${clubId}/levels`, {
         method: 'PUT',
         body: JSON.stringify(payload),
       });
+      assertLevelsSaved(saved, [nextLevel]);
 
       setNotice('Nivel creado correctamente.');
       router.push(`/promotions/${nextLevelNumber}`);

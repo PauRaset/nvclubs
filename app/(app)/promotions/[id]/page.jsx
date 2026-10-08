@@ -13,6 +13,7 @@ import {
   photoCriteriaFields,
   validatePhotoCriteria,
   parsePhotoCriteriaError,
+  assertLevelsSaved,
 } from '@/lib/photoCriteria';
 
 const API_BASE = 'https://api.nightvibe.life';
@@ -213,7 +214,8 @@ function serializeLevelForSave(level, form) {
     visibleInApp: typeof level.visibleInApp === 'boolean' ? level.visibleInApp : true,
     version: Number(level.version || 1),
     missions: (form.missions || []).map((mission, idx) => ({
-      ...(mission.id ? { _id: mission.id } : {}),
+      // Las misiones creadas en el editor llevan un id local ("mission-…"), que no es un ObjectId.
+      ...(/^[a-f0-9]{24}$/i.test(String(mission.id || '')) ? { _id: mission.id } : {}),
       type: mission.type || getMissionTypeValue(mission.typeLabel),
       title: (mission.title || '').trim(),
       description: (mission.details || '').trim(),
@@ -494,8 +496,9 @@ export default function PromotionDetailPage() {
         body: JSON.stringify({ levels: nextLevels }),
       });
 
-      const savedLevels = Array.isArray(data?.levels) ? data.levels : [];
+      const savedLevels = assertLevelsSaved(data, nextLevels);
       setLevels(savedLevels);
+      setNoticeError(false);
       setSaved(true);
       setNotice('Cambios guardados correctamente en la configuración del club.');
       router.replace(`/promotions/${levelNumber}`);

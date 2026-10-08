@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import RequireClub from '@/components/RequireClub';
 import { getUser } from '@/lib/apiClient';
 import { confirmDialog } from '@/components/Toast';
-import { photoCriteriaFields, parsePhotoCriteriaError } from '@/lib/photoCriteria';
+import { photoCriteriaFields, parsePhotoCriteriaError, assertLevelsSaved } from '@/lib/photoCriteria';
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE ||
@@ -313,7 +313,7 @@ export default function PromotionsPage() {
         body: JSON.stringify({ levels: nextLevels }),
       });
 
-      setLevels(Array.isArray(data?.levels) ? data.levels : []);
+      setLevels(assertLevelsSaved(data, nextLevels));
       setNotice('Nivel eliminado correctamente.');
     } catch (e) {
       const criteriaError = parsePhotoCriteriaError(e);
@@ -405,7 +405,7 @@ export default function PromotionsPage() {
         body: JSON.stringify({ levels: payloadLevels }),
       });
 
-      setLevels(Array.isArray(data?.levels) ? data.levels : []);
+      setLevels(assertLevelsSaved(data, payloadLevels));
       setNotice('Orden de niveles actualizado correctamente.');
     } catch (e) {
       const criteriaError = parsePhotoCriteriaError(e);
