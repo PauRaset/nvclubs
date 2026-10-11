@@ -2,6 +2,7 @@
 'use client';
 import React, { useEffect, useRef, useState } from 'react';
 import { BrowserMultiFormatReader } from '@zxing/browser';
+import { API_BASE } from '@/lib/apiBase';
 
 
 const parseNV1 = (txt) => {
@@ -158,7 +159,7 @@ const ResultIcon = ({ kind, color }) => {
   );
 };
 
-export default function ScannerCheckin({ backendBase='https://api.nightvibe.life', scannerKey, eventId: fixedEventId = '', onChangeKey }) {
+export default function ScannerCheckin({ backendBase=API_BASE, scannerKey, eventId: fixedEventId = '', onChangeKey }) {
   const endpoint = `${(backendBase||'').replace(/\/+$/,'')}/api/checkin`;
 
   const videoRef  = useRef(null);

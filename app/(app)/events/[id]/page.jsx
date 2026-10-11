@@ -6,6 +6,7 @@ import RequireClub from '@/components/RequireClub';
 import EventForm from '@/components/EventForm';
 import { fetchEvent } from '@/lib/eventsApi';
 import { toast, confirmDialog } from '@/components/Toast';
+import { API_BASE } from '@/lib/apiBase';
 
 export default function EditEventPage() {
   const { id } = useParams();
@@ -20,10 +21,6 @@ export default function EditEventPage() {
   const [rotating, setRotating] = useState(false);
 
   // --- Photos moderation (club) ---
-  const API_BASE =
-    process.env.NEXT_PUBLIC_API_BASE ||
-    process.env.NEXT_PUBLIC_BACKEND_URL ||
-    'https://api.nightvibe.life';
   const [showPhotos, setShowPhotos] = useState(false);
   const [photoTab, setPhotoTab] = useState('pending'); // pending | approved | rejected
   const [photos, setPhotos] = useState([]);

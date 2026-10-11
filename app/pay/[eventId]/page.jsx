@@ -1,12 +1,12 @@
 // app/pay/[eventId]/page.jsx
 import { redirect } from "next/navigation";
 import PayCheckoutClient from "./PayCheckoutClient";
+import { API_BASE } from '@/lib/apiBase';
 
 export default function PayEventPage({ params, searchParams }) {
   const { eventId } = params;
 
-  const apiBase =
-    process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.nightvibe.life";
+  const apiBase = API_BASE;
 
   // Si ya viene qty por URL (ej: /pay/ID?qty=3), redirigimos directo (como antes)
   const qty = searchParams?.qty ? String(searchParams.qty).trim() : "";

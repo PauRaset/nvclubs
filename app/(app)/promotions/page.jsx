@@ -5,11 +5,8 @@ import RequireClub from '@/components/RequireClub';
 import { getUser } from '@/lib/apiClient';
 import { confirmDialog } from '@/components/Toast';
 import { photoCriteriaFields, parsePhotoCriteriaError, assertLevelsSaved } from '@/lib/photoCriteria';
+import { API_BASE } from '@/lib/apiBase';
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE ||
-  process.env.NEXT_PUBLIC_BACKEND_URL ||
-  'https://api.nightvibe.life';
 
 const roadmap = [
   {

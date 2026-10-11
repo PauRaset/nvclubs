@@ -1,12 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { API_BASE } from '@/lib/apiBase';
 
 export default function AdminAppsPage() {
-  const API =
-    process.env.NEXT_PUBLIC_API_BASE ||
-    process.env.NEXT_PUBLIC_BACKEND_URL ||
-    'https://api.nightvibe.life';
+  const API = API_BASE;
 
   const [status, setStatus] = useState('email_verified'); // pending | email_verified | approved | rejected
   const [items, setItems] = useState([]);

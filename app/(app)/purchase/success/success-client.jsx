@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { API_BASE } from '@/lib/apiBase';
 
-const API = process.env.NEXT_PUBLIC_API_BASE || process.env.NEXT_PUBLIC_BACKEND_URL || '';
+const API = API_BASE;
 
 export default function SuccessClient() {
   const sp = useSearchParams();

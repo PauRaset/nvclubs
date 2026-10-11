@@ -4,13 +4,11 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { setSession, getToken } from '@/lib/apiClient';
+import { API_BASE } from '@/lib/apiBase';
 
 export default function LoginPage() {
   const router = useRouter();
-  const BACKEND =
-    process.env.NEXT_PUBLIC_API_BASE ||
-    process.env.NEXT_PUBLIC_BACKEND_URL ||
-    'https://api.nightvibe.life';
+  const BACKEND = API_BASE;
 
   const [tab, setTab] = useState('login'); // 'login' | 'register'
 

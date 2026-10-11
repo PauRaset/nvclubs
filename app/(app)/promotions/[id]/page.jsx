@@ -15,8 +15,8 @@ import {
   parsePhotoCriteriaError,
   assertLevelsSaved,
 } from '@/lib/photoCriteria';
+import { API_BASE } from '@/lib/apiBase';
 
-const API_BASE = 'https://api.nightvibe.life';
 
 function getAuthHeaders() {
   if (typeof window === 'undefined') return {};

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import ScannerCheckin from '@/components/ScannerCheckin';
+import { API_BASE } from '@/lib/apiBase';
 
 const KEY_STORAGE = 'nv_scanner_key';
 const EVENT_STORAGE = 'nv_scanner_event';
@@ -38,8 +39,8 @@ const fmtRange = (start, end) => {
 };
 
 export default function ScannerPage() {
-  const backend = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.nightvibe.life';
-  const apiBase = backend.replace(/\/+$/, '');
+  const backend = API_BASE;
+  const apiBase = API_BASE;
 
   // loading | setup | events | scan
   const [phase, setPhase] = useState('loading');

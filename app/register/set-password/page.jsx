@@ -1,18 +1,14 @@
 'use client';
 import { useState, Suspense, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { API_BASE } from '@/lib/apiBase';
 
 export const dynamic = 'force-dynamic';
 
 function SetPasswordInner() {
-  // Base de API (cualquiera de las dos variables que uses)
-  const API_BASE =
-    process.env.NEXT_PUBLIC_API_BASE ||
-    process.env.NEXT_PUBLIC_BACKEND_URL ||
-    'https://api.nightvibe.life';
 
   // ⚠️ ENDPOINT FIJO DEL FLUJO DE APROBACIÓN
-  const ENDPOINT = useMemo(() => `${API_BASE}/api/registration/set-password`, [API_BASE]);
+  const ENDPOINT = useMemo(() => `${API_BASE}/api/registration/set-password`, []);
 
   const sp = useSearchParams();
   const token = sp.get('token') || '';

@@ -6,13 +6,11 @@ import StripeConnectCard from '@/components/StripeConnectCard';
 import ScannerKeyCard from '@/components/ScannerKeyCard';
 import { getToken, getUser, clearSession } from '@/lib/apiClient';
 import { confirmDialog } from '@/components/Toast';
+import { API_BASE } from '@/lib/apiBase';
 
 export const dynamic = 'force-dynamic';
 
-const API =
-  process.env.NEXT_PUBLIC_API_BASE ||
-  process.env.NEXT_PUBLIC_BACKEND_URL ||
-  'https://api.nightvibe.life';
+const API = API_BASE;
 
 function SettingsInner() {
   const [loading, setLoading] = useState(true);

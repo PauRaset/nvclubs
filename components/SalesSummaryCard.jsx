@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { getToken } from '@/lib/apiClient';
 
-const API = process.env.NEXT_PUBLIC_API_BASE || process.env.NEXT_PUBLIC_BACKEND_URL || 'https://api.nightvibe.life';
+const API = API_BASE;
 
 export default function SalesSummaryCard({ clubId }) {
   const [data, setData] = useState(null);
@@ -52,6 +52,7 @@ const note = { marginTop:14, padding:12, border:'1px solid #1d263a', background:
 /*'use client';
 import { useEffect, useState } from 'react';
 import { getOrders, downloadOrdersCsv } from '@/lib/clubsApi';
+import { API_BASE } from '@/lib/apiBase';
 
 export default function SalesSummaryCard({ clubId }) {
   const [loading, setLoading] = useState(false);

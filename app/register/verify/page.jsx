@@ -3,12 +3,10 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { API_BASE } from '@/lib/apiBase';
 
 function VerifyInner() {
-  const BACKEND =
-    process.env.NEXT_PUBLIC_BACKEND_URL ||
-    process.env.NEXT_PUBLIC_API_BASE ||
-    'https://api.nightvibe.life';
+  const BACKEND = API_BASE;
 
   const sp = useSearchParams();
   const token = sp.get('token');

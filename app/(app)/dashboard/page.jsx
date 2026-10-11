@@ -3,13 +3,11 @@
 import { useEffect, useMemo, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { fetchEvents } from '@/lib/eventsApi';
+import { API_BASE } from '@/lib/apiBase';
 
 export const dynamic = 'force-dynamic';
 
-const API =
-  process.env.NEXT_PUBLIC_API_BASE ||
-  process.env.NEXT_PUBLIC_BACKEND_URL ||
-  'https://api.nightvibe.life';
+const API = API_BASE;
 
 function formatEUR(value) {
   const n = Number(value || 0);
