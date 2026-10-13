@@ -4,6 +4,14 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import RequireClub from '@/components/RequireClub';
 import { confirmDialog } from '@/components/Toast';
 import { API_BASE } from '@/lib/apiBase';
+import {
+  isAiBlocked,
+  needsClubReview,
+  photoStatusLabel,
+  sortPhotosForReview,
+  AI_REVIEW_NOTICE,
+} from '@/lib/photoAi';
+import { AiVerdict, BlockedPhotoPlaceholder, AiReviewNotice } from '@/components/PhotoAiReview';
 
 
 const CONTENT_MISSION_OPTIONS = [
@@ -480,6 +488,7 @@ export default function ContentPage() {
   const [selectedMissionType, setSelectedMissionType] = useState('approved_event_photo');
   const [selectedLevelNumber, setSelectedLevelNumber] = useState('');
   const [actionBusy, setActionBusy] = useState(false);
+  const [onlyNeedsReview, setOnlyNeedsReview] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -550,11 +559,7 @@ export default function ContentPage() {
           })
         );
 
-        const merged = results.flat().sort((a, b) => {
-          const aTime = a?.uploadedAt ? new Date(a.uploadedAt).getTime() : 0;
-          const bTime = b?.uploadedAt ? new Date(b.uploadedAt).getTime() : 0;
-          return bTime - aTime;
-        });
+        const merged = sortPhotosForReview(results.flat());
 
         if (!cancelled) {
           setPhotos(merged);
@@ -595,6 +600,11 @@ export default function ContentPage() {
       rejected,
     };
   }, [photos]);
+
+  const visiblePhotos = useMemo(
+    () => (onlyNeedsReview ? photos.filter(needsClubReview) : photos),
+    [photos, onlyNeedsReview]
+  );
 
   const selectedEvent = useMemo(() => {
     if (selectedEventId === 'all') return null;
@@ -645,11 +655,7 @@ export default function ContentPage() {
         })
       );
 
-      const merged = results.flat().sort((a, b) => {
-        const aTime = a?.uploadedAt ? new Date(a.uploadedAt).getTime() : 0;
-        const bTime = b?.uploadedAt ? new Date(b.uploadedAt).getTime() : 0;
-        return bTime - aTime;
-      });
+      const merged = sortPhotosForReview(results.flat());
 
       setPhotos(merged);
     } finally {
@@ -658,7 +664,7 @@ export default function ContentPage() {
   }
 
   async function approvePhoto() {
-    if (!selectedPhoto?.eventId || !selectedPhoto?.photoId || actionBusy) return;
+    if (!selectedPhoto?.eventId || !selectedPhoto?.photoId || actionBusy || isAiBlocked(selectedPhoto)) return;
     setActionBusy(true);
     setNotice('Aprobando foto...');
     try {
@@ -704,7 +710,7 @@ export default function ContentPage() {
   }
 
   async function rejectPhoto() {
-    if (!selectedPhoto?.eventId || !selectedPhoto?.photoId || actionBusy) return;
+    if (!selectedPhoto?.eventId || !selectedPhoto?.photoId || actionBusy || isAiBlocked(selectedPhoto)) return;
     setActionBusy(true);
     setNotice('Rechazando foto...');
     try {
@@ -869,6 +875,7 @@ export default function ContentPage() {
               <p style={{ color: '#cbd5e1', lineHeight: 1.65, fontSize: 15, margin: '12px 0 0', maxWidth: 760 }}>
                 Revisa el contenido subido por asistentes, filtra por evento o estado y aprueba o rechaza cada foto según la misión o contexto del evento.
               </p>
+              <AiReviewNotice text={AI_REVIEW_NOTICE} style={{ marginTop: 12, maxWidth: 760 }} />
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
@@ -902,7 +909,7 @@ export default function ContentPage() {
           >
             <article style={panelStyle}>
               <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 10 }}>Fotos visibles</div>
-              <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.03em' }}>{counts.total}</div>
+              <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.03em' }}>{visiblePhotos.length}</div>
             </article>
             <article style={panelStyle}>
               <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 10 }}>Pendientes</div>
@@ -972,6 +979,16 @@ export default function ContentPage() {
               ))}
             </div>
 
+            <label style={{ display: 'flex', gap: 8, alignItems: 'center', color: '#e5e7eb', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={onlyNeedsReview}
+                onChange={(e) => setOnlyNeedsReview(e.target.checked)}
+                style={{ width: 18, height: 18, accentColor: 'var(--nv-accent)' }}
+              />
+              Solo las que necesitan revisión
+            </label>
+
             <div style={{ color: '#94a3b8', fontSize: 13, whiteSpace: 'nowrap' }}>
               {selectedEvent ? `Evento: ${selectedEvent.title}` : 'Vista global del club'}
             </div>
@@ -996,7 +1013,7 @@ export default function ContentPage() {
                   </div>
                 ))}
               </div>
-            ) : photos.length === 0 ? (
+            ) : visiblePhotos.length === 0 ? (
               <div className="nv-empty">
                 <div className="nv-empty-icon" aria-hidden="true">
                   <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
@@ -1005,9 +1022,13 @@ export default function ContentPage() {
                     <path d="m4 18 5-4 4 3 3-2 4 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </div>
-                <div className="nv-empty-title">No hay fotos en esta vista</div>
+                <div className="nv-empty-title">
+                  {onlyNeedsReview && photos.length > 0 ? 'Nada pendiente de tu revisión' : 'No hay fotos en esta vista'}
+                </div>
                 <div className="nv-empty-text">
-                  Prueba con otro evento o cambia el filtro de estado para revisar más contenido.
+                  {onlyNeedsReview && photos.length > 0
+                    ? 'La IA ya ha revisado todas las fotos de esta vista. Quita el filtro para verlas.'
+                    : 'Prueba con otro evento o cambia el filtro de estado para revisar más contenido.'}
                 </div>
               </div>
             ) : (
@@ -1019,7 +1040,7 @@ export default function ContentPage() {
                   gap: 14,
                 }}
               >
-                {photos.map((photo) => (
+                {visiblePhotos.map((photo) => (
                   <button
                     key={`${photo.eventId}-${photo.photoId}`}
                     type="button"
@@ -1060,11 +1081,15 @@ export default function ContentPage() {
                         overflow: 'hidden',
                       }}
                     >
-                      <SmartPhoto
-                        photo={photo}
-                        alt="Foto subida por asistente"
-                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                      />
+                      {isAiBlocked(photo) ? (
+                        <BlockedPhotoPlaceholder />
+                      ) : (
+                        <SmartPhoto
+                          photo={photo}
+                          alt="Foto subida por asistente"
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                        />
+                      )}
                     </div>
                     <div style={{ padding: 12, display: 'grid', gap: 8 }}>
                       <div style={{ fontWeight: 800, fontSize: 15, lineHeight: 1.45 }}>
@@ -1073,6 +1098,7 @@ export default function ContentPage() {
                       <div style={{ color: '#94a3b8', fontSize: 12.5, lineHeight: 1.5 }}>
                         @{photo.byUsername || 'usuario'}
                       </div>
+                      <AiVerdict photo={photo} />
                       <div
                         style={{
                           display: 'grid',
@@ -1118,11 +1144,7 @@ export default function ContentPage() {
                             fontWeight: 800,
                           }}
                         >
-                          {photo.status === 'approved'
-                            ? 'Aprobada'
-                            : photo.status === 'rejected'
-                              ? 'Rechazada'
-                              : 'Pendiente'}
+                          {photoStatusLabel(photo)}
                         </div>
 
                         {photo.validatedForMissionType && (
@@ -1198,18 +1220,22 @@ export default function ContentPage() {
                   padding: 12,
                   overflow: 'hidden',
                 }}>
-                  <SmartPhoto
-                    photo={selectedPhoto}
-                    alt="Foto seleccionada"
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      maxHeight: '70vh',
-                      objectFit: 'contain',
-                      borderRadius: 14,
-                      display: 'block',
-                    }}
-                  />
+                  {isAiBlocked(selectedPhoto) ? (
+                    <BlockedPhotoPlaceholder style={{ borderRadius: 14, minHeight: 280 }} />
+                  ) : (
+                    <SmartPhoto
+                      photo={selectedPhoto}
+                      alt="Foto seleccionada"
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        maxHeight: '70vh',
+                        objectFit: 'contain',
+                        borderRadius: 14,
+                        display: 'block',
+                      }}
+                    />
+                  )}
                 </div>
 
                 <div style={{
@@ -1243,12 +1269,29 @@ export default function ContentPage() {
                         fontWeight: 800,
                       }}
                     >
-                      {selectedPhoto.status === 'approved'
-                        ? 'Aprobada'
-                        : selectedPhoto.status === 'rejected'
-                          ? 'Rechazada'
-                          : 'Pendiente'}
+                      {photoStatusLabel(selectedPhoto)}
                     </div>
+                  </div>
+
+                  <div
+                    style={{
+                      padding: 14,
+                      borderRadius: 16,
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      display: 'grid',
+                      gap: 8,
+                    }}
+                  >
+                    <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                      Revisión de la IA
+                    </div>
+                    <AiVerdict photo={selectedPhoto} size="lg" />
+                    {selectedPhoto.validationResult === 'ai_not_matched' && (
+                      <div style={{ color: '#cbd5e1', fontSize: 13, lineHeight: 1.55 }}>
+                        La IA la rechazó por no cumplir la misión. Si crees que se ha equivocado, puedes aprobarla.
+                      </div>
+                    )}
                   </div>
 
                   <div style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.6 }}>
@@ -1328,7 +1371,13 @@ export default function ContentPage() {
                             fontWeight: 800,
                           }}
                         >
-                          {selectedPhoto.validationResult === 'matched' ? 'Coincide con la misión' : 'No coincide con la misión'}
+                          {selectedPhoto.validationResult === 'matched'
+                            ? 'Coincide con la misión'
+                            : selectedPhoto.validationResult === 'ai_not_matched'
+                              ? 'No coincide con la misión según la IA'
+                              : selectedPhoto.validationResult === 'ai_blocked'
+                                ? 'Bloqueada por contenido no permitido'
+                                : 'No coincide con la misión'}
                         </div>
                       )}
                     </div>
@@ -1459,7 +1508,13 @@ export default function ContentPage() {
                   </label>
 
                   <div style={{ display: 'grid', gap: 10, marginTop: 'auto' }}>
-                    {selectedPhoto.status !== 'approved' && (
+                    {isAiBlocked(selectedPhoto) && (
+                      <div style={{ color: '#94a3b8', fontSize: 13, lineHeight: 1.55 }}>
+                        La IA ha bloqueado esta foto por su contenido y la imagen se ha eliminado. No hay nada que aprobar ni rechazar.
+                      </div>
+                    )}
+
+                    {!isAiBlocked(selectedPhoto) && selectedPhoto.status !== 'approved' && (
                       <button
                         type="button"
                         onClick={approvePhoto}
@@ -1473,7 +1528,7 @@ export default function ContentPage() {
                       </button>
                     )}
 
-                    {selectedPhoto.status !== 'rejected' && (
+                    {!isAiBlocked(selectedPhoto) && selectedPhoto.status !== 'rejected' && (
                       <button
                         type="button"
                         onClick={rejectPhoto}

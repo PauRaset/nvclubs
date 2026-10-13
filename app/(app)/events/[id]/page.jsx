@@ -7,6 +7,8 @@ import EventForm from '@/components/EventForm';
 import { fetchEvent } from '@/lib/eventsApi';
 import { toast, confirmDialog } from '@/components/Toast';
 import { API_BASE } from '@/lib/apiBase';
+import { isAiBlocked, needsClubReview, photoStatusLabel, sortPhotosForReview, AI_REVIEW_NOTICE } from '@/lib/photoAi';
+import { AiVerdict, BlockedPhotoPlaceholder, AiReviewNotice } from '@/components/PhotoAiReview';
 
 export default function EditEventPage() {
   const { id } = useParams();
@@ -27,6 +29,7 @@ export default function EditEventPage() {
   const [photosMsg, setPhotosMsg] = useState('');
   const [selectedPhoto, setSelectedPhoto] = useState(null);
   const [reviewNote, setReviewNote] = useState('');
+  const [onlyNeedsReview, setOnlyNeedsReview] = useState(false);
 
   const authHeaders = useMemo(() => {
     if (typeof window === 'undefined') return {};
@@ -222,7 +225,7 @@ export default function EditEventPage() {
     setPhotosMsg('Cargando fotos...');
     try {
       const data = await apiJson(`${API_BASE}/api/events/${id}/photos/moderation?status=${tab}`);
-      setPhotos(Array.isArray(data?.photos) ? data.photos : []);
+      setPhotos(sortPhotosForReview(Array.isArray(data?.photos) ? data.photos : []));
       setPhotosMsg('');
     } catch (e) {
       setPhotos([]);
@@ -621,6 +624,7 @@ export default function EditEventPage() {
                         <div style={{ color: '#94a3b8', fontSize: 14, marginTop: 6, lineHeight: 1.6 }}>
                           Revisa el contenido subido por asistentes y modera según la misión o contexto del evento.
                         </div>
+                        <AiReviewNotice text={AI_REVIEW_NOTICE} style={{ marginTop: 8 }} />
                       </div>
                       <button
                         onClick={() => setShowPhotos((v) => !v)}
@@ -668,10 +672,24 @@ export default function EditEventPage() {
                           </button>
                         </div>
 
+                        <label style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                          <input
+                            type="checkbox"
+                            checked={onlyNeedsReview}
+                            onChange={(e) => setOnlyNeedsReview(e.target.checked)}
+                            style={{ width: 16, height: 16, accentColor: 'var(--nv-accent)' }}
+                          />
+                          Solo las que necesitan revisión
+                        </label>
+
                         {photosMsg && <p style={{ marginTop: 10, opacity: 0.85 }}>{photosMsg}</p>}
 
                         {!photosMsg && photos.length === 0 && (
                           <p style={{ marginTop: 10, opacity: 0.75 }}>No hay fotos en esta pestaña.</p>
+                        )}
+
+                        {!photosMsg && photos.length > 0 && onlyNeedsReview && !photos.some(needsClubReview) && (
+                          <p style={{ marginTop: 10, opacity: 0.75 }}>Nada pendiente de tu revisión en esta pestaña.</p>
                         )}
 
                         {photos.length > 0 && (
@@ -683,7 +701,7 @@ export default function EditEventPage() {
                               gap: 12,
                             }}
                           >
-                            {photos.map((p) => (
+                            {(onlyNeedsReview ? photos.filter(needsClubReview) : photos).map((p) => (
                               <button
                                 key={p.photoId}
                                 onClick={() => {
@@ -701,19 +719,26 @@ export default function EditEventPage() {
                                 }}
                               >
                                 <div style={{ width: '100%', height: 180, background: 'rgba(255,255,255,0.03)' }}>
-                                  <img
-                                    src={p.url}
-                                    alt="user photo"
-                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                    loading="lazy"
-                                  />
+                                  {isAiBlocked(p) ? (
+                                    <BlockedPhotoPlaceholder />
+                                  ) : (
+                                    <img
+                                      src={p.url}
+                                      alt="user photo"
+                                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                      loading="lazy"
+                                    />
+                                  )}
                                 </div>
                                 <div style={{ padding: 10 }}>
                                   <div style={{ fontWeight: 700, fontSize: 14 }}>@{p.byUsername || 'usuario'}</div>
                                   <div style={{ fontSize: 12, opacity: 0.75, marginTop: 2 }}>
                                     {p.uploadedAt ? new Date(p.uploadedAt).toLocaleString() : ''}
                                   </div>
-                                  <div style={{ fontSize: 12, opacity: 0.75, marginTop: 6 }}>Estado: {p.status}</div>
+                                  <div style={{ fontSize: 12, opacity: 0.75, marginTop: 6 }}>Estado: {photoStatusLabel(p)}</div>
+                                  <div style={{ marginTop: 8 }}>
+                                    <AiVerdict photo={p} />
+                                  </div>
                                 </div>
                               </button>
                             ))}
@@ -753,14 +778,30 @@ export default function EditEventPage() {
                     }}
                   >
                     <div style={{ background: 'var(--nv-ink)' }}>
-                      <img
-                        src={selectedPhoto.url}
-                        alt="selected"
-                        style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                      />
+                      {isAiBlocked(selectedPhoto) ? (
+                        <BlockedPhotoPlaceholder style={{ minHeight: 280 }} />
+                      ) : (
+                        <img
+                          src={selectedPhoto.url}
+                          alt="selected"
+                          style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                        />
+                      )}
                     </div>
                     <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
                       <div style={{ fontSize: 16, fontWeight: 800 }}>@{selectedPhoto.byUsername || 'usuario'}</div>
+                      <div style={{ fontSize: 13, opacity: 0.85 }}>Estado: {photoStatusLabel(selectedPhoto)}</div>
+                      <AiVerdict photo={selectedPhoto} size="lg" />
+                      {selectedPhoto.validationResult === 'ai_not_matched' && (
+                        <div style={{ fontSize: 13, color: '#cbd5e1', lineHeight: 1.55 }}>
+                          La IA la rechazó por no cumplir la misión. Si crees que se ha equivocado, puedes aprobarla.
+                        </div>
+                      )}
+                      {isAiBlocked(selectedPhoto) && (
+                        <div style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.55 }}>
+                          La IA ha bloqueado esta foto por su contenido y la imagen se ha eliminado. No hay nada que aprobar ni rechazar.
+                        </div>
+                      )}
 
                       <label style={{ fontSize: 12, opacity: 0.75 }}>Nota (opcional)</label>
                       <textarea
@@ -778,7 +819,7 @@ export default function EditEventPage() {
                       />
 
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
-                        {selectedPhoto.status !== 'approved' && (
+                        {!isAiBlocked(selectedPhoto) && selectedPhoto.status !== 'approved' && (
                           <button
                             onClick={() => approvePhoto(selectedPhoto.photoId)}
                             style={{
@@ -790,7 +831,7 @@ export default function EditEventPage() {
                           </button>
                         )}
 
-                        {selectedPhoto.status !== 'rejected' && (
+                        {!isAiBlocked(selectedPhoto) && selectedPhoto.status !== 'rejected' && (
                           <button
                             onClick={() => rejectPhoto(selectedPhoto.photoId)}
                             style={ghostBtn}
