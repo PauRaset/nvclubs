@@ -1,6 +1,7 @@
 // components/SalesSummaryCard.jsx (ejemplo rápido)
 import { useEffect, useState } from 'react';
 import { getToken } from '@/lib/apiClient';
+import { API_BASE } from '@/lib/apiBase';
 
 const API = API_BASE;
 
@@ -52,7 +53,6 @@ const note = { marginTop:14, padding:12, border:'1px solid #1d263a', background:
 /*'use client';
 import { useEffect, useState } from 'react';
 import { getOrders, downloadOrdersCsv } from '@/lib/clubsApi';
-import { API_BASE } from '@/lib/apiBase';
 
 export default function SalesSummaryCard({ clubId }) {
   const [loading, setLoading] = useState(false);
