@@ -7,7 +7,16 @@ import EventForm from '@/components/EventForm';
 import { fetchEvent } from '@/lib/eventsApi';
 import { toast, confirmDialog } from '@/components/Toast';
 import { API_BASE } from '@/lib/apiBase';
-import { isAiBlocked, needsClubReview, photoStatusLabel, sortPhotosForReview, AI_REVIEW_NOTICE } from '@/lib/photoAi';
+import {
+  isAiBlocked,
+  isAiApproved,
+  needsClubReview,
+  photoStatusLabel,
+  sortPhotosForReview,
+  countAiApprovedSince,
+  AI_REVIEW_NOTICE,
+  REJECT_APPROVED_NOTE,
+} from '@/lib/photoAi';
 import { AiVerdict, BlockedPhotoPlaceholder, AiReviewNotice } from '@/components/PhotoAiReview';
 
 export default function EditEventPage() {
@@ -30,6 +39,9 @@ export default function EditEventPage() {
   const [selectedPhoto, setSelectedPhoto] = useState(null);
   const [reviewNote, setReviewNote] = useState('');
   const [onlyNeedsReview, setOnlyNeedsReview] = useState(false);
+  const [onlyAiApproved, setOnlyAiApproved] = useState(false);
+  // Aprobadas por la IA (últimos 7 días) cuando la pestaña activa no es la de aprobadas.
+  const [aiApprovedWeekFetched, setAiApprovedWeekFetched] = useState(null);
 
   const authHeaders = useMemo(() => {
     if (typeof window === 'undefined') return {};
@@ -306,6 +318,30 @@ export default function EditEventPage() {
     loadModerationPhotos(photoTab);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showPhotos, photoTab, id]);
+
+  useEffect(() => {
+    if (!showPhotos || !id || photoTab === 'approved') return;
+    let cancelled = false;
+    apiJson(`${API_BASE}/api/events/${id}/photos/moderation?status=approved`)
+      .then((data) => {
+        if (!cancelled) setAiApprovedWeekFetched(countAiApprovedSince(Array.isArray(data?.photos) ? data.photos : []));
+      })
+      .catch(() => {
+        if (!cancelled) setAiApprovedWeekFetched(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showPhotos, photoTab, id]);
+
+  const isApprovedTab = photoTab === 'approved';
+  const photoFilterActive = isApprovedTab ? onlyAiApproved : onlyNeedsReview;
+  const visiblePhotos = isApprovedTab
+    ? onlyAiApproved ? photos.filter(isAiApproved) : photos
+    : onlyNeedsReview ? photos.filter(needsClubReview) : photos;
+  // En la pestaña de aprobadas se cuenta sobre lo ya cargado.
+  const aiApprovedWeek = isApprovedTab ? countAiApprovedSince(photos) : aiApprovedWeekFetched;
 
   const pageStyle = {
     padding: '28px 24px 44px',
@@ -672,15 +708,44 @@ export default function EditEventPage() {
                           </button>
                         </div>
 
-                        <label style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-                          <input
-                            type="checkbox"
-                            checked={onlyNeedsReview}
-                            onChange={(e) => setOnlyNeedsReview(e.target.checked)}
-                            style={{ width: 16, height: 16, accentColor: 'var(--nv-accent)' }}
-                          />
-                          Solo las que necesitan revisión
-                        </label>
+                        <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginTop: 10 }}>
+                          <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                            <input
+                              type="checkbox"
+                              checked={photoFilterActive}
+                              onChange={(e) =>
+                                isApprovedTab ? setOnlyAiApproved(e.target.checked) : setOnlyNeedsReview(e.target.checked)
+                              }
+                              style={{ width: 16, height: 16, accentColor: 'var(--nv-accent)' }}
+                            />
+                            {isApprovedTab ? 'Solo aprobadas por la IA' : 'Solo las que necesitan revisión'}
+                          </label>
+
+                          {aiApprovedWeek != null && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPhotoTab('approved');
+                                setOnlyAiApproved(true);
+                              }}
+                              title="Ver las fotos aprobadas automáticamente por la IA"
+                              style={{
+                                padding: 0,
+                                border: 0,
+                                background: 'none',
+                                color: '#94a3b8',
+                                fontSize: 12.5,
+                                cursor: 'pointer',
+                                textDecoration: 'underline',
+                                textUnderlineOffset: 3,
+                              }}
+                            >
+                              {aiApprovedWeek === 1
+                                ? '1 aprobada por la IA en los últimos 7 días'
+                                : `${aiApprovedWeek} aprobadas por la IA en los últimos 7 días`}
+                            </button>
+                          )}
+                        </div>
 
                         {photosMsg && <p style={{ marginTop: 10, opacity: 0.85 }}>{photosMsg}</p>}
 
@@ -688,8 +753,12 @@ export default function EditEventPage() {
                           <p style={{ marginTop: 10, opacity: 0.75 }}>No hay fotos en esta pestaña.</p>
                         )}
 
-                        {!photosMsg && photos.length > 0 && onlyNeedsReview && !photos.some(needsClubReview) && (
-                          <p style={{ marginTop: 10, opacity: 0.75 }}>Nada pendiente de tu revisión en esta pestaña.</p>
+                        {!photosMsg && photos.length > 0 && photoFilterActive && visiblePhotos.length === 0 && (
+                          <p style={{ marginTop: 10, opacity: 0.75 }}>
+                            {isApprovedTab
+                              ? 'Ninguna foto de esta pestaña la aprobó la IA.'
+                              : 'Nada pendiente de tu revisión en esta pestaña.'}
+                          </p>
                         )}
 
                         {photos.length > 0 && (
@@ -701,7 +770,7 @@ export default function EditEventPage() {
                               gap: 12,
                             }}
                           >
-                            {(onlyNeedsReview ? photos.filter(needsClubReview) : photos).map((p) => (
+                            {visiblePhotos.map((p) => (
                               <button
                                 key={p.photoId}
                                 onClick={() => {
@@ -838,6 +907,12 @@ export default function EditEventPage() {
                           >
                             ❌ Rechazar
                           </button>
+                        )}
+
+                        {!isAiBlocked(selectedPhoto) && selectedPhoto.status === 'approved' && (
+                          <div style={{ flexBasis: '100%', order: 1, fontSize: 12.5, color: '#94a3b8', lineHeight: 1.5 }}>
+                            {REJECT_APPROVED_NOTE}
+                          </div>
                         )}
 
                         <button

@@ -6,10 +6,13 @@ import { confirmDialog } from '@/components/Toast';
 import { API_BASE } from '@/lib/apiBase';
 import {
   isAiBlocked,
+  isAiApproved,
   needsClubReview,
   photoStatusLabel,
   sortPhotosForReview,
+  countAiApprovedSince,
   AI_REVIEW_NOTICE,
+  REJECT_APPROVED_NOTE,
 } from '@/lib/photoAi';
 import { AiVerdict, BlockedPhotoPlaceholder, AiReviewNotice } from '@/components/PhotoAiReview';
 
@@ -489,6 +492,9 @@ export default function ContentPage() {
   const [selectedLevelNumber, setSelectedLevelNumber] = useState('');
   const [actionBusy, setActionBusy] = useState(false);
   const [onlyNeedsReview, setOnlyNeedsReview] = useState(false);
+  const [onlyAiApproved, setOnlyAiApproved] = useState(false);
+  // Aprobadas por la IA (últimos 7 días) cuando la pestaña activa no es la de aprobadas.
+  const [aiApprovedWeekFetched, setAiApprovedWeekFetched] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -601,10 +607,46 @@ export default function ContentPage() {
     };
   }, [photos]);
 
-  const visiblePhotos = useMemo(
-    () => (onlyNeedsReview ? photos.filter(needsClubReview) : photos),
-    [photos, onlyNeedsReview]
-  );
+  const isApprovedTab = statusFilter === 'approved';
+
+  const visiblePhotos = useMemo(() => {
+    if (isApprovedTab) return onlyAiApproved ? photos.filter(isAiApproved) : photos;
+    return onlyNeedsReview ? photos.filter(needsClubReview) : photos;
+  }, [photos, isApprovedTab, onlyNeedsReview, onlyAiApproved]);
+
+  const filterActive = isApprovedTab ? onlyAiApproved : onlyNeedsReview;
+
+  useEffect(() => {
+    if (loading || isApprovedTab) return;
+    let cancelled = false;
+    const targetEvents =
+      selectedEventId === 'all'
+        ? events
+        : events.filter((event) => (event._id || event.id) === selectedEventId);
+
+    (async () => {
+      const lists = await Promise.all(
+        targetEvents.map(async (event) => {
+          const eventId = event._id || event.id;
+          if (!eventId) return [];
+          try {
+            const data = await apiJson(`${API_BASE}/api/events/${eventId}/photos/moderation?status=approved`);
+            return Array.isArray(data?.photos) ? data.photos : [];
+          } catch {
+            return [];
+          }
+        })
+      );
+      if (!cancelled) setAiApprovedWeekFetched(countAiApprovedSince(lists.flat()));
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [loading, events, selectedEventId, isApprovedTab]);
+
+  // En la pestaña de aprobadas se cuenta sobre lo ya cargado.
+  const aiApprovedWeek = isApprovedTab ? countAiApprovedSince(photos) : aiApprovedWeekFetched;
 
   const selectedEvent = useMemo(() => {
     if (selectedEventId === 'all') return null;
@@ -979,15 +1021,46 @@ export default function ContentPage() {
               ))}
             </div>
 
-            <label style={{ display: 'flex', gap: 8, alignItems: 'center', color: '#e5e7eb', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={onlyNeedsReview}
-                onChange={(e) => setOnlyNeedsReview(e.target.checked)}
-                style={{ width: 18, height: 18, accentColor: 'var(--nv-accent)' }}
-              />
-              Solo las que necesitan revisión
-            </label>
+            <div style={{ display: 'grid', gap: 8 }}>
+              <label style={{ display: 'flex', gap: 8, alignItems: 'center', color: '#e5e7eb', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={filterActive}
+                  onChange={(e) =>
+                    isApprovedTab ? setOnlyAiApproved(e.target.checked) : setOnlyNeedsReview(e.target.checked)
+                  }
+                  style={{ width: 18, height: 18, accentColor: 'var(--nv-accent)' }}
+                />
+                {isApprovedTab ? 'Solo aprobadas por la IA' : 'Solo las que necesitan revisión'}
+              </label>
+
+              {aiApprovedWeek != null && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStatusFilter('approved');
+                    setOnlyAiApproved(true);
+                  }}
+                  title="Ver las fotos aprobadas automáticamente por la IA"
+                  style={{
+                    width: 'fit-content',
+                    padding: 0,
+                    border: 0,
+                    background: 'none',
+                    color: '#94a3b8',
+                    fontSize: 13,
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                    textUnderlineOffset: 3,
+                  }}
+                >
+                  {aiApprovedWeek === 1
+                    ? '1 aprobada por la IA en los últimos 7 días'
+                    : `${aiApprovedWeek} aprobadas por la IA en los últimos 7 días`}
+                </button>
+              )}
+            </div>
 
             <div style={{ color: '#94a3b8', fontSize: 13, whiteSpace: 'nowrap' }}>
               {selectedEvent ? `Evento: ${selectedEvent.title}` : 'Vista global del club'}
@@ -1023,11 +1096,15 @@ export default function ContentPage() {
                   </svg>
                 </div>
                 <div className="nv-empty-title">
-                  {onlyNeedsReview && photos.length > 0 ? 'Nada pendiente de tu revisión' : 'No hay fotos en esta vista'}
+                  {filterActive && photos.length > 0
+                    ? isApprovedTab
+                      ? 'Ninguna aprobada por la IA en esta vista'
+                      : 'Nada pendiente de tu revisión'
+                    : 'No hay fotos en esta vista'}
                 </div>
                 <div className="nv-empty-text">
-                  {onlyNeedsReview && photos.length > 0
-                    ? 'La IA ya ha revisado todas las fotos de esta vista. Quita el filtro para verlas.'
+                  {filterActive && photos.length > 0
+                    ? 'Quita el filtro para ver todas las fotos de esta vista.'
                     : 'Prueba con otro evento o cambia el filtro de estado para revisar más contenido.'}
                 </div>
               </div>
@@ -1373,11 +1450,13 @@ export default function ContentPage() {
                         >
                           {selectedPhoto.validationResult === 'matched'
                             ? 'Coincide con la misión'
-                            : selectedPhoto.validationResult === 'ai_not_matched'
-                              ? 'No coincide con la misión según la IA'
-                              : selectedPhoto.validationResult === 'ai_blocked'
-                                ? 'Bloqueada por contenido no permitido'
-                                : 'No coincide con la misión'}
+                            : selectedPhoto.validationResult === 'ai_matched'
+                              ? 'Coincide con la misión según la IA'
+                              : selectedPhoto.validationResult === 'ai_not_matched'
+                                ? 'No coincide con la misión según la IA'
+                                : selectedPhoto.validationResult === 'ai_blocked'
+                                  ? 'Bloqueada por contenido no permitido'
+                                  : 'No coincide con la misión'}
                         </div>
                       )}
                     </div>
@@ -1540,6 +1619,10 @@ export default function ContentPage() {
                       >
                         {actionBusy ? 'Procesando...' : '❌ Rechazar porque no cumple la misión'}
                       </button>
+                    )}
+
+                    {!isAiBlocked(selectedPhoto) && selectedPhoto.status === 'approved' && (
+                      <div style={{ color: '#94a3b8', fontSize: 12.5, lineHeight: 1.5 }}>{REJECT_APPROVED_NOTE}</div>
                     )}
 
                     <button
