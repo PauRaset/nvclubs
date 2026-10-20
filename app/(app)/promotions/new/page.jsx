@@ -14,6 +14,8 @@ import {
   REWARD_VALUE_MAX,
   REWARD_TITLE_MAX,
   missionTypeName,
+  missionValidationFields,
+  formatTarget,
   unitOptions,
   rewardFromForm,
   rewardDisplayTitle,
@@ -407,8 +409,8 @@ export default function NewPromotionPage() {
           target: Number(mission.target),
           unit: String(mission.unit || '').trim(),
           params: mission.params && typeof mission.params === 'object' ? mission.params : {},
-          validationType: mission.validationType || 'automatic',
-          requiresApproval: mission.validationType === 'manual',
+          // La validación depende del tipo (ver missionValidationFields)
+          ...missionValidationFields(mission),
           order: idx + 1,
           active: mission.active !== false,
           ...photoCriteriaFields(mission),
@@ -684,7 +686,7 @@ export default function NewPromotionPage() {
                   >
                     <div style={{ fontWeight: 800, fontSize: 15 }}>{index + 1}. {mission.title}</div>
                     <div style={{ color: '#94a3b8', fontSize: 13, marginTop: 6 }}>
-                      {missionTypeName(mission.type)} · {mission.validation}
+                      {missionTypeName(mission.type)} · Objetivo: {formatTarget(mission.target, mission.unit)}
                     </div>
                     {missionErrors[mission.id] && (
                       <div style={{ color: '#fda4af', fontSize: 12.5, fontWeight: 700, marginTop: 6 }}>{missionErrors[mission.id]}</div>

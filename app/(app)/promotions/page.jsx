@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import RequireClub from '@/components/RequireClub';
 import { getUser } from '@/lib/apiClient';
 import { confirmDialog } from '@/components/Toast';
-import { photoCriteriaFields, parsePhotoCriteriaError, assertLevelsSaved } from '@/lib/photoCriteria';
+import { photoCriteriaFields, parsePhotoCriteriaError, assertLevelsSaved, isPhotoMission } from '@/lib/photoCriteria';
 import {
   missionTypeName,
   missionTypeStyle,
@@ -83,14 +83,6 @@ function getDifficultyLabel(difficulty) {
   if (difficulty === 'hard') return 'Difícil';
   if (difficulty === 'extreme') return 'Extrema';
   return 'Media';
-}
-
-function getMissionValidationLabel(mission) {
-  const validation = mission?.validationType || (mission?.requiresApproval ? 'manual' : 'automatic');
-  if (validation === 'manual') return 'Manual por el club';
-  if (validation === 'link_tracking') return 'Tracking de enlace';
-  if (validation === 'hybrid') return 'Híbrida';
-  return 'Automática';
 }
 
 function extractClubId() {
@@ -239,11 +231,11 @@ export default function PromotionsPage() {
   
   const totalMissions = levels.reduce((acc, level) => acc + (Array.isArray(level.missions) ? level.missions.length : 0), 0);
   const activeLevels = levels.filter((level) => level.status === 'active').length;
-  const manualReviewMissions = levels.reduce(
+  const photoMissions = levels.reduce(
     (acc, level) =>
       acc +
       (Array.isArray(level.missions)
-        ? level.missions.filter((mission) => getMissionValidationLabel(mission).toLowerCase().includes('manual')).length
+        ? level.missions.filter((mission) => isPhotoMission(mission)).length
         : 0),
     0
   );
@@ -398,9 +390,9 @@ export default function PromotionsPage() {
               <div style={{ color: '#cbd5e1', fontSize: 13, marginTop: 10 }}>Tareas repartidas dentro de los niveles</div>
             </article>
             <article style={statCardStyle}>
-              <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 10 }}>Revisión manual</div>
-              <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.03em' }}>{manualReviewMissions}</div>
-              <div style={{ color: '#cbd5e1', fontSize: 13, marginTop: 10 }}>Misiones que requieren validación manual</div>
+              <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 10 }}>Misiones de foto</div>
+              <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.03em' }}>{photoMissions}</div>
+              <div style={{ color: '#cbd5e1', fontSize: 13, marginTop: 10 }}>Las revisa la IA y, si duda, tu equipo</div>
             </article>
           </section>
 
@@ -500,7 +492,7 @@ export default function PromotionsPage() {
                       </div>
 
                       <div style={{ marginTop: 8, color: '#94a3b8', fontSize: 13.5, lineHeight: 1.55 }}>
-                        Nivel {level.levelNumber} · Visible en app: {level.visibleInApp ? 'Sí' : 'No'}
+                        Nivel {level.levelNumber}
                       </div>
 
                       <div
@@ -543,7 +535,7 @@ export default function PromotionsPage() {
                                 </span>
                               </div>
                               <div style={{ color: '#94a3b8', fontSize: 13.5, lineHeight: 1.55 }}>
-                                Validación: {getMissionValidationLabel(mission)} · Objetivo: {formatTarget(mission.target, mission.unit)}
+                                Objetivo: {formatTarget(mission.target, mission.unit)}
                               </div>
                             </div>
                           );
