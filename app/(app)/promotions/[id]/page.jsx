@@ -1,4 +1,3 @@
-// REPLACED WITH NEW IMPLEMENTATION
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
@@ -11,10 +10,36 @@ import {
   PHOTO_CRITERIA_EXCLUDE_MAX,
   isPhotoMission,
   photoCriteriaFields,
-  validatePhotoCriteria,
   parsePhotoCriteriaError,
   assertLevelsSaved,
 } from '@/lib/photoCriteria';
+import {
+  MISSION_TYPE_GROUPS,
+  DEFAULT_UNIT_BY_TYPE,
+  FALLBACK_REWARD_TYPES,
+  LEVEL_STATUS_OPTIONS,
+  REWARD_VALUE_MIN,
+  REWARD_VALUE_MAX,
+  REWARD_TITLE_MAX,
+  missionTypeName,
+  missionTypeStyle,
+  isKnownMissionType,
+  unitOptions,
+  formatTarget,
+  rewardToForm,
+  rewardFromForm,
+  rewardDisplayTitle,
+  autoRewardTitle,
+  validateRewardForm,
+  levelStatusValue,
+  levelStatusLabel,
+  missionIdentityFields,
+  sanitizeTargetInput,
+  validateMission,
+  describePromotionsError,
+} from '@/lib/promotionsCatalog';
+import useUnsavedChangesGuard from '@/lib/useUnsavedChangesGuard';
+import { confirmDialog } from '@/components/Toast';
 import { API_BASE } from '@/lib/apiBase';
 
 
@@ -77,90 +102,12 @@ function getStatusStyles(status) {
     };
   }
 
-  if (status === 'paused') {
-    return {
-      background: 'rgba(250,204,21,0.10)',
-      border: '1px solid rgba(250,204,21,0.20)',
-      color: '#fde68a',
-    };
-  }
-
+  // 'draft' y 'paused' son lo mismo en el backend (active: false)
   return {
-    background: 'rgba(148,163,184,0.10)',
-    border: '1px solid rgba(148,163,184,0.20)',
-    color: '#cbd5e1',
+    background: 'rgba(250,204,21,0.10)',
+    border: '1px solid rgba(250,204,21,0.20)',
+    color: '#fde68a',
   };
-}
-
-function getMissionTypeStyle(type) {
-  if (type === 'Contenido') {
-    return {
-      background: 'rgba(0,229,255,0.08)',
-      border: '1px solid rgba(0,229,255,0.18)',
-      color: '#8be9f7',
-    };
-  }
-
-  if (type === 'Difusión') {
-    return {
-      background: 'rgba(168,85,247,0.12)',
-      border: '1px solid rgba(168,85,247,0.20)',
-      color: '#d8b4fe',
-    };
-  }
-
-  if (type === 'Asistencia') {
-    return {
-      background: 'rgba(34,197,94,0.10)',
-      border: '1px solid rgba(34,197,94,0.18)',
-      color: '#86efac',
-    };
-  }
-
-  if (type === 'QR') {
-    return {
-      background: 'rgba(249,115,22,0.10)',
-      border: '1px solid rgba(249,115,22,0.18)',
-      color: '#fdba74',
-    };
-  }
-
-  return {
-    background: 'rgba(255,255,255,0.04)',
-    border: '1px solid rgba(255,255,255,0.08)',
-    color: '#cbd5e1',
-  };
-}
-
-function getMissionTypeLabel(type) {
-  const map = {
-    attend_event: 'Asistencia',
-    upload_event_photo: 'Contenido',
-    approved_event_photo: 'Contenido',
-    follow_users: 'Social',
-    group_photo_with_followed: 'Contenido',
-    scan_qr: 'QR',
-    theme_photo: 'Contenido',
-    photocall_photo: 'Contenido',
-    show_prizes_photo: 'Contenido',
-    stamps_competition: 'Misión especial',
-    share_event: 'Difusión',
-    link_clicks: 'Difusión',
-    unique_visits: 'Difusión',
-    referred_purchases: 'Difusión',
-  };
-  return map[type] || 'Misión especial';
-}
-
-function getMissionTypeValue(label) {
-  const map = {
-    Asistencia: 'attend_event',
-    Contenido: 'upload_event_photo',
-    Difusión: 'share_event',
-    QR: 'scan_qr',
-    'Misión especial': 'stamps_competition',
-  };
-  return map[label] || 'stamps_competition';
 }
 
 function getValidationLabel(mission) {
@@ -190,9 +137,10 @@ function normalizeLevelForEditor(level) {
       ? level.missions.map((mission, index) => ({
           ...mission,
           id: mission.id || mission._id || `mission-${index + 1}`,
-          typeLabel: getMissionTypeLabel(mission.type),
           validation: getValidationLabel(mission),
           details: mission.description || '',
+          // Texto mientras se edita: puede quedar vacío sin saltar a 1.
+          target: String(Number.isFinite(Number(mission.target)) && Number(mission.target) > 0 ? mission.target : 1),
         }))
       : [],
   };
@@ -205,21 +153,19 @@ function serializeLevelForSave(level, form) {
     title: form.title.trim(),
     description: form.description.trim(),
     difficulty: level.difficulty || 'medium',
-    reward: {
-      ...(level.reward || {}),
-      title: form.reward.trim(),
-    },
+    reward: rewardFromForm(form.rewardForm, level.reward),
     status: form.status,
     active: form.status === 'active',
     visibleInApp: typeof level.visibleInApp === 'boolean' ? level.visibleInApp : true,
     version: Number(level.version || 1),
     missions: (form.missions || []).map((mission, idx) => ({
-      // Las misiones creadas en el editor llevan un id local ("mission-…"), que no es un ObjectId.
-      ...(/^[a-f0-9]{24}$/i.test(String(mission.id || '')) ? { _id: mission.id } : {}),
-      type: mission.type || getMissionTypeValue(mission.typeLabel),
+      // _id y missionKey: el progreso de los clientes y sus fotos dependen de ellos.
+      // Las misiones creadas en el editor llevan un id local ("mission-…"), que no se envía.
+      ...missionIdentityFields(mission),
+      type: mission.type,
       title: (mission.title || '').trim(),
       description: (mission.details || '').trim(),
-      target: Number.isFinite(Number(mission.target)) ? Number(mission.target) : 1,
+      target: Number(mission.target),
       unit: String(mission.unit || '').trim(),
       params: mission.params && typeof mission.params === 'object' ? mission.params : {},
       validationType: mission.validationType || getValidationTypeFromLabel(mission.validation),
@@ -242,8 +188,10 @@ export default function PromotionDetailPage() {
   const [notice, setNotice] = useState('');
   const [saved, setSaved] = useState(false);
   const [noticeError, setNoticeError] = useState(false);
-  // { [missionId]: mensaje } — misiones de foto con criterios no válidos.
+  // { [missionId]: mensaje } — misiones que no se pueden guardar tal como están.
   const [missionErrors, setMissionErrors] = useState({});
+  const [rewardError, setRewardError] = useState('');
+  const [rewardTypes, setRewardTypes] = useState(FALLBACK_REWARD_TYPES);
 
   const level = useMemo(() => {
     if (!id) return null;
@@ -253,11 +201,21 @@ export default function PromotionDetailPage() {
 
   const [levelNumber, setLevelNumber] = useState(1);
   const [title, setTitle] = useState('');
-  const [reward, setReward] = useState('');
+  const [rewardForm, setRewardForm] = useState({ type: 'custom', value: '1', title: '' });
   const [description, setDescription] = useState('');
-  const [status, setStatus] = useState('draft');
+  const [status, setStatus] = useState('paused');
   const [missions, setMissions] = useState([]);
   const [editingMissionId, setEditingMissionId] = useState('');
+  // Foto del formulario tal como se cargó, para detectar cambios sin guardar.
+  const [initialSnapshot, setInitialSnapshot] = useState('');
+
+  const currentSnapshot = JSON.stringify({ title, rewardForm, description, status, missions });
+  const dirty = Boolean(initialSnapshot) && currentSnapshot !== initialSnapshot;
+  const confirmLeave = useUnsavedChangesGuard(dirty);
+
+  async function goBack() {
+    if (await confirmLeave()) router.push('/promotions');
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -268,7 +226,7 @@ export default function PromotionDetailPage() {
 
       if (!resolvedClubId) {
         if (!cancelled) {
-          setNotice('No se ha podido resolver el club actual para cargar este nivel.');
+          setNotice('No se ha podido identificar tu local. Vuelve a iniciar sesión.');
           setLoading(false);
         }
         return;
@@ -280,11 +238,13 @@ export default function PromotionDetailPage() {
       try {
         const data = await apiJson(`${API_BASE}/api/promotions/clubs/${resolvedClubId}/levels`);
         if (!cancelled) {
+          if (Array.isArray(data?.rewardTypes) && data.rewardTypes.length) setRewardTypes(data.rewardTypes);
           setLevels(Array.isArray(data?.levels) ? data.levels : []);
         }
       } catch (e) {
         if (!cancelled) {
-          setNotice(e?.message || 'No se pudo cargar la configuración del nivel.');
+          setNoticeError(true);
+          setNotice(describePromotionsError(e, 'No se ha podido cargar el nivel. Inténtalo de nuevo.'));
           setLevels([]);
         }
       } finally {
@@ -301,15 +261,52 @@ export default function PromotionDetailPage() {
 
   useEffect(() => {
     if (!level) return;
+    const nextTitle = level.title || '';
+    const nextReward = rewardToForm(level.reward, rewardTypes);
+    const nextDescription = level.description || '';
+    const nextStatus = levelStatusValue(level.status);
+    const nextMissions = level.missions || [];
     setLevelNumber(level.levelNumber || 1);
-    setTitle(level.title || '');
-    setReward(level.reward?.title || '');
-    setDescription(level.description || '');
-    setStatus(level.status || 'draft');
-    setMissions(level.missions || []);
-    setEditingMissionId(level.missions?.[0]?.id || '');
+    setTitle(nextTitle);
+    setRewardForm(nextReward);
+    setDescription(nextDescription);
+    setStatus(nextStatus);
+    setMissions(nextMissions);
+    setEditingMissionId(nextMissions[0]?.id || '');
     setMissionErrors({});
-  }, [level]);
+    setRewardError('');
+    setInitialSnapshot(
+      JSON.stringify({ title: nextTitle, rewardForm: nextReward, description: nextDescription, status: nextStatus, missions: nextMissions })
+    );
+  }, [level, rewardTypes]);
+
+  function updateRewardForm(changes) {
+    setRewardForm((prev) => ({ ...prev, ...changes }));
+    setRewardError('');
+  }
+
+  async function removeMission(mission) {
+    const ok = await confirmDialog({
+      title: '¿Eliminar esta misión?',
+      message: `Se quitará «${(mission.title || '').trim() || 'Misión sin título'}» de este nivel cuando guardes los cambios.`,
+      confirmText: 'Eliminar misión',
+      danger: true,
+    });
+    if (!ok) return;
+    setMissions((prev) => {
+      const next = prev
+        .filter((item) => item.id !== mission.id)
+        .map((item, idx) => ({ ...item, order: idx + 1 }));
+      if (editingMissionId === mission.id) setEditingMissionId(next[0]?.id || '');
+      return next;
+    });
+    setMissionErrors((prev) => {
+      if (!prev[mission.id]) return prev;
+      const next = { ...prev };
+      delete next[mission.id];
+      return next;
+    });
+  }
 
   function updateMission(missionId, changes) {
     setMissions((prev) => prev.map((mission) => (mission.id === missionId ? { ...mission, ...changes } : mission)));
@@ -455,26 +452,27 @@ export default function PromotionDetailPage() {
   async function handleSave() {
     if (!clubId || !level) return;
 
-    // Validación previa: no enviar si alguna misión de foto no tiene un criterio válido.
+    // Validación previa: nada vacío ni fuera de rango llega al servidor.
     const clientErrors = {};
     missions.forEach((mission) => {
-      const problem = validatePhotoCriteria(mission);
+      const problem = validateMission(mission);
       if (problem) clientErrors[mission.id] = problem;
     });
     const failingIds = Object.keys(clientErrors);
-    if (failingIds.length) {
-      setMissionErrors(clientErrors);
-      setEditingMissionId(failingIds[0]);
+    const rewardProblem = validateRewardForm(rewardForm);
+    setRewardError(rewardProblem);
+    setMissionErrors(clientErrors);
+    if (rewardProblem || failingIds.length) {
+      if (failingIds.length) setEditingMissionId(failingIds[0]);
       setSaved(false);
       setNoticeError(true);
-      setNotice(
-        failingIds.length === 1
-          ? 'Hay una misión de foto sin un criterio válido. Revísala antes de guardar.'
-          : `Hay ${failingIds.length} misiones de foto sin un criterio válido. Revísalas antes de guardar.`
-      );
+      const parts = [];
+      if (rewardProblem) parts.push('el premio');
+      if (failingIds.length === 1) parts.push('una misión');
+      if (failingIds.length > 1) parts.push(`${failingIds.length} misiones`);
+      setNotice(`No se ha guardado nada: revisa ${parts.join(' y ')} (marcado en rojo).`);
       return;
     }
-    setMissionErrors({});
 
     try {
       setNoticeError(false);
@@ -484,7 +482,7 @@ export default function PromotionDetailPage() {
         return serializeLevelForSave(item, {
           levelNumber,
           title,
-          reward,
+          rewardForm,
           description,
           status,
           missions,
@@ -497,17 +495,18 @@ export default function PromotionDetailPage() {
       });
 
       const savedLevels = assertLevelsSaved(data, nextLevels);
+      if (Array.isArray(data?.rewardTypes) && data.rewardTypes.length) setRewardTypes(data.rewardTypes);
       setLevels(savedLevels);
       setNoticeError(false);
       setSaved(true);
-      setNotice('Cambios guardados correctamente en la configuración del club.');
+      setNotice('Cambios guardados.');
       router.replace(`/promotions/${levelNumber}`);
       setTimeout(() => setSaved(false), 2000);
     } catch (e) {
       setNoticeError(true);
       const criteriaError = parsePhotoCriteriaError(e);
       if (!criteriaError) {
-        setNotice(e?.message || 'No se pudieron guardar los cambios del nivel.');
+        setNotice(`No se han guardado los cambios. ${describePromotionsError(e)}`);
         return;
       }
       const isThisLevel = String(criteriaError.levelNumber) === String(level.levelNumber);
@@ -555,7 +554,7 @@ export default function PromotionDetailPage() {
             <section style={panelStyle}>
               <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 10 }}>Nivel no encontrado</div>
               <div style={{ ...mutedStyle, maxWidth: 680 }}>
-                No existe configuración para este nivel dentro del sistema real del club.
+                Este nivel no existe o se ha eliminado.
               </div>
               <div style={{ marginTop: 18 }}>
                 <button type="button" onClick={() => router.push('/promotions')} style={buttonGhost}>
@@ -598,16 +597,16 @@ export default function PromotionDetailPage() {
               </div>
               <h1 style={titleStyle}>{title || level.title}</h1>
               <p style={{ ...mutedStyle, margin: '12px 0 0', maxWidth: 760 }}>
-                Edita la recompensa final, el estado del nivel y revisa las misiones que lo componen. Esta pantalla ya guarda cambios reales en backend para el club actual.
+                Edita el premio, el estado del nivel y las misiones que lo componen. Los cambios se aplican al pulsar «Guardar cambios».
               </p>
             </div>
 
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-              <button type="button" onClick={() => router.push('/promotions')} style={buttonGhost}>
+              <button type="button" onClick={goBack} style={buttonGhost}>
                 Volver
               </button>
               <button type="button" onClick={handleSave} style={buttonPrimary}>
-                Guardar cambios
+                {dirty ? 'Guardar cambios •' : 'Guardar cambios'}
               </button>
             </div>
           </section>
@@ -639,7 +638,7 @@ export default function PromotionDetailPage() {
             <article style={panelStyle}>
               <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 10 }}>Nivel</div>
               <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.03em' }}>{levelNumber}</div>
-              <div style={{ color: '#cbd5e1', fontSize: 13, marginTop: 10 }}>Posición actual en el sistema</div>
+              <div style={{ color: '#cbd5e1', fontSize: 13, marginTop: 10 }}>Número de nivel</div>
             </article>
             <article style={panelStyle}>
               <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 10 }}>Misiones</div>
@@ -665,7 +664,7 @@ export default function PromotionDetailPage() {
                   fontWeight: 800,
                 }}
               >
-                {status === 'active' ? 'Activo' : status === 'paused' ? 'Pausado' : 'Borrador'}
+                {levelStatusLabel(status)}
               </div>
               <div style={{ color: '#cbd5e1', fontSize: 13, marginTop: 10 }}>Visibilidad actual del nivel</div>
             </article>
@@ -690,17 +689,79 @@ export default function PromotionDetailPage() {
                   <input value={title} onChange={(e) => setTitle(e.target.value)} style={inputStyle} />
                 </label>
 
-                <label style={labelStyle}>
-                  Recompensa final
-                  <input value={reward} onChange={(e) => setReward(e.target.value)} style={inputStyle} />
-                </label>
+                <div
+                  style={{
+                    display: 'grid',
+                    gap: 12,
+                    padding: 14,
+                    borderRadius: 14,
+                    border: rewardError ? '1px solid rgba(244,63,94,0.55)' : '1px solid rgba(255,255,255,0.08)',
+                    background: rewardError ? 'rgba(244,63,94,0.06)' : 'rgba(255,255,255,0.02)',
+                  }}
+                >
+                  <div style={{ color: '#cbd5e1', fontSize: 14, fontWeight: 700 }}>Premio al completar el nivel</div>
+                  {rewardError && (
+                    <div role="alert" style={{ color: '#fda4af', fontSize: 13, fontWeight: 700, lineHeight: 1.5 }}>
+                      {rewardError}
+                    </div>
+                  )}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
+                    <label style={smallLabelStyle}>
+                      Tipo de premio
+                      <select
+                        value={rewardForm.type}
+                        onChange={(e) => updateRewardForm({ type: e.target.value })}
+                        style={inputStyle}
+                      >
+                        {rewardTypes.map((r) => (
+                          <option key={r.type} value={r.type}>{r.label}</option>
+                        ))}
+                      </select>
+                    </label>
+                    {rewardForm.type !== 'custom' && (
+                      <label style={smallLabelStyle}>
+                        Cantidad
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          value={rewardForm.value}
+                          onChange={(e) => updateRewardForm({ value: sanitizeTargetInput(e.target.value).slice(0, 3) })}
+                          aria-describedby="reward-value-help"
+                          style={inputStyle}
+                        />
+                        <span id="reward-value-help" style={{ ...helperStyle, fontWeight: 400 }}>
+                          De {REWARD_VALUE_MIN} a {REWARD_VALUE_MAX}
+                        </span>
+                      </label>
+                    )}
+                  </div>
+                  <label style={smallLabelStyle}>
+                    {rewardForm.type === 'custom' ? 'Nombre del premio (obligatorio)' : 'Nombre del premio (opcional)'}
+                    <input
+                      value={rewardForm.title}
+                      maxLength={REWARD_TITLE_MAX}
+                      onChange={(e) => updateRewardForm({ title: e.target.value })}
+                      placeholder={
+                        rewardForm.type === 'custom'
+                          ? 'Ej.: Camiseta del local'
+                          : autoRewardTitle(rewardForm.type, Number(rewardForm.value))
+                      }
+                      style={inputStyle}
+                    />
+                    {rewardForm.type !== 'custom' && (
+                      <span style={{ ...helperStyle, fontWeight: 400 }}>
+                        Si lo dejas vacío se mostrará «{autoRewardTitle(rewardForm.type, Number(rewardForm.value))}».
+                      </span>
+                    )}
+                  </label>
+                </div>
 
                 <label style={labelStyle}>
                   Estado del nivel
                   <select value={status} onChange={(e) => setStatus(e.target.value)} style={inputStyle}>
-                    <option value="active">Activo</option>
-                    <option value="draft">Borrador</option>
-                    <option value="paused">Pausado</option>
+                    {LEVEL_STATUS_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
                   </select>
                 </label>
 
@@ -734,8 +795,8 @@ export default function PromotionDetailPage() {
                   {description || 'Añade una descripción para entender mejor qué representa este nivel.'}
                 </div>
                 <div style={{ display: 'grid', gap: 10 }}>
-                  <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 700 }}>Recompensa final</div>
-                  <div style={{ color: '#e5e7eb', fontSize: 15, fontWeight: 800 }}>{reward || 'Pendiente de definir'}</div>
+                  <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 700 }}>Premio</div>
+                  <div style={{ color: '#e5e7eb', fontSize: 15, fontWeight: 800 }}>{rewardDisplayTitle(rewardForm) || 'Pendiente de definir'}</div>
                   <div
                     style={{
                       ...statusStyle,
@@ -750,7 +811,7 @@ export default function PromotionDetailPage() {
                       marginTop: 6,
                     }}
                   >
-                    {status === 'active' ? 'Activo' : status === 'paused' ? 'Pausado' : 'Borrador'}
+                    {levelStatusLabel(status)}
                   </div>
                 </div>
               </div>
@@ -773,13 +834,12 @@ export default function PromotionDetailPage() {
                     id: nextId,
                     title: 'Nueva misión',
                     type: 'stamps_competition',
-                    typeLabel: 'Misión especial',
                     validationType: 'automatic',
                     validation: 'Automática',
                     details: 'Define aquí la condición concreta de esta misión.',
                     description: 'Define aquí la condición concreta de esta misión.',
-                    target: 1,
-                    unit: '',
+                    target: '1',
+                    unit: DEFAULT_UNIT_BY_TYPE.stamps_competition,
                     params: {},
                     order: missions.length + 1,
                     active: true,
@@ -807,21 +867,20 @@ export default function PromotionDetailPage() {
               <article style={{ display: 'grid', gap: 14 }}>
                 <div style={{ fontWeight: 900, fontSize: 22, letterSpacing: '-0.02em' }}>Editor de misión</div>
                 <div style={{ color: '#94a3b8', fontSize: 14, lineHeight: 1.6 }}>
-                  Aquí ya puedes editar visualmente cada misión del nivel y guardarla en el backend del club.
+                  Los cambios de la misión se guardan junto con el nivel, al pulsar «Guardar cambios».
                 </div>
+
+                {missionErrors[editingMission.id] && (
+                  <div role="alert" style={{ color: '#fda4af', fontSize: 13, fontWeight: 700, lineHeight: 1.5 }}>
+                    {missionErrors[editingMission.id]}
+                  </div>
+                )}
 
                 <label style={smallLabelStyle}>
                   Título de la misión
                   <input
                     value={editingMission.title}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setMissions((prev) =>
-                        prev.map((mission) =>
-                          mission.id === editingMission.id ? { ...mission, title: value } : mission
-                        )
-                      );
-                    }}
+                    onChange={(e) => updateMissionCriteria(editingMission.id, { title: e.target.value })}
                     style={inputStyle}
                   />
                 </label>
@@ -830,25 +889,30 @@ export default function PromotionDetailPage() {
                   <label style={smallLabelStyle}>
                     Tipo de misión
                     <select
-                      value={editingMission.typeLabel}
+                      value={editingMission.type}
                       onChange={(e) => {
-                        const label = e.target.value;
-                        const value = getMissionTypeValue(label);
-                        setMissions((prev) =>
-                          prev.map((mission) =>
-                            mission.id === editingMission.id
-                              ? { ...mission, typeLabel: label, type: value, isPhotoMission: undefined }
-                              : mission
-                          )
-                        );
+                        const type = e.target.value;
+                        const prevDefaultUnit = DEFAULT_UNIT_BY_TYPE[editingMission.type];
+                        const keepUnit = editingMission.unit && editingMission.unit !== prevDefaultUnit;
+                        // isPhotoMission venía del GET para el tipo anterior: ya no vale.
+                        updateMissionCriteria(editingMission.id, {
+                          type,
+                          isPhotoMission: undefined,
+                          unit: keepUnit ? editingMission.unit : DEFAULT_UNIT_BY_TYPE[type] || editingMission.unit,
+                        });
                       }}
                       style={inputStyle}
                     >
-                      <option value="Asistencia">Asistencia</option>
-                      <option value="Contenido">Contenido</option>
-                      <option value="Difusión">Difusión</option>
-                      <option value="QR">QR</option>
-                      <option value="Misión especial">Misión especial</option>
+                      {!isKnownMissionType(editingMission.type) && (
+                        <option value={editingMission.type}>Tipo desconocido ({editingMission.type})</option>
+                      )}
+                      {MISSION_TYPE_GROUPS.map(({ group, types }) => (
+                        <optgroup key={group} label={group}>
+                          {types.map((t) => (
+                            <option key={t.type} value={t.type}>{t.label}</option>
+                          ))}
+                        </optgroup>
+                      ))}
                     </select>
                   </label>
 
@@ -886,35 +950,26 @@ export default function PromotionDetailPage() {
                   <label style={smallLabelStyle}>
                     Objetivo
                     <input
-                      type="number"
-                      min="1"
-                      value={editingMission.target || 1}
-                      onChange={(e) => {
-                        const value = Number(e.target.value || 1);
-                        setMissions((prev) =>
-                          prev.map((mission) =>
-                            mission.id === editingMission.id ? { ...mission, target: value } : mission
-                          )
-                        );
-                      }}
+                      type="text"
+                      inputMode="numeric"
+                      value={editingMission.target ?? ''}
+                      onChange={(e) => updateMissionCriteria(editingMission.id, { target: sanitizeTargetInput(e.target.value) })}
                       style={inputStyle}
                     />
                   </label>
 
                   <label style={smallLabelStyle}>
                     Unidad
-                    <input
+                    <select
                       value={editingMission.unit || ''}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setMissions((prev) =>
-                          prev.map((mission) =>
-                            mission.id === editingMission.id ? { ...mission, unit: value } : mission
-                          )
-                        );
-                      }}
+                      onChange={(e) => updateMission(editingMission.id, { unit: e.target.value })}
                       style={inputStyle}
-                    />
+                    >
+                      {!editingMission.unit && <option value="">Sin unidad</option>}
+                      {unitOptions(editingMission.unit).map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
                   </label>
                 </div>
 
@@ -954,12 +1009,6 @@ export default function PromotionDetailPage() {
                         background: missionError ? 'rgba(244,63,94,0.06)' : 'rgba(0,229,255,0.04)',
                       }}
                     >
-                      {missionError && (
-                        <div role="alert" style={{ color: '#fda4af', fontSize: 13, fontWeight: 700, lineHeight: 1.5 }}>
-                          {missionError}
-                        </div>
-                      )}
-
                       <label style={smallLabelStyle}>
                         <span>
                           Qué debe verse en la foto <span style={{ color: '#fda4af' }}>*</span>
@@ -1026,7 +1075,7 @@ export default function PromotionDetailPage() {
                   <div>
                     <span
                       style={{
-                        ...getMissionTypeStyle(editingMission.typeLabel),
+                        ...missionTypeStyle(editingMission.type),
                         display: 'inline-flex',
                         alignItems: 'center',
                         minHeight: 28,
@@ -1036,10 +1085,13 @@ export default function PromotionDetailPage() {
                         fontWeight: 800,
                       }}
                     >
-                      {editingMission.typeLabel}
+                      {missionTypeName(editingMission.type)}
                     </span>
                   </div>
                   <div style={helperStyle}>{editingMission.details || 'Añade una explicación para esta misión.'}</div>
+                  <div style={{ color: '#e5e7eb', fontSize: 14, fontWeight: 700 }}>
+                    Objetivo: {formatTarget(editingMission.target, editingMission.unit)}
+                  </div>
                   <div
                     style={{
                       padding: '12px 14px',
@@ -1060,7 +1112,7 @@ export default function PromotionDetailPage() {
 
           <section style={{ display: 'grid', gap: 16 }}>
             {missions.map((mission, index) => {
-              const missionTypeStyle = getMissionTypeStyle(mission.typeLabel || getMissionTypeLabel(mission.type));
+              const typeStyle = missionTypeStyle(mission.type);
               const missionError = missionErrors[mission.id];
               return (
                 <article
@@ -1099,7 +1151,7 @@ export default function PromotionDetailPage() {
                       </h2>
                       <span
                         style={{
-                          ...missionTypeStyle,
+                          ...typeStyle,
                           display: 'inline-flex',
                           alignItems: 'center',
                           minHeight: 28,
@@ -1110,7 +1162,7 @@ export default function PromotionDetailPage() {
                           whiteSpace: 'nowrap',
                         }}
                       >
-                        {mission.typeLabel || getMissionTypeLabel(mission.type)}
+                        {missionTypeName(mission.type)}
                       </span>
                     </div>
 
@@ -1159,17 +1211,7 @@ export default function PromotionDetailPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => {
-                        setMissions((prev) => {
-                          const next = prev
-                            .filter((item) => item.id !== mission.id)
-                            .map((item, idx) => ({ ...item, order: idx + 1 }));
-                          if (editingMissionId === mission.id) {
-                            setEditingMissionId(next[0]?.id || '');
-                          }
-                          return next;
-                        });
-                      }}
+                      onClick={() => removeMission(mission)}
                       style={{
                         ...buttonGhost,
                         color: '#fda4af',

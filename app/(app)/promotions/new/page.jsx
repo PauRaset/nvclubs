@@ -2,11 +2,29 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import RequireClub from '@/components/RequireClub';
 import { getUser } from '@/lib/apiClient';
-import { photoCriteriaFields, parsePhotoCriteriaError, assertLevelsSaved } from '@/lib/photoCriteria';
+import { photoCriteriaFields, assertLevelsSaved } from '@/lib/photoCriteria';
+import {
+  FALLBACK_REWARD_TYPES,
+  LEVEL_STATUS_OPTIONS,
+  REWARD_VALUE_MIN,
+  REWARD_VALUE_MAX,
+  REWARD_TITLE_MAX,
+  missionTypeName,
+  unitOptions,
+  rewardFromForm,
+  rewardDisplayTitle,
+  autoRewardTitle,
+  validateRewardForm,
+  sanitizeTargetInput,
+  validateMission,
+  describePromotionsError,
+} from '@/lib/promotionsCatalog';
+import useUnsavedChangesGuard from '@/lib/useUnsavedChangesGuard';
+import { confirmDialog } from '@/components/Toast';
 import { API_BASE } from '@/lib/apiBase';
 
 
@@ -79,7 +97,8 @@ function buildMissionFromTemplate(typeLabel, index = 1) {
       validation: 'Manual por el club',
       unit: 'photos',
       target: 1,
-      photoCriteria: 'Una foto hecha dentro del local durante el evento en la que se vea al menos a una persona.',
+      // Mismo texto que DEFAULT_PHOTO_CRITERIA del backend (utils/photoMissions.js).
+      photoCriteria: 'Una foto tomada dentro del local durante el evento, donde se vea el ambiente de la noche.',
     },
     Difusión: {
       type: 'share_event',
@@ -105,8 +124,10 @@ function buildMissionFromTemplate(typeLabel, index = 1) {
       details: 'Define una misión especial personalizada para este nivel.',
       validationType: 'hybrid',
       validation: 'Híbrida',
-      unit: '',
+      unit: 'photos',
       target: 1,
+      // Competición de sellos es misión de foto: el backend exige criterio.
+      photoCriteria: 'Una foto de la cara de la persona donde se vean claramente los sellos conseguidos durante el evento.',
     },
   };
 
@@ -121,7 +142,7 @@ function buildMissionFromTemplate(typeLabel, index = 1) {
     validationType: base.validationType,
     validation: base.validation,
     unit: base.unit,
-    target: base.target,
+    target: String(base.target),
     params: {},
     order: index,
     active: true,
@@ -134,18 +155,76 @@ export default function NewPromotionPage() {
   const router = useRouter();
 
   const [title, setTitle] = useState('Nuevo nivel');
-  const [reward, setReward] = useState('');
+  const [rewardForm, setRewardForm] = useState({ type: 'shot', value: '1', title: '' });
+  const [rewardTypes, setRewardTypes] = useState(FALLBACK_REWARD_TYPES);
+  const [rewardError, setRewardError] = useState('');
   const [description, setDescription] = useState('');
   const [difficulty, setDifficulty] = useState('medium');
-  const [status, setStatus] = useState('draft');
+  const [status, setStatus] = useState('paused');
   const [notice, setNotice] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const [missions, setMissions] = useState([
+  const [missions, setMissions] = useState(() => [
     buildMissionFromTemplate('Asistencia', 1),
     buildMissionFromTemplate('Contenido', 2),
   ]);
   const [editingMissionId, setEditingMissionId] = useState(missions[0]?.id || '');
+  const [missionErrors, setMissionErrors] = useState({});
+
+  // Cambios sin guardar: cualquier diferencia con el formulario inicial.
+  const snapshot = JSON.stringify({ title, rewardForm, description, difficulty, status, missions });
+  const [initialSnapshot] = useState(snapshot);
+  const [created, setCreated] = useState(false);
+  const confirmLeave = useUnsavedChangesGuard(!created && snapshot !== initialSnapshot);
+
+  // Tipos de premio del backend (si falla, se usa la lista local).
+  useEffect(() => {
+    const clubId = extractClubId();
+    if (!clubId) return;
+    let cancelled = false;
+    apiJson(`${API_BASE}/api/promotions/clubs/${clubId}/levels`)
+      .then((data) => {
+        if (!cancelled && Array.isArray(data?.rewardTypes) && data.rewardTypes.length) setRewardTypes(data.rewardTypes);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  function updateMission(missionId, changes) {
+    setMissions((prev) => prev.map((mission) => (mission.id === missionId ? { ...mission, ...changes } : mission)));
+    setMissionErrors((prev) => {
+      if (!prev[missionId]) return prev;
+      const next = { ...prev };
+      delete next[missionId];
+      return next;
+    });
+  }
+
+  function updateRewardForm(changes) {
+    setRewardForm((prev) => ({ ...prev, ...changes }));
+    setRewardError('');
+  }
+
+  async function goBack() {
+    if (await confirmLeave()) router.push('/promotions');
+  }
+
+  async function removeMission(mission) {
+    const ok = await confirmDialog({
+      title: '¿Eliminar esta misión?',
+      message: `Se quitará «${(mission.title || '').trim() || 'Misión sin título'}» del nivel.`,
+      confirmText: 'Eliminar misión',
+      danger: true,
+    });
+    if (!ok) return;
+    const remaining = missions
+      .filter((item) => item.id !== mission.id)
+      .map((item, idx) => ({ ...item, order: idx + 1 }));
+    setMissions(remaining);
+    if (editingMissionId === mission.id) setEditingMissionId(remaining[0]?.id || '');
+  }
 
   const editingMission = missions.find((mission) => mission.id === editingMissionId) || missions[0] || null;
 
@@ -271,7 +350,27 @@ export default function NewPromotionPage() {
   async function handleCreate() {
     const clubId = extractClubId();
     if (!clubId) {
-      setNotice('No se ha podido resolver el club actual.');
+      setNotice('No se ha podido identificar tu local. Vuelve a iniciar sesión.');
+      return;
+    }
+
+    // Validación previa: nada vacío ni fuera de rango llega al servidor.
+    const clientErrors = {};
+    missions.forEach((mission) => {
+      const problem = validateMission(mission);
+      if (problem) clientErrors[mission.id] = problem;
+    });
+    const failingIds = Object.keys(clientErrors);
+    const rewardProblem = validateRewardForm(rewardForm);
+    setRewardError(rewardProblem);
+    setMissionErrors(clientErrors);
+    if (rewardProblem || failingIds.length) {
+      if (failingIds.length) setEditingMissionId(failingIds[0]);
+      const parts = [];
+      if (rewardProblem) parts.push('el premio');
+      if (failingIds.length === 1) parts.push('una misión');
+      if (failingIds.length > 1) parts.push(`${failingIds.length} misiones`);
+      setNotice(`No se ha creado el nivel: revisa ${parts.join(' y ')} (marcado en rojo).`);
       return;
     }
 
@@ -296,13 +395,7 @@ export default function NewPromotionPage() {
         title: title.trim() || `Nivel ${nextLevelNumber}`,
         description: description.trim(),
         difficulty,
-        reward: {
-          type: 'custom',
-          title: reward.trim(),
-          description: '',
-          value: null,
-          active: true,
-        },
+        reward: rewardFromForm(rewardForm, { description: '', active: true }),
         status,
         active: status === 'active',
         visibleInApp: true,
@@ -311,7 +404,7 @@ export default function NewPromotionPage() {
           type: mission.type,
           title: (mission.title || '').trim(),
           description: (mission.details || '').trim(),
-          target: Number.isFinite(Number(mission.target)) ? Number(mission.target) : 1,
+          target: Number(mission.target),
           unit: String(mission.unit || '').trim(),
           params: mission.params && typeof mission.params === 'object' ? mission.params : {},
           validationType: mission.validationType || 'automatic',
@@ -332,15 +425,11 @@ export default function NewPromotionPage() {
       });
       assertLevelsSaved(saved, [nextLevel]);
 
-      setNotice('Nivel creado correctamente.');
+      setCreated(true);
+      setNotice('Nivel creado.');
       router.push(`/promotions/${nextLevelNumber}`);
     } catch (e) {
-      const criteriaError = parsePhotoCriteriaError(e);
-      setNotice(
-        criteriaError
-          ? `No se pudo crear el nivel. ${criteriaError.message}`
-          : e?.message || 'No se pudo crear el nivel.'
-      );
+      setNotice(`No se ha creado el nivel. ${describePromotionsError(e)}`);
     } finally {
       setSaving(false);
     }
@@ -375,7 +464,7 @@ export default function NewPromotionPage() {
             </div>
 
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-              <button type="button" onClick={() => router.push('/promotions')} style={buttonGhost}>
+              <button type="button" onClick={goBack} style={buttonGhost}>
                 Volver
               </button>
               <button type="button" onClick={handleCreate} disabled={saving} style={buttonPrimary}>
@@ -416,10 +505,65 @@ export default function NewPromotionPage() {
                   <input value={title} onChange={(e) => setTitle(e.target.value)} style={inputStyle} />
                 </label>
 
-                <label style={labelStyle}>
-                  Recompensa final
-                  <input value={reward} onChange={(e) => setReward(e.target.value)} style={inputStyle} />
-                </label>
+                <div
+                  style={{
+                    display: 'grid',
+                    gap: 12,
+                    padding: 14,
+                    borderRadius: 14,
+                    border: rewardError ? '1px solid rgba(244,63,94,0.55)' : '1px solid rgba(255,255,255,0.08)',
+                    background: rewardError ? 'rgba(244,63,94,0.06)' : 'rgba(255,255,255,0.02)',
+                  }}
+                >
+                  <div style={{ color: '#cbd5e1', fontSize: 14, fontWeight: 700 }}>Premio al completar el nivel</div>
+                  {rewardError && (
+                    <div role="alert" style={{ color: '#fda4af', fontSize: 13, fontWeight: 700, lineHeight: 1.5 }}>
+                      {rewardError}
+                    </div>
+                  )}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
+                    <label style={labelStyle}>
+                      Tipo de premio
+                      <select value={rewardForm.type} onChange={(e) => updateRewardForm({ type: e.target.value })} style={inputStyle}>
+                        {rewardTypes.map((r) => (
+                          <option key={r.type} value={r.type}>{r.label}</option>
+                        ))}
+                      </select>
+                    </label>
+                    {rewardForm.type !== 'custom' && (
+                      <label style={labelStyle}>
+                        Cantidad
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          value={rewardForm.value}
+                          onChange={(e) => updateRewardForm({ value: sanitizeTargetInput(e.target.value).slice(0, 3) })}
+                          style={inputStyle}
+                        />
+                        <span style={{ ...helperStyle, fontWeight: 400 }}>De {REWARD_VALUE_MIN} a {REWARD_VALUE_MAX}</span>
+                      </label>
+                    )}
+                  </div>
+                  <label style={labelStyle}>
+                    {rewardForm.type === 'custom' ? 'Nombre del premio (obligatorio)' : 'Nombre del premio (opcional)'}
+                    <input
+                      value={rewardForm.title}
+                      maxLength={REWARD_TITLE_MAX}
+                      onChange={(e) => updateRewardForm({ title: e.target.value })}
+                      placeholder={
+                        rewardForm.type === 'custom'
+                          ? 'Ej.: Camiseta del local'
+                          : autoRewardTitle(rewardForm.type, Number(rewardForm.value))
+                      }
+                      style={inputStyle}
+                    />
+                    {rewardForm.type !== 'custom' && (
+                      <span style={{ ...helperStyle, fontWeight: 400 }}>
+                        Si lo dejas vacío se mostrará «{autoRewardTitle(rewardForm.type, Number(rewardForm.value))}».
+                      </span>
+                    )}
+                  </label>
+                </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
                   <label style={labelStyle}>
@@ -435,9 +579,9 @@ export default function NewPromotionPage() {
                   <label style={labelStyle}>
                     Estado inicial
                     <select value={status} onChange={(e) => setStatus(e.target.value)} style={inputStyle}>
-                      <option value="draft">Borrador</option>
-                      <option value="active">Activo</option>
-                      <option value="paused">Pausado</option>
+                      {LEVEL_STATUS_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
                     </select>
                   </label>
                 </div>
@@ -472,7 +616,7 @@ export default function NewPromotionPage() {
                 </div>
                 <div style={{ display: 'grid', gap: 10 }}>
                   <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 700 }}>Recompensa final</div>
-                  <div style={{ color: '#e5e7eb', fontSize: 15, fontWeight: 800 }}>{reward || 'Pendiente de definir'}</div>
+                  <div style={{ color: '#e5e7eb', fontSize: 15, fontWeight: 800 }}>{rewardDisplayTitle(rewardForm) || 'Pendiente de definir'}</div>
                   <div style={helperStyle}>Misiones iniciales: {missions.length}</div>
                 </div>
               </div>
@@ -540,8 +684,11 @@ export default function NewPromotionPage() {
                   >
                     <div style={{ fontWeight: 800, fontSize: 15 }}>{index + 1}. {mission.title}</div>
                     <div style={{ color: '#94a3b8', fontSize: 13, marginTop: 6 }}>
-                      {mission.typeLabel} · {mission.validation}
+                      {missionTypeName(mission.type)} · {mission.validation}
                     </div>
+                    {missionErrors[mission.id] && (
+                      <div style={{ color: '#fda4af', fontSize: 12.5, fontWeight: 700, marginTop: 6 }}>{missionErrors[mission.id]}</div>
+                    )}
                   </button>
                 ))}
               </div>
@@ -557,45 +704,41 @@ export default function NewPromotionPage() {
                     Título
                     <input
                       value={editingMission.title}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setMissions((prev) => prev.map((mission) => (
-                          mission.id === editingMission.id ? { ...mission, title: value } : mission
-                        )));
-                      }}
+                      onChange={(e) => updateMission(editingMission.id, { title: e.target.value })}
                       style={inputStyle}
                     />
                   </label>
+
+                  {missionErrors[editingMission.id] && (
+                    <div role="alert" style={{ color: '#fda4af', fontSize: 13, fontWeight: 700, lineHeight: 1.5 }}>
+                      {missionErrors[editingMission.id]}
+                    </div>
+                  )}
 
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
                     <label style={labelStyle}>
                       Objetivo
                       <input
-                        type="number"
-                        min="1"
-                        value={editingMission.target || 1}
-                        onChange={(e) => {
-                          const value = Number(e.target.value || 1);
-                          setMissions((prev) => prev.map((mission) => (
-                            mission.id === editingMission.id ? { ...mission, target: value } : mission
-                          )));
-                        }}
+                        type="text"
+                        inputMode="numeric"
+                        value={editingMission.target ?? ''}
+                        onChange={(e) => updateMission(editingMission.id, { target: sanitizeTargetInput(e.target.value) })}
                         style={inputStyle}
                       />
                     </label>
 
                     <label style={labelStyle}>
                       Unidad
-                      <input
+                      <select
                         value={editingMission.unit || ''}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          setMissions((prev) => prev.map((mission) => (
-                            mission.id === editingMission.id ? { ...mission, unit: value } : mission
-                          )));
-                        }}
+                        onChange={(e) => updateMission(editingMission.id, { unit: e.target.value })}
                         style={inputStyle}
-                      />
+                      >
+                        {!editingMission.unit && <option value="">Sin unidad</option>}
+                        {unitOptions(editingMission.unit).map((opt) => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
                     </label>
                   </div>
 
@@ -617,16 +760,7 @@ export default function NewPromotionPage() {
 
                   <button
                     type="button"
-                    onClick={() => {
-                      setMissions((prev) => prev
-                        .filter((mission) => mission.id !== editingMission.id)
-                        .map((mission, idx) => ({ ...mission, order: idx + 1 }))
-                      );
-                      setEditingMissionId((prevId) => {
-                        const remaining = missions.filter((mission) => mission.id !== prevId);
-                        return remaining[0]?.id || '';
-                      });
-                    }}
+                    onClick={() => removeMission(editingMission)}
                     style={{
                       ...buttonGhost,
                       color: '#fda4af',

@@ -5,31 +5,16 @@ import RequireClub from '@/components/RequireClub';
 import { getUser } from '@/lib/apiClient';
 import { confirmDialog } from '@/components/Toast';
 import { photoCriteriaFields, parsePhotoCriteriaError, assertLevelsSaved } from '@/lib/photoCriteria';
+import {
+  missionTypeName,
+  missionTypeStyle,
+  formatTarget,
+  levelStatusLabel,
+  missionIdentityFields,
+  describePromotionsError,
+} from '@/lib/promotionsCatalog';
 import { API_BASE } from '@/lib/apiBase';
 
-
-const roadmap = [
-  {
-    title: '10 niveles por defecto',
-    description:
-      'Cada club parte de una estructura inicial y luego puede personalizar nombre, dificultad, recompensa, orden y misiones.',
-  },
-  {
-    title: 'Premio al completar el nivel',
-    description:
-      'La recompensa se desbloquea cuando el usuario completa todo el nivel, no al terminar una misión suelta.',
-  },
-  {
-    title: 'Misiones con validación distinta',
-    description:
-      'Habrá misiones automáticas, manuales y ligadas a tracking, para que el sistema sea entendible tanto en panel como en app.',
-  },
-  {
-    title: 'Sistema editable por club',
-    description:
-      'El club podrá ajustar su propio sistema de promociones y la app leerá esa configuración real desde backend.',
-  },
-];
 
 function getAuthHeaders() {
   if (typeof window === 'undefined') return {};
@@ -85,52 +70,19 @@ function getStatusStyles(status) {
     };
   }
 
-  if (status === 'paused') {
-    return {
-      background: 'rgba(250,204,21,0.10)',
-      border: '1px solid rgba(250,204,21,0.20)',
-      color: '#fde68a',
-    };
-  }
-
+  // 'draft' y 'paused' son lo mismo en el backend (active: false)
   return {
-    background: 'rgba(148,163,184,0.10)',
-    border: '1px solid rgba(148,163,184,0.20)',
-    color: '#cbd5e1',
+    background: 'rgba(250,204,21,0.10)',
+    border: '1px solid rgba(250,204,21,0.20)',
+    color: '#fde68a',
   };
-}
-
-function getStatusLabel(status) {
-  if (status === 'active') return 'Activo';
-  if (status === 'paused') return 'Pausado';
-  return 'Borrador';
 }
 
 function getDifficultyLabel(difficulty) {
   if (difficulty === 'easy') return 'Fácil';
   if (difficulty === 'hard') return 'Difícil';
-  if (difficulty === 'extreme') return 'Extremo';
+  if (difficulty === 'extreme') return 'Extrema';
   return 'Media';
-}
-
-function getMissionTypeLabel(type) {
-  const map = {
-    attend_event: 'Asistencia',
-    upload_event_photo: 'Contenido',
-    approved_event_photo: 'Contenido',
-    follow_users: 'Social',
-    group_photo_with_followed: 'Contenido',
-    scan_qr: 'QR',
-    theme_photo: 'Contenido',
-    photocall_photo: 'Contenido',
-    show_prizes_photo: 'Contenido',
-    stamps_competition: 'Misión especial',
-    share_event: 'Difusión',
-    link_clicks: 'Difusión',
-    unique_visits: 'Difusión',
-    referred_purchases: 'Difusión',
-  };
-  return map[type] || 'Misión';
 }
 
 function getMissionValidationLabel(mission) {
@@ -139,46 +91,6 @@ function getMissionValidationLabel(mission) {
   if (validation === 'link_tracking') return 'Tracking de enlace';
   if (validation === 'hybrid') return 'Híbrida';
   return 'Automática';
-}
-
-function getMissionTypeStyle(type) {
-  if (type === 'Contenido') {
-    return {
-      background: 'rgba(0,229,255,0.08)',
-      border: '1px solid rgba(0,229,255,0.18)',
-      color: '#8be9f7',
-    };
-  }
-
-  if (type === 'Difusión') {
-    return {
-      background: 'rgba(168,85,247,0.12)',
-      border: '1px solid rgba(168,85,247,0.20)',
-      color: '#d8b4fe',
-    };
-  }
-
-  if (type === 'Asistencia') {
-    return {
-      background: 'rgba(34,197,94,0.10)',
-      border: '1px solid rgba(34,197,94,0.18)',
-      color: '#86efac',
-    };
-  }
-
-  if (type === 'QR') {
-    return {
-      background: 'rgba(249,115,22,0.10)',
-      border: '1px solid rgba(249,115,22,0.18)',
-      color: '#fdba74',
-    };
-  }
-
-  return {
-    background: 'rgba(255,255,255,0.04)',
-    border: '1px solid rgba(255,255,255,0.08)',
-    color: '#cbd5e1',
-  };
 }
 
 function extractClubId() {
@@ -199,7 +111,6 @@ export default function PromotionsPage() {
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState('');
   const [deletingLevelNumber, setDeletingLevelNumber] = useState('');
-  const [reorderingLevelNumber, setReorderingLevelNumber] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -211,7 +122,7 @@ export default function PromotionsPage() {
       if (!resolvedClubId) {
         if (!cancelled) {
           setLoading(false);
-          setNotice('No se ha podido resolver el club actual para cargar promociones.');
+          setNotice('No se ha podido identificar tu local. Vuelve a iniciar sesión.');
         }
         return;
       }
@@ -227,7 +138,7 @@ export default function PromotionsPage() {
       } catch (e) {
         if (!cancelled) {
           setLevels([]);
-          setNotice(e?.message || 'No se pudo cargar la configuración de promociones.');
+          setNotice(describePromotionsError(e, 'No se han podido cargar las promociones. Inténtalo de nuevo.'));
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -243,7 +154,7 @@ export default function PromotionsPage() {
 
   async function handleDeleteLevel(levelNumber) {
     if (!clubId) {
-      setNotice('No se ha podido resolver el club actual.');
+      setNotice('No se ha podido identificar tu local. Vuelve a iniciar sesión.');
       return;
     }
 
@@ -261,7 +172,8 @@ export default function PromotionsPage() {
 
       const nextLevels = levels
         .filter((level) => Number(level.levelNumber) !== Number(levelNumber))
-        .sort((a, b) => Number(a.order || a.levelNumber || 0) - Number(b.order || b.levelNumber || 0))
+        // Por número de nivel: así `order` vuelve a coincidir con `levelNumber`.
+        .sort((a, b) => Number(a.levelNumber || 0) - Number(b.levelNumber || 0))
         .map((level, idx) => ({
           levelNumber: Number(level.levelNumber),
           order: idx + 1,
@@ -299,6 +211,7 @@ export default function PromotionsPage() {
                     ? mission.requiresApproval
                     : mission.validationType === 'manual',
                 order: Number.isFinite(Number(mission.order)) ? Number(mission.order) : missionIdx + 1,
+                ...missionIdentityFields(mission),
                 active: mission.active !== false,
                 ...photoCriteriaFields(mission),
               }))
@@ -315,9 +228,8 @@ export default function PromotionsPage() {
     } catch (e) {
       const criteriaError = parsePhotoCriteriaError(e);
       setNotice(
-        criteriaError
-          ? `No se pudo eliminar el nivel. ${criteriaError.message} Corrígelo desde la edición de ese nivel.`
-          : e?.message || 'No se pudo eliminar el nivel.'
+        `No se ha podido eliminar el nivel. ${describePromotionsError(e)}` +
+          (criteriaError ? ' Corrígelo desde la edición de ese nivel.' : '')
       );
     } finally {
       setDeletingLevelNumber('');
@@ -325,97 +237,6 @@ export default function PromotionsPage() {
   }
 
   
-  async function handleMoveLevel(levelNumber, direction) {
-    if (!clubId) {
-      setNotice('No se ha podido resolver el club actual.');
-      return;
-    }
-
-    const sortedLevels = [...levels].sort(
-      (a, b) => Number(a.order || a.levelNumber || 0) - Number(b.order || b.levelNumber || 0)
-    );
-
-    const currentIndex = sortedLevels.findIndex(
-      (level) => Number(level.levelNumber) === Number(levelNumber)
-    );
-    if (currentIndex === -1) return;
-
-    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
-    if (targetIndex < 0 || targetIndex >= sortedLevels.length) return;
-
-    const swapped = [...sortedLevels];
-    const temp = swapped[currentIndex];
-    swapped[currentIndex] = swapped[targetIndex];
-    swapped[targetIndex] = temp;
-
-    const payloadLevels = swapped.map((level, idx) => ({
-      levelNumber: Number(level.levelNumber),
-      order: idx + 1,
-      title: level.title || `Nivel ${idx + 1}`,
-      description: level.description || '',
-      difficulty: level.difficulty || 'medium',
-      reward: {
-        type: level.reward?.type || 'custom',
-        title: level.reward?.title || '',
-        description: level.reward?.description || '',
-        value:
-          typeof level.reward?.value === 'number'
-            ? level.reward.value
-            : (typeof level.reward?.value === 'string' &&
-                level.reward.value.trim() !== '' &&
-                !Number.isNaN(Number(level.reward.value)))
-              ? Number(level.reward.value)
-              : null,
-        active: level.reward?.active !== false,
-      },
-      status: level.status || (level.active ? 'active' : 'paused') || 'draft',
-      active: typeof level.active === 'boolean' ? level.active : level.status === 'active',
-      visibleInApp: level.visibleInApp !== false,
-      version: Number(level.version || 1),
-      missions: Array.isArray(level.missions)
-        ? level.missions.map((mission, missionIdx) => ({
-            type: mission.type || 'stamps_competition',
-            title: mission.title || `Misión ${missionIdx + 1}`,
-            description: mission.description || '',
-            target: Number.isFinite(Number(mission.target)) ? Number(mission.target) : 1,
-            unit: mission.unit || '',
-            params: mission.params && typeof mission.params === 'object' ? mission.params : {},
-            validationType:
-              mission.validationType || (mission.requiresApproval ? 'manual' : 'automatic') || 'automatic',
-            requiresApproval:
-              typeof mission.requiresApproval === 'boolean'
-                ? mission.requiresApproval
-                : mission.validationType === 'manual',
-            order: Number.isFinite(Number(mission.order)) ? Number(mission.order) : missionIdx + 1,
-            active: mission.active !== false,
-            ...photoCriteriaFields(mission),
-          }))
-        : [],
-    }));
-
-    try {
-      setReorderingLevelNumber(String(levelNumber));
-      setNotice(direction === 'up' ? 'Subiendo nivel...' : 'Bajando nivel...');
-
-      const data = await apiJson(`${API_BASE}/api/promotions/clubs/${clubId}/levels`, {
-        method: 'PUT',
-        body: JSON.stringify({ levels: payloadLevels }),
-      });
-
-      setLevels(assertLevelsSaved(data, payloadLevels));
-      setNotice('Orden de niveles actualizado correctamente.');
-    } catch (e) {
-      const criteriaError = parsePhotoCriteriaError(e);
-      setNotice(
-        criteriaError
-          ? `No se pudo reordenar. ${criteriaError.message} Corrígelo desde la edición de ese nivel.`
-          : e?.message || 'No se pudo reordenar el nivel.'
-      );
-    } finally {
-      setReorderingLevelNumber('');
-    }
-  }
-
   const totalMissions = levels.reduce((acc, level) => acc + (Array.isArray(level.missions) ? level.missions.length : 0), 0);
   const activeLevels = levels.filter((level) => level.status === 'active').length;
   const manualReviewMissions = levels.reduce(
@@ -536,7 +357,7 @@ export default function PromotionsPage() {
               <h1 style={titleStyle}>Promociones</h1>
               <p style={{ ...mutedStyle, margin: '12px 0 0', maxWidth: 760 }}>
                 En NightVibe cada promoción es un nivel. Cada nivel tiene sus misiones y una recompensa final
-                que el usuario desbloquea al completarlo. Esta vista ya carga la configuración real del club desde backend.
+                que el cliente consigue al completarlo.
               </p>
             </div>
 
@@ -564,7 +385,7 @@ export default function PromotionsPage() {
             <article style={statCardStyle}>
               <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 10 }}>Niveles visibles</div>
               <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.03em' }}>{levels.length}</div>
-              <div style={{ color: '#cbd5e1', fontSize: 13, marginTop: 10 }}>Configuración real cargada para este club</div>
+              <div style={{ color: '#cbd5e1', fontSize: 13, marginTop: 10 }}>Niveles configurados en tu local</div>
             </article>
             <article style={statCardStyle}>
               <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 10 }}>Niveles activos</div>
@@ -588,11 +409,8 @@ export default function PromotionsPage() {
               <div>
                 <div style={{ fontWeight: 900, fontSize: 22, letterSpacing: '-0.02em' }}>Niveles del club</div>
                 <div style={{ color: '#94a3b8', fontSize: 14, marginTop: 8, lineHeight: 1.6 }}>
-                  Cada tarjeta representa un nivel-promoción real del club. Desde aquí puedes revisar recompensa, dificultad y misiones antes de editarlo.
+                  Cada tarjeta es un nivel. Desde aquí puedes revisar el premio, la dificultad y las misiones antes de editarlo.
                 </div>
-              </div>
-              <div style={{ color: '#94a3b8', fontSize: 14 }}>
-                {clubId ? `Club actual: ${clubId}` : 'Club no resuelto'}
               </div>
             </div>
           </section>
@@ -609,13 +427,14 @@ export default function PromotionsPage() {
               <section style={panelStyle}>
                 <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 8 }}>No hay niveles disponibles</div>
                 <div style={{ color: '#94a3b8', fontSize: 14, lineHeight: 1.6 }}>
-                  Cuando el backend genere o guarde la configuración del club, aparecerá aquí el sistema completo de promociones por niveles.
+                  Todavía no hay niveles para tu local. Crea el primero con «+ Crear nivel».
                 </div>
               </section>
             ) : (
               [...levels]
-                .sort((a, b) => Number(a.order || a.levelNumber || 0) - Number(b.order || b.levelNumber || 0))
-                .map((level, index, orderedLevels) => {
+                // Por número de nivel: es el orden en que avanzan los clientes.
+                .sort((a, b) => Number(a.levelNumber || 0) - Number(b.levelNumber || 0))
+                .map((level) => {
                 const statusStyle = getStatusStyles(level.status);
 
                 return (
@@ -655,7 +474,7 @@ export default function PromotionsPage() {
                             whiteSpace: 'nowrap',
                           }}
                         >
-                          {getStatusLabel(level.status)}
+                          {levelStatusLabel(level.status)}
                         </span>
                         <span
                           style={{
@@ -681,7 +500,7 @@ export default function PromotionsPage() {
                       </div>
 
                       <div style={{ marginTop: 8, color: '#94a3b8', fontSize: 13.5, lineHeight: 1.55 }}>
-                        Orden: {index + 1} · Nivel: {level.levelNumber} · Visible en app: {level.visibleInApp ? 'Sí' : 'No'}
+                        Nivel {level.levelNumber} · Visible en app: {level.visibleInApp ? 'Sí' : 'No'}
                       </div>
 
                       <div
@@ -692,8 +511,7 @@ export default function PromotionsPage() {
                         }}
                       >
                         {(level.missions || []).map((mission) => {
-                          const missionTypeLabel = getMissionTypeLabel(mission.type);
-                          const missionTypeStyle = getMissionTypeStyle(missionTypeLabel);
+                          const typeStyle = missionTypeStyle(mission.type);
                           return (
                             <div
                               key={mission.id || `${mission.type}-${mission.order}`}
@@ -710,7 +528,7 @@ export default function PromotionsPage() {
                                 <div style={{ fontWeight: 800, fontSize: 15 }}>{mission.title}</div>
                                 <span
                                   style={{
-                                    ...missionTypeStyle,
+                                    ...typeStyle,
                                     display: 'inline-flex',
                                     alignItems: 'center',
                                     minHeight: 28,
@@ -721,11 +539,11 @@ export default function PromotionsPage() {
                                     whiteSpace: 'nowrap',
                                   }}
                                 >
-                                  {missionTypeLabel}
+                                  {missionTypeName(mission.type)}
                                 </span>
                               </div>
                               <div style={{ color: '#94a3b8', fontSize: 13.5, lineHeight: 1.55 }}>
-                                Validación: {getMissionValidationLabel(mission)} · Objetivo: {mission.target || 1} {mission.unit || ''}
+                                Validación: {getMissionValidationLabel(mission)} · Objetivo: {formatTarget(mission.target, mission.unit)}
                               </div>
                             </div>
                           );
@@ -741,56 +559,6 @@ export default function PromotionsPage() {
                         minWidth: 180,
                       }}
                     >
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                        <button
-                          type="button"
-                          onClick={() => handleMoveLevel(level.levelNumber, 'up')}
-                          disabled={index === 0 || reorderingLevelNumber === String(level.levelNumber)}
-                          style={{
-                            minHeight: 40,
-                            padding: '0 12px',
-                            borderRadius: 12,
-                            border: '1px solid rgba(0,229,255,0.20)',
-                            background: 'rgba(0,229,255,0.06)',
-                            color: '#7dd3fc',
-                            fontWeight: 700,
-                            cursor:
-                              index === 0 || reorderingLevelNumber === String(level.levelNumber)
-                                ? 'not-allowed'
-                                : 'pointer',
-                            opacity:
-                              index === 0 || reorderingLevelNumber === String(level.levelNumber)
-                                ? 0.55
-                                : 1,
-                          }}
-                        >
-                          ↑ Subir
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleMoveLevel(level.levelNumber, 'down')}
-                          disabled={index === orderedLevels.length - 1 || reorderingLevelNumber === String(level.levelNumber)}
-                          style={{
-                            minHeight: 40,
-                            padding: '0 12px',
-                            borderRadius: 12,
-                            border: '1px solid rgba(0,229,255,0.20)',
-                            background: 'rgba(0,229,255,0.06)',
-                            color: '#7dd3fc',
-                            fontWeight: 700,
-                            cursor:
-                              index === orderedLevels.length - 1 || reorderingLevelNumber === String(level.levelNumber)
-                                ? 'not-allowed'
-                                : 'pointer',
-                            opacity:
-                              index === orderedLevels.length - 1 || reorderingLevelNumber === String(level.levelNumber)
-                                ? 0.55
-                                : 1,
-                          }}
-                        >
-                          ↓ Bajar
-                        </button>
-                      </div>
                       <a
                         href={`/promotions/${level.levelNumber}`}
                         style={{
@@ -812,7 +580,7 @@ export default function PromotionsPage() {
                       <button
                         type="button"
                         onClick={() => handleDeleteLevel(level.levelNumber)}
-                        disabled={deletingLevelNumber === String(level.levelNumber) || reorderingLevelNumber === String(level.levelNumber)}
+                        disabled={deletingLevelNumber === String(level.levelNumber)}
                         style={{
                           minHeight: 44,
                           padding: '0 14px',
@@ -822,11 +590,11 @@ export default function PromotionsPage() {
                           color: '#fda4af',
                           fontWeight: 700,
                           cursor:
-                            deletingLevelNumber === String(level.levelNumber) || reorderingLevelNumber === String(level.levelNumber)
+                            deletingLevelNumber === String(level.levelNumber)
                               ? 'not-allowed'
                               : 'pointer',
                           opacity:
-                            deletingLevelNumber === String(level.levelNumber) || reorderingLevelNumber === String(level.levelNumber)
+                            deletingLevelNumber === String(level.levelNumber)
                               ? 0.7
                               : 1,
                         }}
@@ -838,63 +606,6 @@ export default function PromotionsPage() {
                 );
               })
             )}
-          </section>
-
-          <section
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
-              gap: 20,
-            }}
-          >
-            <article style={panelStyle}>
-              <div style={{ fontWeight: 900, fontSize: 22, letterSpacing: '-0.02em' }}>Qué prepararemos aquí</div>
-              <div style={{ color: '#94a3b8', fontSize: 14, marginTop: 8, lineHeight: 1.6 }}>
-                Esta pantalla ya queda conectada a la lógica real del sistema de promociones por niveles del club.
-              </div>
-
-              <div style={{ display: 'grid', gap: 12, marginTop: 18 }}>
-                {roadmap.map((item) => (
-                  <div
-                    key={item.title}
-                    style={{
-                      padding: 14,
-                      borderRadius: 16,
-                      background: 'rgba(255,255,255,0.02)',
-                      border: '1px solid rgba(255,255,255,0.06)',
-                    }}
-                  >
-                    <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6 }}>{item.title}</div>
-                    <div style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.6 }}>{item.description}</div>
-                  </div>
-                ))}
-              </div>
-            </article>
-
-            <article style={panelStyle}>
-              <div style={{ fontWeight: 900, fontSize: 22, letterSpacing: '-0.02em' }}>Sin promociones activas</div>
-              <div style={{ color: '#94a3b8', fontSize: 14, marginTop: 8, lineHeight: 1.6 }}>
-                El club podrá decidir no activar el sistema de niveles, pero en el evento seguirá apareciendo una referencia sutil para dejar preparada esa capa de engagement.
-              </div>
-
-              <div
-                style={{
-                  marginTop: 18,
-                  padding: 16,
-                  borderRadius: 18,
-                  background: 'linear-gradient(135deg, rgba(255,255,255,0.03), rgba(0,229,255,0.04))',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                }}
-              >
-                <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 700, marginBottom: 8 }}>Vista prevista en el evento</div>
-                <div style={{ fontSize: 18, fontWeight: 900, letterSpacing: '-0.02em', marginBottom: 8 }}>
-                  Promociones no activadas
-                </div>
-                <div style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.6 }}>
-                  Este evento no tiene niveles activos por el momento. El club puede activarlos más adelante para desbloquear recompensas, misiones y campañas de difusión.
-                </div>
-              </div>
-            </article>
           </section>
         </div>
       </main>
