@@ -1,29 +1,24 @@
 // app/pay/[eventId]/page.jsx
-import { redirect } from "next/navigation";
-import PayCheckoutClient from "./PayCheckoutClient";
+// La página de compra vive en el backend (GET /api/payments/direct/:eventId): cartel,
+// tandas, cantidad y etiquetas Open Graph para la previsualización del enlace.
+// Esta ruta solo redirige, para que los enlaces /pay/… ya compartidos sigan funcionando.
+import { redirect } from 'next/navigation';
 import { API_BASE } from '@/lib/apiBase';
 
-export default function PayEventPage({ params, searchParams }) {
-  const { eventId } = params;
+// Parámetros que se pasan tal cual a la página de compra.
+const FORWARDED_PARAMS = ['qty', 'tier', 'ref', 'ch'];
 
-  const apiBase = API_BASE;
+export default async function PayEventPage({ params, searchParams }) {
+  const { eventId } = await params;
+  const query = (await searchParams) || {};
 
-  // Si ya viene qty por URL (ej: /pay/ID?qty=3), redirigimos directo (como antes)
-  const qty = searchParams?.qty ? String(searchParams.qty).trim() : "";
-  if (qty) {
-    const target = `${apiBase}/api/payments/direct/${eventId}?qty=${encodeURIComponent(
-      qty
-    )}`;
-    redirect(target);
+  const forwarded = new URLSearchParams();
+  for (const key of FORWARDED_PARAMS) {
+    const raw = Array.isArray(query[key]) ? query[key][0] : query[key];
+    const value = typeof raw === 'string' ? raw.trim() : '';
+    if (value) forwarded.set(key, value);
   }
 
-  // Si NO viene qty, mostramos selector en ESTA misma página
-  return (
-    <PayCheckoutClient
-      eventId={eventId}
-      apiBase={apiBase}
-      maxQty={10} // ajusta si quieres
-      defaultQty={1}
-    />
-  );
+  const qs = forwarded.toString();
+  redirect(`${API_BASE}/api/payments/direct/${encodeURIComponent(eventId)}${qs ? `?${qs}` : ''}`);
 }
