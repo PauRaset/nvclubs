@@ -16,6 +16,13 @@ import TicketTiersEditor, {
   emptyTier,
 } from '@/components/TicketTiersEditor';
 import { parsePriceInput, formatEUR } from '@/lib/price';
+import {
+  ACCESS_TYPE_OPTIONS,
+  initialAccessType,
+  initialCapacityInput,
+  sanitizeCapacityInput,
+  describeEventSaveError,
+} from '@/lib/eventAccess';
 
 /* --- Recorte simple: centra y reescala a 800x450 --- */
 async function cropTo800x450(file) {
@@ -139,15 +146,16 @@ function formatSummaryDate(v) {
   });
 }
 
-function formatMoneyPreview(v) {
-  const n = Number(String(v ?? '').trim().replace(',', '.'));
-  if (!Number.isFinite(n) || String(v ?? '').trim() === '') return 'Gratis o pendiente';
-  return new Intl.NumberFormat('es-ES', {
-    style: 'currency',
-    currency: 'EUR',
-    minimumFractionDigits: Number.isInteger(n) ? 0 : 2,
-    maximumFractionDigits: 2,
-  }).format(n);
+// Resumen de acceso para la vista previa: el tipo dice si es gratis, no el precio.
+function accessPreview({ accessType, capacity, useTiers, minTier, price }) {
+  if (accessType === 'free_open') return 'Entrada libre';
+  if (accessType === 'free_limited') {
+    const cap = Number(capacity);
+    return Number.isInteger(cap) && cap > 0 ? `Gratis · ${cap} plazas` : 'Gratis · falta el aforo';
+  }
+  if (useTiers) return minTier !== null && minTier > 0 ? `Desde ${formatEUR(minTier)}` : 'Falta el precio';
+  const n = parsePriceInput(price);
+  return n !== null && n > 0 ? formatEUR(n) : 'Falta el precio';
 }
 
 export default function EventForm({ initial = null, onSaved, mode = 'create' }) {
@@ -177,6 +185,10 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
   const [dressCode, setDressCode] = useState(initial?.dressCode || '');
   const [age, setAge] = useState(initial?.age ?? '');
   const [price, setPrice] = useState(initial?.price ?? '');
+
+  // Tipo de acceso y aforo (0 / vacío = sin límite)
+  const [accessType, setAccessType] = useState(() => initialAccessType(initial, mode));
+  const [capacity, setCapacity] = useState(() => initialCapacityInput(initial));
 
   // Tipos de entrada / tandas
   const hadTiers = Array.isArray(initial?.ticketTiers) && initial.ticketTiers.length > 0;
@@ -292,24 +304,34 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
     const priceNum = parsePriceInput(price);
     const ageNum = age === '' ? null : clamp(Math.round(Number(age)), 0, 99);
 
-    if (useTiers) {
+    const fail = (message) => {
+      setSaving(false);
+      setMsg('');
+      setFormError(message);
+    };
+
+    // Aforo: obligatorio en "Gratis con aforo"; opcional en pago (vacío = sin límite).
+    const capacityNum = capacity === '' ? 0 : Number(capacity);
+    if (capacity !== '' && (!Number.isInteger(capacityNum) || capacityNum < 0)) {
+      return fail('El aforo debe ser un número entero (sin decimales).');
+    }
+    if (accessType === 'free_limited' && capacityNum <= 0) {
+      return fail('Falta el aforo: indica cuántas plazas hay.');
+    }
+
+    const paidWithTiers = accessType === 'paid' && useTiers;
+    if (paidWithTiers) {
       const tiersError = validateTiers(tiers);
-      if (tiersError) {
-        setSaving(false);
-        setMsg('');
-        return setFormError(tiersError);
+      if (tiersError) return fail(tiersError);
+      const prices = tiers.filter((t) => t.active !== false).map((t) => parsePriceInput(t.priceEUR) || 0);
+      if (!prices.some((p) => p > 0)) return fail('Un evento de pago necesita al menos una tanda con precio mayor que 0.');
+      if (tiers.some((t) => (parsePriceInput(t.priceEUR) || 0) === 0)) {
+        return fail('No se pueden mezclar tandas gratis y de pago en el mismo evento.');
       }
-    } else {
-      if (price !== '' && priceNum === null) {
-        setSaving(false);
-        setMsg('');
-        return setFormError('El precio no es válido. Usa un número como 12,50.');
-      }
-      if (priceNum !== null && priceNum > 999999) {
-        setSaving(false);
-        setMsg('');
-        return setFormError('El precio es demasiado alto.');
-      }
+    } else if (accessType === 'paid') {
+      if (price !== '' && priceNum === null) return fail('El precio no es válido. Usa un número como 12,50.');
+      if (priceNum === null || priceNum <= 0) return fail('Un evento de pago necesita un precio mayor que 0.');
+      if (priceNum > 999999) return fail('El precio es demasiado alto.');
     }
 
     // Construye payload
@@ -324,16 +346,20 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
       categories: mergedCategories(),
       dressCode: dressCode?.trim() || '',
       age: ageNum,
-      price: priceNum,
+      accessType,
+      // Gratis: precio 0 explícito. Pago: el precio indicado.
+      price: accessType === 'paid' ? priceNum : 0,
+      // Entrada libre no tiene aforo (0 = sin límite).
+      capacity: accessType === 'free_open' ? 0 : capacityNum,
     };
 
-    if (useTiers) {
+    if (paidWithTiers) {
       // Con tandas el precio lo calcula el servidor; sold/reserved no se envían.
       delete payload.price;
       payload.ticketTiers = serializeTiers(tiers);
     } else if (hadTiers) {
-      // Desactiva las tandas. Si alguna tiene ventas, el backend responde 400
-      // y su mensaje se muestra abajo tal cual.
+      // Sin tandas (pago sin tandas o cualquier evento gratis): se quitan. Si alguna
+      // tiene ventas, el backend responde 400 y su mensaje se muestra abajo.
       payload.ticketTiers = [];
     }
 
@@ -344,7 +370,7 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
     if (!res.ok) {
       setSaving(false);
       setMsg('');
-      return setFormError(res.data?.message || `Error (HTTP ${res.status})`);
+      return setFormError(describeEventSaveError(res));
     }
 
     const saved = res.data;
@@ -450,11 +476,9 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
                 <span style={sx.previewMetricValue}>{previewLocation}</span>
               </div>
               <div style={sx.previewMetric}>
-                <span style={sx.previewMetricLabel}>Precio</span>
+                <span style={sx.previewMetricLabel}>Acceso</span>
                 <span style={sx.previewMetricValue}>
-                  {useTiers
-                    ? (previewMinTier !== null ? `Desde ${formatEUR(previewMinTier)}` : 'Gratis o pendiente')
-                    : formatMoneyPreview(price)}
+                  {accessPreview({ accessType, capacity, useTiers, minTier: previewMinTier, price })}
                 </span>
               </div>
             </div>
@@ -677,15 +701,68 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
         </label>
       </section>
 
-      {/* Card: Detalles */}
+      {/* Card: Acceso y entradas */}
       <section style={sx.card}>
         <div style={sx.sectionHead}>
           <div>
-            <h2 style={sx.h2}>Detalles</h2>
-            <p style={sx.sectionText}>Información adicional para completar la ficha del evento.</p>
+            <h2 style={sx.h2}>Acceso y entradas</h2>
+            <p style={sx.sectionText}>Cómo se entra al evento y, si hay entradas, cuántas y a qué precio.</p>
           </div>
         </div>
-        <label style={{...sx.genreItem(useTiers), width:'fit-content', marginBottom:12}}>
+
+        <div role="radiogroup" aria-label="Tipo de acceso" style={sx.accessGrid}>
+          {ACCESS_TYPE_OPTIONS.map((opt) => {
+            const checked = accessType === opt.value;
+            return (
+              <label key={opt.value} style={sx.accessOption(checked)}>
+                <input
+                  type="radio"
+                  name="accessType"
+                  value={opt.value}
+                  checked={checked}
+                  onChange={() => setAccessType(opt.value)}
+                  style={{ marginTop: 3 }}
+                />
+                <span style={{ display: 'grid', gap: 4 }}>
+                  <span style={{ fontWeight: 800, color: '#e5e7eb' }}>{opt.label}</span>
+                  <span style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.45 }}>{opt.help}</span>
+                </span>
+              </label>
+            );
+          })}
+        </div>
+
+        {accessType === 'free_open' && (
+          <div style={{ ...sx.infoNotice, marginTop: 14 }}>
+            Los asistentes marcarán que van; no se emiten entradas.
+            {hadTiers && ' Al guardar se quitarán las tandas que tenía el evento.'}
+          </div>
+        )}
+
+        {accessType === 'free_limited' && (
+          <div style={{ ...sx.grid3, marginTop: 14 }}>
+            <label style={sx.label}>
+              Aforo <span style={sx.req}>*</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={capacity}
+                onChange={(e) => setCapacity(sanitizeCapacityInput(e.target.value))}
+                placeholder="p.ej. 200"
+                required
+                style={sx.input}
+              />
+              <span style={sx.helperText}>
+                Plazas gratis que se pueden reservar.
+                {hadTiers && ' Al guardar se quitarán las tandas que tenía el evento.'}
+              </span>
+            </label>
+          </div>
+        )}
+
+        {accessType === 'paid' && (
+        <>
+        <label style={{...sx.genreItem(useTiers), width:'fit-content', margin:'14px 0 12px'}}>
           <input
             type="checkbox"
             checked={useTiers}
@@ -701,7 +778,7 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
         <div style={sx.grid3}>
           {!useTiers && (
             <label style={sx.label}>
-              Precio (€)
+              Precio (€) <span style={sx.req}>*</span>
               <input
                 type="number"
                 min="0"
@@ -715,6 +792,33 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
             </label>
           )}
           <label style={sx.label}>
+            Aforo (opcional)
+            <input
+              type="text"
+              inputMode="numeric"
+              value={capacity}
+              onChange={(e) => setCapacity(sanitizeCapacityInput(e.target.value))}
+              placeholder="Sin límite"
+              style={sx.input}
+            />
+            <span style={sx.helperText}>Máximo de entradas en total. Vacío = sin límite.</span>
+          </label>
+        </div>
+        {useTiers && (
+          <div style={{marginTop:14}}>
+            <TicketTiersEditor
+              value={tiers}
+              onChange={setTiers}
+              capacity={capacity === '' ? null : Number(capacity)}
+              mode={mode}
+            />
+          </div>
+        )}
+        </>
+        )}
+
+        <div style={{ ...sx.grid3, marginTop: 14 }}>
+          <label style={sx.label}>
             Edad mínima
             <input
               type="number"
@@ -726,18 +830,7 @@ export default function EventForm({ initial = null, onSaved, mode = 'create' }) 
               style={sx.input}
             />
           </label>
-          <div />
         </div>
-        {useTiers && (
-          <div style={{marginTop:14}}>
-            <TicketTiersEditor
-              value={tiers}
-              onChange={setTiers}
-              capacity={initial?.capacity ?? null}
-              mode={mode}
-            />
-          </div>
-        )}
       </section>
 
       {/* Card: Imagen */}
@@ -1086,6 +1179,23 @@ const sx = {
     gridTemplateColumns:'repeat(auto-fill, minmax(180px, 1fr))',
     gap:8,
   },
+  accessGrid: {
+    display:'grid',
+    gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
+    gap:10,
+  },
+  accessOption: (checked) => ({
+    display:'flex',
+    alignItems:'flex-start',
+    gap:10,
+    padding:'12px 14px',
+    borderRadius:12,
+    border:'1px solid ' + (checked ? '#00b9d1' : '#243044'),
+    background: checked ? '#08222a' : '#0d1526',
+    cursor:'pointer',
+    userSelect:'none',
+    fontSize:14,
+  }),
   genreItem: (checked) => ({
     display:'flex',
     alignItems:'center',
