@@ -1,31 +1,77 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { api } from '@/lib/apiClient';
+import { API_BASE } from '@/lib/apiBase';
 
-// Mensaje claro para las respuestas de las rutas de administración del registro.
-// api() añade Authorization: Bearer <token> con el mismo token que el resto del portal.
-function errorMessage(res, fallback) {
-  if (res.status === 401) return 'Inicia sesión para continuar';
-  if (res.status === 403) return 'Tu cuenta no tiene permisos de administración';
-  if (res.status === 503) return 'La administración está desactivada en el servidor';
-  return res.data?.error || res.data?.message || fallback;
+// Llamada a las rutas de administración del registro con la clave de administrador
+// en X-Admin-Key (sin Authorization ni cookies). La clave solo vive en el estado de React.
+async function adminFetch(path, adminKey, { method = 'GET', body } = {}) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method,
+    headers: {
+      'X-Admin-Key': adminKey,
+      ...(body ? { 'Content-Type': 'application/json' } : {}),
+    },
+    body,
+    cache: 'no-store',
+  });
+  const data = await res.json().catch(() => ({}));
+  return { ok: res.ok, status: res.status, data };
 }
 
 export default function AdminAppsPage() {
+  // Clave de administrador: SOLO en memoria. Al recargar o cerrar la pestaña se pierde.
+  const [adminKey, setAdminKey] = useState('');
+  const [keyInput, setKeyInput] = useState('');
+
   const [status, setStatus] = useState('email_verified'); // pending | email_verified | approved | rejected
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState('');
 
+  // 401/403: clave incorrecta -> se borra y se vuelve al campo. 503: administración desactivada.
+  // Devuelve true si la respuesta ya se ha tratado como error de acceso.
+  function handleAccessError(res) {
+    if (res.status === 401 || res.status === 403) {
+      setAdminKey('');
+      setItems([]);
+      setMsg('Clave incorrecta');
+      return true;
+    }
+    if (res.status === 503) {
+      setItems([]);
+      setMsg('La administración está desactivada en el servidor');
+      return true;
+    }
+    return false;
+  }
+
+  function enter(e) {
+    e.preventDefault();
+    const k = keyInput.trim();
+    if (!k) return;
+    setMsg('');
+    setAdminKey(k);
+    setKeyInput('');
+  }
+
+  function logout() {
+    setAdminKey('');
+    setKeyInput('');
+    setItems([]);
+    setMsg('');
+  }
+
   async function load() {
+    if (!adminKey) return;
     setLoading(true);
     setMsg('');
     try {
-      const res = await api(`/api/registration/applications?status=${encodeURIComponent(status)}`);
+      const res = await adminFetch(`/api/registration/applications?status=${encodeURIComponent(status)}`, adminKey);
+      if (handleAccessError(res)) return;
       if (!res.ok) {
         setItems([]);
-        setMsg(errorMessage(res, 'No se pudo cargar'));
+        setMsg(res.data?.error || 'No se pudo cargar');
         return;
       }
       setItems(res.data?.items || []);
@@ -37,15 +83,19 @@ export default function AdminAppsPage() {
     }
   }
 
-  useEffect(() => { load(); }, [status]);
+  // No se carga nada hasta tener la clave.
+  useEffect(() => { if (adminKey) load(); }, [status, adminKey]);
 
   async function approve(id) {
     if (!confirm('¿Aprobar esta solicitud?')) return;
     setMsg('');
     try {
-      const res = await api(`/api/registration/applications/${encodeURIComponent(id)}/approve`, { method: 'POST' });
+      const res = await adminFetch(`/api/registration/applications/${encodeURIComponent(id)}/approve`, adminKey, {
+        method: 'POST',
+      });
+      if (handleAccessError(res)) return;
       if (!res.ok || !res.data?.ok) {
-        setMsg(errorMessage(res, 'No se pudo aprobar'));
+        setMsg(res.data?.error || 'No se pudo aprobar');
         return;
       }
     } catch (e) {
@@ -60,12 +110,13 @@ export default function AdminAppsPage() {
     const reason = prompt('Motivo de rechazo (opcional):') || '';
     setMsg('');
     try {
-      const res = await api(`/api/registration/applications/${encodeURIComponent(id)}/reject`, {
+      const res = await adminFetch(`/api/registration/applications/${encodeURIComponent(id)}/reject`, adminKey, {
         method: 'POST',
         body: JSON.stringify({ reason }),
       });
+      if (handleAccessError(res)) return;
       if (!res.ok || !res.data?.ok) {
-        setMsg(errorMessage(res, 'No se pudo rechazar'));
+        setMsg(res.data?.error || 'No se pudo rechazar');
         return;
       }
     } catch (e) {
@@ -93,6 +144,41 @@ export default function AdminAppsPage() {
     </button>
   );
 
+  const pageBg = {
+    minHeight: '100vh',
+    background: 'radial-gradient(60% 60% at 10% 0%, rgba(14,165,233,.15) 0, transparent 60%), radial-gradient(60% 60% at 100% 100%, rgba(99,102,241,.15) 0, transparent 60%), #0b0f19',
+    padding: 16, color: '#e5e7eb'
+  };
+
+  if (!adminKey) {
+    return (
+      <main style={pageBg}>
+        <form onSubmit={enter} style={{ maxWidth: 360, margin: '80px auto 0', display: 'grid', gap: 12 }}>
+          <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>Solicitudes de clubs</h1>
+          <label style={{ display: 'grid', gap: 6, fontWeight: 700 }}>
+            Clave de administrador
+            <input
+              type="password"
+              value={keyInput}
+              onChange={(e) => setKeyInput(e.target.value)}
+              autoComplete="off"
+              autoFocus
+              style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #1f2937', background: '#0b1220', color: '#e5e7eb' }}
+            />
+          </label>
+          {msg && <p role="alert" style={{ margin: 0, color: '#fca5a5' }}>{msg}</p>}
+          <button
+            type="submit"
+            disabled={!keyInput.trim()}
+            style={{ padding: '10px 12px', borderRadius: 8, border: 0, background: 'linear-gradient(90deg,#0ea5e9,#6366f1)', color: '#001018', fontWeight: 800, cursor: 'pointer', opacity: keyInput.trim() ? 1 : 0.6 }}
+          >
+            Entrar
+          </button>
+        </form>
+      </main>
+    );
+  }
+
   return (
     <main style={{
       minHeight: '100vh',
@@ -100,7 +186,16 @@ export default function AdminAppsPage() {
       padding: 16, color: '#e5e7eb'
     }}>
       <div style={{ maxWidth: 900, margin: '0 auto' }}>
-        <h1 style={{ fontSize: 22, fontWeight: 800, marginBottom: 12 }}>Solicitudes de clubs</h1>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+          <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>Solicitudes de clubs</h1>
+          <button
+            type="button"
+            onClick={logout}
+            style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #1f2937', background: '#0b0f19', color: '#e5e7eb', fontWeight: 700, cursor: 'pointer' }}
+          >
+            Salir
+          </button>
+        </div>
 
         <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
           {tab('pending', 'Pendientes')}
