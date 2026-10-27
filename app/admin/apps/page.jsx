@@ -1,11 +1,18 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { API_BASE } from '@/lib/apiBase';
+import { api } from '@/lib/apiClient';
+
+// Mensaje claro para las respuestas de las rutas de administración del registro.
+// api() añade Authorization: Bearer <token> con el mismo token que el resto del portal.
+function errorMessage(res, fallback) {
+  if (res.status === 401) return 'Inicia sesión para continuar';
+  if (res.status === 403) return 'Tu cuenta no tiene permisos de administración';
+  if (res.status === 503) return 'La administración está desactivada en el servidor';
+  return res.data?.error || res.data?.message || fallback;
+}
 
 export default function AdminAppsPage() {
-  const API = API_BASE;
-
   const [status, setStatus] = useState('email_verified'); // pending | email_verified | approved | rejected
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -15,12 +22,16 @@ export default function AdminAppsPage() {
     setLoading(true);
     setMsg('');
     try {
-      const res = await fetch(`${API}/api/registration/applications?status=${status}`, { cache: 'no-store' });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || 'No se pudo cargar');
-      setItems(data.items || []);
+      const res = await api(`/api/registration/applications?status=${encodeURIComponent(status)}`);
+      if (!res.ok) {
+        setItems([]);
+        setMsg(errorMessage(res, 'No se pudo cargar'));
+        return;
+      }
+      setItems(res.data?.items || []);
     } catch (e) {
-      setMsg(e.message || 'Error cargando solicitudes');
+      setItems([]);
+      setMsg('No hay conexión con el servidor. Inténtalo de nuevo.');
     } finally {
       setLoading(false);
     }
@@ -31,10 +42,14 @@ export default function AdminAppsPage() {
   async function approve(id) {
     if (!confirm('¿Aprobar esta solicitud?')) return;
     setMsg('');
-    const res = await fetch(`${API}/api/registration/applications/${id}/approve`, { method: 'POST' });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok || !data?.ok) {
-      setMsg(data?.error || 'No se pudo aprobar');
+    try {
+      const res = await api(`/api/registration/applications/${encodeURIComponent(id)}/approve`, { method: 'POST' });
+      if (!res.ok || !res.data?.ok) {
+        setMsg(errorMessage(res, 'No se pudo aprobar'));
+        return;
+      }
+    } catch (e) {
+      setMsg('No hay conexión con el servidor. Inténtalo de nuevo.');
       return;
     }
     setMsg('✅ Aprobada');
@@ -43,14 +58,18 @@ export default function AdminAppsPage() {
 
   async function reject(id) {
     const reason = prompt('Motivo de rechazo (opcional):') || '';
-    const res = await fetch(`${API}/api/registration/applications/${id}/reject`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ reason }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok || !data?.ok) {
-      setMsg(data?.error || 'No se pudo rechazar');
+    setMsg('');
+    try {
+      const res = await api(`/api/registration/applications/${encodeURIComponent(id)}/reject`, {
+        method: 'POST',
+        body: JSON.stringify({ reason }),
+      });
+      if (!res.ok || !res.data?.ok) {
+        setMsg(errorMessage(res, 'No se pudo rechazar'));
+        return;
+      }
+    } catch (e) {
+      setMsg('No hay conexión con el servidor. Inténtalo de nuevo.');
       return;
     }
     setMsg('🚫 Rechazada');
